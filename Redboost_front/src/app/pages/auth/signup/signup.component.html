@@ -1,0 +1,117 @@
+<div class="registration-container">
+    <div class="registration-card">
+      <h2>Create Your Account</h2>
+      <p>Join us to get started</p>
+  
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+        <!-- First Name -->
+        <div class="input-group">
+          <label for="firstName">First Name</label>
+          <input
+            id="firstName"
+            type="text"
+            formControlName="firstName"
+            placeholder="Enter your first name"
+            [ngClass]="{ 'invalid-input': submitted() && f['firstName'].errors }"
+          />
+          <div *ngIf="submitted() && f['firstName'].errors" class="error-message">
+            First Name is required
+          </div>
+        </div>
+  
+        <!-- Last Name -->
+        <div class="input-group">
+          <label for="lastName">Last Name</label>
+          <input
+            id="lastName"
+            type="text"
+            formControlName="lastName"
+            placeholder="Enter your last name"
+            [ngClass]="{ 'invalid-input': submitted() && f['lastName'].errors }"
+          />
+          <div *ngIf="submitted() && f['lastName'].errors" class="error-message">
+            Last Name is required
+          </div>
+        </div>
+  
+        <!-- Email -->
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="Enter your email"
+            [ngClass]="{ 'invalid-input': submitted() && f['email'].errors }"
+          />
+          <div *ngIf="submitted() && f['email'].errors" class="error-message">
+            {{ f['email'].errors['required'] ? 'Email is required' : 'Invalid email format' }}
+          </div>
+        </div>
+  
+        <!-- Password -->
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            placeholder="Enter your password"
+            [ngClass]="{ 'invalid-input': submitted() && f['password'].errors }"
+          />
+          <div *ngIf="submitted() && f['password'].errors" class="error-message">
+            {{ f['password'].errors['required'] ? 'Password is required' : 'Password must be at least 6 characters' }}
+          </div>
+        </div>
+  
+        <!-- Phone Number -->
+        <div class="input-group">
+          <label for="phoneNumber">Phone Number</label>
+          <input
+            id="phoneNumber"
+            type="text"
+            formControlName="phoneNumber"
+            placeholder="Enter your phone number"
+            [ngClass]="{ 'invalid-input': submitted() && f['phoneNumber'].errors }"
+          />
+          <div *ngIf="submitted() && f['phoneNumber'].errors" class="error-message">
+            Phone Number is required
+          </div>
+        </div>
+  
+        <!-- Role Selection -->
+        <div class="input-group role-selection">
+          <label>Vous êtes</label>
+          <div class="radio-group">
+            <label>
+              <input type="radio" formControlName="role" value="ENTREPRENEUR" />
+              Entrepreneur
+            </label>
+            <label>
+              <input type="radio" formControlName="role" value="COACH" />
+              Coach
+            </label>
+            <label>
+              <input type="radio" formControlName="role" value="INVESTOR" />
+              Investor
+            </label>
+          </div>
+          <div *ngIf="submitted() && f['role'].errors" class="error-message">
+            Role is required
+          </div>
+        </div>
+  
+        <!-- Submit Button -->
+        <button type="submit" class="register-button">Register</button>
+  
+        <!-- Error Message -->
+        <div *ngIf="errorMessage()" class="error-message global-error">
+          {{ errorMessage() }}
+        </div>
+      </form>
+  
+      <p class="login-link">
+        Already have an account? <a routerLink="/login">Log In</a>
+      </p>
+    </div>
+  </div>

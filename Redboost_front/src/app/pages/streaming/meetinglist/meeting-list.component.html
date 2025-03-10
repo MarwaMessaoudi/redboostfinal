@@ -1,0 +1,51 @@
+<div class="meeting-list-container" @fadeInOut>
+  <div class="dashboard-cards">
+    <div class="card" *ngFor="let card of dashboardCards">
+      <i class="card-icon fas {{ card.icon }}"></i>
+      <div class="card-content">
+        <span class="card-title">{{ card.title }}</span>
+        <span class="card-value">{{ card.value }}</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="meeting-list-header">
+    <h2>Your Meeting List : </h2>
+  </div>
+
+  <div class="meeting-table-container">
+    <table class="meeting-table">
+      <thead>
+        <tr>
+          <th class="title-column">Titre</th>
+          <th class="date-column">Date</th>
+          <th class="participants-column">nbr participants</th>
+          <th class="summary-column">Resumeé Pdf</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let meeting of meetings; let even = even" 
+            [ngClass]="{'even-row': even}"
+            @tableRowAnimation
+            class="meeting-row"
+            (click)="showMeetingDetails(meeting)">
+          <td class="title-column">
+            <div class="meeting-title">{{ meeting.title }}</div>
+          </td>
+          <td class="date-column">
+            <div class="meeting-date">{{ formatDate(meeting.startTime) }}</div>
+          </td>
+          <td class="participants-column">
+            <div class="participants-count">{{ meeting.currentParticipants }}/{{ meeting.capacity }}</div>
+          </td>
+          <td class="summary-column">
+            <button class="pdf-button" (click)="downloadSummary(meeting)">
+              <span class="button-text">PDF</span>
+              <span class="button-icon">↓</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

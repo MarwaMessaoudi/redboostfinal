@@ -1,0 +1,283 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
+/* Define CSS variables - MATCHING TASKUPDATE */
+:root {
+    --phase-form-text-color: #172b4d; /* Main text color */
+    --phase-form-background-color: #fff; /* White background */
+    --phase-form-border-color: #dfe1e6; /* Light gray border */
+    --phase-form-input-background-color: #f4f5f7; /* Light gray input background */
+    --phase-form-primary-button-color: #0052cc; /* Blue save button */
+    --phase-form-primary-button-text-color: #fff; /* White text on blue button */
+    --phase-form-secondary-button-color: #f4f5f7; /* Light gray cancel button */
+    --phase-form-secondary-button-text-color: #42526e; /* Dark gray cancel text */
+    --phase-form-label-color: #5e6c84; /* Gray label color */
+    --phase-form-hint-color: #6b778c; /* Light gray hint color */
+    --phase-form-header-color: #42526e; /* Header color */
+    --phase-form-section-header-color: #5e6c84; /* Section header color */
+    --phase-form-description-color: #172b4d; /* Description text color */
+    --phase-form-status-box-color: #42526e; /* Status box text color */
+
+    --phase-form-font-family: 'Poppins', sans-serif;
+}
+
+/* Apply styles based on the "scope" attribute */
+[scope='phase-form-styles'] {
+    /* Reset and Base Styles */
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        max-width: 100%;
+        height: auto;
+    }
+
+    font-family: var(--phase-form-font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    ul,
+    ol,
+    label {
+        margin: 0;
+        padding: 0;
+        font-size: inherit;
+        font-weight: normal;
+        line-height: 1.4;
+        color: inherit;
+    }
+
+    body {
+        margin: 0;
+    }
+
+    /* Component-Specific Styles - MATCHING TASKUPDATE */
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 3px;
+    background-color: var(--phase-form-background-color);
+    color: var(--phase-form-text-color);
+
+    & .app-phase-form-mat-dialog-title {
+        font-size: 16px; /* Smaller title size */
+        font-weight: 500;
+        margin-bottom: 16px;
+        text-align: left;
+        color: var(--phase-form-header-color); /* Use header color */
+    }
+
+    & .app-phase-form-form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Style form labels */
+    & .app-phase-form-mat-label {
+        font-size: 12px; /* Smaller label size */
+        font-weight: 600; /* More bold labels */
+        color: var(--phase-form-label-color);
+        margin-bottom: 4px;
+        display: block;
+        text-transform: uppercase; /* All caps labels */
+    }
+
+    /* Style form inputs */
+    & .app-phase-form-mat-input,
+    & .app-phase-form-mat-textarea,
+    & .app-phase-form-mat-select {
+        font-size: 14px;
+        color: var(--phase-form-text-color);
+        padding: 8px 12px;
+        border: 1px solid var(--phase-form-border-color);
+        border-radius: 3px;
+        background-color: var(--phase-form-input-background-color);
+        outline: none;
+
+        &:focus {
+            border-color: var(--phase-form-primary-button-color);
+            box-shadow: none;
+        }
+    }
+
+    /* Textarea adjustments */
+    & .app-phase-form-mat-textarea {
+        resize: vertical;
+        min-height: 70px;
+    }
+
+    /* Style Material Form Field */
+    & .app-phase-form-mat-form-field {
+        width: 100%;
+        font-size: 14px;
+
+        &.mat-form-field-appearance-outline {
+            .mat-form-field-outline {
+                color: transparent;
+            }
+
+            .mat-form-field-infix {
+                padding: 0.6em 0.7em;
+                border-top: none;
+            }
+
+            .mat-form-field-label {
+                top: 0.7em;
+                color: var(--phase-form-label-color);
+            }
+
+            &.mat-form-field-should-float .mat-form-field-label {
+                transform: translateY(-0.5em) scale(0.75);
+                color: var(--phase-form-primary-button-color);
+            }
+        }
+
+        .mat-form-field-hint {
+            font-size: 12px;
+            margin-top: 4px;
+            color: var(--phase-form-hint-color);
+        }
+
+        /* Override Tailwind form styles - FORCE THESE */
+        & input,
+        & textarea,
+        & select {
+            font-family: var(--phase-form-font-family);
+            font-size: 14px !important;
+            color: var(--phase-form-text-color) !important;
+            border-color: var(--phase-form-border-color) !important;
+            background-color: var(--phase-form-input-background-color) !important;
+        }
+    }
+
+    /* Date Range styles */
+    & .app-phase-form-date-range {
+        display: flex;
+        gap: 16px;
+
+        .app-phase-form-mat-form-field {
+            flex: 1;
+        }
+    }
+
+    /* Style form actions */
+    & .app-phase-form-form-actions {
+        margin-top: 24px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+
+        .app-phase-form-mat-button,
+        .app-phase-form-mat-raised-button {
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            line-height: 1.4;
+        }
+
+        /* Style primary button */
+        & .app-phase-form-mat-raised-button[color='primary'] {
+            background-color: var(--phase-form-primary-button-color);
+            color: var(--phase-form-primary-button-text-color);
+
+            &:hover {
+                background-color: #003c8f;
+            }
+        }
+
+        /* Style cancel button */
+        & .app-phase-form-mat-button {
+            background-color: var(--phase-form-secondary-button-color);
+            color: var(--phase-form-secondary-button-text-color);
+
+            &:hover {
+                background-color: #e9e9eb;
+            }
+        }
+    }
+
+    /* Style the status selector */
+    & .app-phase-form-mat-select {
+        border: 1px solid var(--phase-form-border-color);
+        border-radius: 3px;
+        background-color: var(--phase-form-input-background-color);
+        color: var(--phase-form-text-color);
+    }
+
+    /* === Sections === */
+    .section {
+        margin-bottom: 24px;
+    }
+
+    .section-header-task-update {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .section-header-task-update h3 {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--phase-form-section-header-color); /* Match header color */
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    .description-content {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--phase-form-description-color); /* Match description color */
+    }
+
+    /* Status */
+    .status-box {
+        display: inline-block;
+        background-color: var(--phase-form-input-background-color);
+        color: var(--phase-form-status-box-color); /* Match status box text */
+        padding: 6px 12px;
+        border-radius: 3px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    /* Meta Info */
+    .meta-info {
+        color: var(--phase-form-hint-color); /* Same as hint color */
+        font-size: 12px;
+        margin-bottom: 24px;
+        line-height: 1.5;
+    }
+
+    /* Form actions styling */
+    & .app-phase-form-form-actions {
+        margin-top: 12px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+
+        .app-phase-form-mat-button,
+        .app-phase-form-mat-raised-button {
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            line-height: 1.4;
+            text-transform: capitalize; /* Keep buttons normal case */
+        }
+    }
+}

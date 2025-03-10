@@ -1,0 +1,21 @@
+<div class="task-card" cdkDrag>
+    <div class="task-content" (click)="openEditTaskDialog(task)">
+        <div class="task-header">
+            <div class="task-title">{{ task.title }}</div>
+        </div>
+        <div class="task-description" *ngIf="task.description">
+            {{ task.description }}
+        </div>
+        <div class="task-footer">
+            <img src="assets/default-avatar.png" alt="Avatar" class="task-avatar" />
+            <span class="task-id">{{ task.phase?.phaseName || 'TÂCHE' }}-{{ task.taskId }}</span>
+            <!-- Safe navigation operator -->
+            <div class="task-icons">
+                <span class="priority-icon" [ngClass]="getPriorityClass(task.priority)">
+                    <i class="material-icons" *ngIf="task.priority === TaskPriority.HIGH">arrow_upward</i>
+                    <i class="material-icons" *ngIf="task.priority === TaskPriority.LOW">arrow_downward</i>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>

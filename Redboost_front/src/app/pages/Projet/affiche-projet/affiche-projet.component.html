@@ -1,0 +1,113 @@
+<div class="container">
+  <!-- Distinct Header Section -->
+  <header class="app-header">
+    <div class="header-content">
+      <h1 class="title">Your Projects</h1>
+      <div class="header-decoration"></div>
+    </div>
+    <div class="filter-section">
+      <div class="search-bar">
+        <mat-icon>search</mat-icon>
+        <input
+          type="text"
+          placeholder="Search projects..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="applyFilters()"
+          class="search-input"
+        />
+      </div>
+      <div class="filters">
+        <div class="filter-item">
+          <label for="sector-select">Sector</label>
+          <select id="sector-select" [(ngModel)]="selectedSector" (ngModelChange)="applyFilters()">
+            <option value="">All Sectors</option>
+            <option *ngFor="let sector of uniqueSectors" [value]="sector">{{ sector }}</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label for="location-select">Location</label>
+          <select id="location-select" [(ngModel)]="selectedLocation" (ngModelChange)="applyFilters()">
+            <option value="">All Locations</option>
+            <option *ngFor="let location of uniqueLocations" [value]="location">{{ location }}</option>
+          </select>
+        </div>
+        <div class="sort-controls">
+          <div class="filter-item">
+            <label for="sort-select">Sort By</label>
+            <select id="sort-select" [(ngModel)]="sortField" (ngModelChange)="applyFilters()">
+              <option value="creationDate">Creation Date</option>
+              <option value="revenue">Revenue</option>
+            </select>
+          </div>
+          <mat-slide-toggle [(ngModel)]="sortAscending" (ngModelChange)="applyFilters()">
+            Ascending
+          </mat-slide-toggle>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Cards Container (Wrapping only the project cards) -->
+  <div class="cards-container">
+    <ng-container *ngIf="filteredProjets$ | async as projets; else loading">
+      <div class="projets-container">
+        <mat-card *ngFor="let projet of projets" class="projet-card">
+          <!-- Header with Title and Delete Button -->
+          <mat-card-header class="card-header">
+            <mat-card-title>{{ projet[0] || 'Unnamed Project' }}</mat-card-title>
+            <button mat-icon-button class="delete-button" (click)="deleteProjet(projet[7])" aria-label="Delete project">
+              <mat-icon>delete_forever</mat-icon>
+            </button>
+          </mat-card-header>
+
+          <!-- Project Image -->
+          <img
+            mat-card-image
+            [src]="sanitizedImageUrl(projet[1])"
+            [attr.data-original-url]="projet[1] || 'null'"
+            alt="{{ projet[0] || 'Project' }} Logo"
+            class="project-logo"
+            (error)="onImageError($event)"
+          />
+
+          <!-- Project Info -->
+          <mat-card-content class="card-content">
+            <div class="info-item">
+              <mat-icon>business</mat-icon>
+              <span>{{ projet[2] || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ projet[3] || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>calendar_today</mat-icon>
+              <span>{{ projet[4] || 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>attach_money</mat-icon>
+              <span>{{ (projet[6] || 0) | currency }}</span>
+            </div>
+            <div class="info-item" *ngIf="projet[5]">
+              <mat-icon>language</mat-icon>
+              <a [href]="projet[5]" target="_blank" rel="noopener noreferrer">Visit Website</a>
+            </div>
+          </mat-card-content>
+
+          <!-- Actions -->
+          <mat-card-actions class="card-actions">
+            <a mat-button class="view-details-button" [routerLink]="['/details-projet', projet[7]]">View Details</a>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    </ng-container>
+
+    <!-- Loading Template -->
+    <ng-template #loading>
+      <div class="loading-container">
+        <mat-spinner diameter="50"></mat-spinner>
+        <p class="loading-message">Loading projects...</p>
+      </div>
+    </ng-template>
+  </div>
+</div>

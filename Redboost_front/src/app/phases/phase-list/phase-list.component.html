@@ -1,0 +1,79 @@
+<div class="dashboard-container">
+    <div class="header">
+        <h1>Phases</h1>
+        <p class="date">{{ currentDate | date: 'MMMM d' }}</p>
+    </div>
+
+    <div class="actions-container">
+        <button mat-fab color="primary" (click)="openCreateDialog()">
+            <mat-icon>add</mat-icon>
+        </button>
+    </div>
+
+    <div class="metrics-container white-container">
+        <div class="summary-metrics">
+            <div class="metric">
+                <div class="value">{{ inProgressCount }}</div>
+                <div class="label">En cours</div>
+            </div>
+            <div class="metric">
+                <div class="value">{{ upcomingCount }}</div>
+                <div class="label">À venir</div>
+            </div>
+            <div class="metric">
+                <div class="value">{{ phases.length }}</div>
+                <div class="label">Nombre Total de Projets</div>
+            </div>
+        </div>
+    </div>
+
+    <div *ngIf="loading" class="loading">Chargement des phases...</div>
+
+    <div *ngIf="error" class="error-message">{{ error }}</div>
+
+    <div *ngIf="!loading && !error && phases.length === 0" class="no-data">Aucune phase trouvée.</div>
+
+    <div class="phase-cards-container white-container">
+        <div class="phase-grid" *ngIf="!loading && !error && phases.length > 0">
+            <div class="phase-card" *ngFor="let phase of phases; let i = index" (click)="goToKanbanBoard(phase.phaseId!)" style="cursor: pointer">
+                <div class="card-header">
+                    <h2 class="phase-name">{{ phase.phaseName }}</h2>
+                </div>
+
+                <div class="phase-xp">Points XP : {{ phase.totalXpPoints }}</div>
+
+                <div class="done-xp">XP Terminé : {{ calculateDoneXP(phase.phaseId!) }}</div>
+
+                <div class="progress-container">
+                    <label>Progression</label>
+                    <div class="progress-bar">
+                        <div class="progress" [style.width.%]="calculateXPProgress(phase.phaseId!)"></div>
+                    </div>
+                    <span class="progress-percentage">{{ calculateXPProgress(phase.phaseId!) }}%</span>
+                </div>
+
+                <div class="team-members">
+                    <div class="member-avatar">
+                        <img src="path/to/avatar1.jpg" alt="Membre 1" />
+                    </div>
+                    <div class="member-avatar">
+                        <img src="path/to/avatar2.jpg" alt="Membre 2" />
+                    </div>
+                </div>
+
+                <div class="card-actions">
+                    <button mat-icon-button color="primary" (click)="openEditDialog(phase); $event.stopPropagation()">
+                        <mat-icon>edit</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deletePhase(phase.phaseId!); $event.stopPropagation()">
+                        <mat-icon>delete</mat-icon>
+                    </button>
+                    <button mat-icon-button (click)="openDescriptionDialog(phase); $event.stopPropagation()">
+                        <mat-icon>info_outline</mat-icon>
+                    </button>
+                </div>
+                <div class="days-left">{{ getDaysLeft(phase.endDate!) }} Jours restants</div>
+            </div>
+        </div>
+    </div>
+</div>

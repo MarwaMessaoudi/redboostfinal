@@ -1,0 +1,250 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
+/* Define CSS variables - MATCHING TASKUPDATE */
+:root {
+    --task-form-text-color: #172b4d; /* Main text color */
+    --task-form-background-color: #fff; /* White background */
+    --task-form-border-color: #dfe1e6; /* Light gray border */
+    --task-form-input-background-color: #f4f5f7; /* Light gray input background */
+    --task-form-primary-button-color: #0052cc; /* Blue save button */
+    --task-form-primary-button-text-color: #fff; /* White text on blue button */
+    --task-form-secondary-button-color: #f4f5f7; /* Light gray cancel button */
+    --task-form-secondary-button-text-color: #42526e; /* Dark gray cancel text */
+    --task-form-label-color: #5e6c84; /* Gray label color */
+    --task-form-hint-color: #6b778c; /* Light gray hint color */
+    --task-form-header-color: #42526e; /* Header color */
+    --task-form-section-title-color: #5e6c84; /* Section title color */
+    --task-form-description-color: #172b4d; /* Description text color */
+
+    --task-form-font-family: 'Poppins', sans-serif;
+}
+
+/* Direct Targeting - No Scope Attribute */
+.app-task-form-task-form-unique-container {
+    /* Reset and Base Styles */
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        max-width: 100%;
+        height: auto;
+    }
+
+    font-family: var(--task-form-font-family);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    ul,
+    ol,
+    label {
+        margin: 0;
+        padding: 0;
+        font-size: inherit;
+        font-weight: normal;
+        line-height: 1.4;
+        color: inherit;
+    }
+
+    body {
+        margin: 0;
+    }
+
+    /* General Styling */
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    border-radius: 3px;
+    background-color: var(--task-form-background-color);
+    color: var(--task-form-text-color);
+
+    /* Dialog Title */
+    & .app-task-form-mat-dialog-title {
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 16px;
+        text-align: left;
+        color: var(--task-form-header-color);
+    }
+
+    /* Form Container */
+    & .app-task-form-form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* Style Labels */
+    & .app-task-form-mat-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--task-form-label-color);
+        margin-bottom: 4px;
+        display: block;
+        text-transform: uppercase;
+    }
+
+    /* Style Inputs, Textareas and Selects */
+    & .app-task-form-mat-input,
+    & .app-task-form-mat-textarea,
+    & .app-task-form-mat-select {
+        font-size: 14px;
+        color: var(--task-form-text-color);
+        padding: 8px 12px;
+        border: 1px solid var(--task-form-border-color);
+        border-radius: 3px;
+        background-color: var(--task-form-input-background-color);
+        outline: none;
+
+        &:focus {
+            border-color: var(--task-form-primary-button-color);
+            box-shadow: none;
+        }
+    }
+
+    & .app-task-form-mat-textarea {
+        resize: vertical;
+        min-height: 70px;
+    }
+
+    /* Material Form Field Styles */
+    & .app-task-form-mat-form-field {
+        width: 100%;
+        font-size: 14px;
+
+        &.mat-form-field-appearance-outline {
+            .mat-form-field-outline {
+                color: transparent;
+            }
+
+            .mat-form-field-infix {
+                padding: 0.6em 0.7em;
+                border-top: none;
+            }
+
+            .mat-form-field-label {
+                top: 0.7em;
+                color: var(--task-form-label-color);
+            }
+
+            &.mat-form-field-should-float .mat-form-field-label {
+                transform: translateY(-0.5em) scale(0.75);
+                color: var(--task-form-primary-button-color);
+            }
+        }
+
+        .mat-form-field-hint {
+            font-size: 12px;
+            margin-top: 4px;
+            color: var(--task-form-hint-color);
+        }
+
+        .mat-form-field-disabled {
+            background-color: #fff;
+        }
+    }
+
+    /* Date Range Styles */
+    & .app-task-form-date-range {
+        display: flex;
+        gap: 16px;
+
+        .app-task-form-mat-form-field {
+            flex: 1;
+        }
+    }
+
+    /* Attachments Section */
+    & .app-task-form-attachments-section {
+        margin-top: 16px;
+
+        .app-task-form-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--task-form-section-title-color);
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .app-task-form-no-attachments {
+            font-style: italic;
+            color: var(--task-form-hint-color);
+            font-size: 14px;
+            padding: 8px 0;
+        }
+
+        .app-task-form-attachment-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+
+            .app-task-form-mat-chip {
+                font-size: 12px;
+                padding: 6px 8px;
+                border-radius: 3px;
+                background-color: var(--task-form-input-background-color);
+                color: var(--task-form-text-color);
+                border: 1px solid var(--task-form-border-color);
+            }
+
+            .app-task-form-mat-chip-remove {
+                .app-task-form-mat-icon {
+                    color: var(--task-form-hint-color);
+                }
+            }
+        }
+    }
+
+    /* Form Actions */
+    & .app-task-form-form-actions {
+        margin-top: 24px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+
+        .app-task-form-mat-button,
+        .app-task-form-mat-raised-button {
+            padding: 6px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 3px;
+            border: none;
+            cursor: pointer;
+            line-height: 1.4;
+            text-transform: capitalize;
+
+            &[mat-raised-button][color='primary'] {
+                background-color: var(--task-form-primary-button-color);
+                color: var(--task-form-primary-button-text-color);
+
+                &:hover {
+                    background-color: #003c8f;
+                }
+            }
+
+            &[mat-button] {
+                background-color: var(--task-form-secondary-button-color);
+                color: var(--task-form-secondary-button-text-color);
+
+                &:hover {
+                    background-color: #e9e9eb;
+                }
+            }
+        }
+    }
+
+    /* Style the mat select */
+    & .app-task-form-mat-select {
+        border: 1px solid var(--task-form-border-color);
+        border-radius: 3px;
+        background-color: var(--task-form-input-background-color);
+        color: var(--task-form-text-color);
+    }
+}

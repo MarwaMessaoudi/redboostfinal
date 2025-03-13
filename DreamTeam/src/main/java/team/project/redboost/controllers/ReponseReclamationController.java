@@ -70,10 +70,10 @@ public class ReponseReclamationController {
         return reponseService.deleteReponse(idReponse) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
     // Mettre à jour le statut d'une réclamation
-    @PutMapping("/statut")
+   /* @PutMapping("/statut")
     public ResponseEntity<Reclamation> updateReclamationStatut(
             @RequestBody StatutReclamationDTO statutReclamationDTO) {
         Reclamation updatedReclamation = reclamationService.updateReclamationStatut(statutReclamationDTO.getIdReclamation(), statutReclamationDTO.getStatut());
         return updatedReclamation != null ? ResponseEntity.ok(updatedReclamation) : ResponseEntity.notFound().build();
-    }
+    }*/
 }

@@ -3,6 +3,7 @@ package team.project.redboost.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import team.project.redboost.entities.Role; // Import the Role enum
 import team.project.redboost.entities.User;
 import team.project.redboost.repositories.UserRepository;
 
@@ -16,6 +17,9 @@ public class UserService { // No need to implement an interface
     private PasswordEncoder passwordEncoder; // Use the PasswordEncoder interface
 
     public User addUser(User user) {
+        // *** ADD THIS BLOCK TO ASSIGN THE DEFAULT ROLE ***
+        // Set the default role here.  Choose the appropriate default.
+        user.setRole(Role.USER); // Or Role.CUSTOMER, Role.GUEST, etc.
 
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));

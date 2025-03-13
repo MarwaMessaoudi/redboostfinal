@@ -1,5 +1,9 @@
+// User.java
 package team.project.redboost.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonManagedReference; // Import!
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
@@ -35,6 +39,7 @@ public class User implements UserDetails {
 
     private String phoneNumber;
 
+    @JsonIgnore
     @Enumerated(EnumType.STRING)
     private Role role;
 
@@ -66,6 +71,7 @@ public class User implements UserDetails {
     private List<Projet> investorProjects = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference //  Serialize this side
     private List<Reclamation> reclamations; // Relationship to Reclamation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -110,7 +116,10 @@ public class User implements UserDetails {
     public String generateConfirmationCode() {
         return String.format("%06d", new Random().nextInt(999999));
     }
-
+    @JsonProperty("role")
+    public String getRoleName() {
+        return (role != null) ? role.name() : null;
+    }
 
 
 }

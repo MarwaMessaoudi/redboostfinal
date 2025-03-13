@@ -2,6 +2,7 @@ package team.project.redboost.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference; // Import!
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -22,20 +23,15 @@ public class Reclamation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idReclamation;
 
-    private Long idUtilisateur = 1L;
 
-    @NotNull(message = "Le nom est obligatoire")
-    private String nom;
 
-    @Email
-    @NotNull(message = "L'email est obligatoire")
-    private String email;
 
     @NotNull(message = "Le sujet est obligatoire")
     private String sujet;
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     @Temporal(TemporalType.TIMESTAMP)
+
     @NotNull(message = "La date est obligatoire")
     private Date date;
 
@@ -59,5 +55,6 @@ public class Reclamation {
     private List<ReponseReclamation> reponses;
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false) // Foreign key to User table
+    @JsonBackReference // Skip serializing this
     private User user;
 }

@@ -57,4 +57,12 @@ public class Reclamation {
     @JoinColumn(name = "user_id", nullable = false) // Foreign key to User table
     @JsonBackReference // Skip serializing this
     private User user;
+
+    public @NotNull(message = "La catégorie est obligatoire") CategorieReclamation getCategorie() {
+        return categorie;
+    }
+
+    public void setCategorie(@NotNull(message = "La catégorie est obligatoire") CategorieReclamation categorie) {
+        this.categorie = categorie;
+    }
 }

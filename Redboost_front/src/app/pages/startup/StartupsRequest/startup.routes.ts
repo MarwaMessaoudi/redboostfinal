@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
-import { Startup } from './startup';
+import { StartupInvestmentRequestsComponent } from './startup';
 
 export default [
-    { path: '', component: Startup }, 
+    { path: '', component: StartupInvestmentRequestsComponent }, 
     { path: '**', redirectTo: '/notfound' }
 ] as Routes;

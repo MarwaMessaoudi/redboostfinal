@@ -26,7 +26,7 @@ public class Projet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;  // ✅ Correction : "nom" → "name"
+    private String name;
     private String sector;
     private String type;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
@@ -43,7 +43,6 @@ public class Projet {
 
     private Double globalScore;
     private String location;
-
 
     @Column(length = 500)
     private String logoUrl;
@@ -66,13 +65,13 @@ public class Projet {
     private LocalDate lastEvaluationDate;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "projet_id") // Foreign key in Produit table
+    @JoinColumn(name = "projet_id")
     private List<Produit> produits = new ArrayList<>();
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "projet_id") // Foreign key in ServiceP table
+    @JoinColumn(name = "projet_id")
     private List<ServiceP> services = new ArrayList<>();
-    // Entrepreneurs associated with this Projet
+
     @ManyToMany
     @JoinTable(
             name = "projet_entrepreneur",
@@ -81,7 +80,6 @@ public class Projet {
     )
     private List<User> entrepreneurs = new ArrayList<>();
 
-    // Coaches associated with this Projet
     @ManyToMany
     @JoinTable(
             name = "projet_coach",
@@ -90,7 +88,6 @@ public class Projet {
     )
     private List<User> coaches = new ArrayList<>();
 
-    // Investors associated with this Projet
     @ManyToMany
     @JoinTable(
             name = "projet_investor",
@@ -98,7 +95,7 @@ public class Projet {
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     private List<User> investors = new ArrayList<>();
-    // NEW: Many-to-Many with FolderMetadata
+
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "projet_folder",
@@ -106,14 +103,25 @@ public class Projet {
             inverseJoinColumns = @JoinColumn(name = "folder_id")
     )
     private List<FolderMetadata> folders = new ArrayList<>();
-    // NEW: One-to-Many with Phase
+
     @OneToMany(mappedBy = "projet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Phase> phases = new ArrayList<>();
+
+    // Getter and Setter for investmentRequests
+    // Added from original Startup entity
+    @Getter
+    @OneToMany(mappedBy = "projet", cascade = CascadeType.ALL, orphanRemoval = true)  // Changed "startup" to "projet"
+    private List<InvestmentRequest> investmentRequests;
+
     public enum Statut {
         EN_DEVELOPPEMENT, OPERATIONNELLE, EN_RECHERCHE_FINANCEMENT, TERMINE
     }
 
     public enum Objectives {
         COURT_TERME, MOYEN_TERME, LONG_TERME
+    }
+
+    public void setInvestmentRequests(List<InvestmentRequest> investmentRequests) {
+        this.investmentRequests = investmentRequests;
     }
 }

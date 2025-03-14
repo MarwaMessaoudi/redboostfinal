@@ -79,6 +79,11 @@ public class AuthController {
     @PostMapping("/firebase")
     public ResponseEntity<?> firebaseLogin(@RequestBody Map<String, String> request, HttpServletResponse response) {
         String idToken = request.get("idToken");
+        String role = request.get("role");// Get the role from the request body
+        // Default role if not provided
+        if (role == null || role.isEmpty()) {
+            role = "USER"; // Default role
+        }
 
         try {
             FirebaseToken decodedToken = firebaseService.verifyIdToken(idToken);
@@ -93,14 +98,13 @@ public class AuthController {
                 user.setEmail(email);
                 user.setProvider("google");
                 user.setProviderId(uid);
-                user.setRole(Role.USER);
+                user.setRole(Role.valueOf(role)); // Set the role from the request body
 
                 // Set default values for firstName and lastName if not available
                 user.setFirstName("Unknown"); // Default value
                 user.setLastName("Unknown");  // Default value
                 user.setPassword("unknown");
                 user.setPhoneNumber("Unknown");
-                user.setRole(Role.USER);
 
                 try {
                     userService.addUser(user); // Save the new user
@@ -114,7 +118,8 @@ public class AuthController {
             }
 
             // Generate JWT tokens
-            final String accessToken = jwtUtil.generateToken(user.getEmail(), user.getAuthorities());
+
+            final String accessToken = jwtUtil.generateToken(user.getEmail(), String.valueOf(user.getId()), user.getAuthorities());
             final String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), user.getAuthorities());
 
             // Return the tokens in the response body
@@ -159,9 +164,8 @@ public class AuthController {
 
             // Generate JWT token
 
-            final String accessToken = jwtUtil.generateToken(userDetails.getUsername(), userDetails.getAuthorities());
+            final String accessToken = jwtUtil.generateToken(userDetails.getUsername(), String.valueOf(user.getId()), userDetails.getAuthorities());
             final String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername(), userDetails.getAuthorities());
-
             // Return the tokens in the response body
             return ResponseEntity.ok(Map.of(
                     "accessToken", accessToken,
@@ -193,6 +197,7 @@ public class AuthController {
         }
 
         String email = jwtUtil.extractEmail(refreshToken);
+        String userId = jwtUtil.extractUserId(refreshToken);
         if (!jwtUtil.validateToken(refreshToken, email)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                     "message", "Invalid or expired refresh token!",
@@ -201,7 +206,7 @@ public class AuthController {
         }
 
         // Generate a new access token
-        String newAccessToken = jwtUtil.generateToken(email, userDetailsService.loadUserByUsername(email).getAuthorities());
+        String newAccessToken = jwtUtil.generateToken(email,userId, userDetailsService.loadUserByUsername(email).getAuthorities());
 
         return ResponseEntity.ok(Map.of(
                 "accessToken", newAccessToken,

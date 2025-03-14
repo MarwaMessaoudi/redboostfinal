@@ -64,6 +64,7 @@ export const appRoutes: Routes = [
             { path: 'investor/v1', loadChildren: () => import('./app/pages/startup/investorStartups/investor.routes') },
             { path: 'startup/v1', loadChildren: () => import('./app/pages/startup/StartupsRequest/startup.routes') },
             { path: 'startup/:id', loadChildren: () => import('./app/pages/marketplace/StartupDetails/startup.routes') },
+            { path:'startup-details/:id', loadChildren: () => import('./app/pages/startup/DetailsInvestment/details.routes')},
             {
                 path: 'appointments',
                 loadChildren: () => import('./app/pages/appointments/appointments.module').then(m => m.AppointmentsModule)

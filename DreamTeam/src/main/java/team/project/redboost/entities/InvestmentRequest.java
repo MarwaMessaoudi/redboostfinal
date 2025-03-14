@@ -21,11 +21,11 @@ public class InvestmentRequest {
     @JsonIgnoreProperties("investmentRequests") // Ignore the back reference
     private Investor investor;
 
-   // Startup relationship
+    // Projet relationship (changed from Startup)
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "startup_id", nullable = false)
+    @JoinColumn(name = "projet_id", nullable = false) // Changed from startup_id to projet_id
     @JsonIgnoreProperties("investmentRequests") // Ignore the back reference
-    private Startup startup;
+    private Projet projet; // Changed from Startup to Projet
 
     @Enumerated(EnumType.STRING)
     private InvestmentStatus status; // PENDING, ACCEPTED, DECLINED

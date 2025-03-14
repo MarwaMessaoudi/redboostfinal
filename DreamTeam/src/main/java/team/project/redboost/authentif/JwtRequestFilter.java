@@ -41,7 +41,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwtToken = authorizationHeader.substring(7);
             email = jwtUtil.extractEmail(jwtToken);
-            logger.info("JWT Token extracted. Email: " + email); // Log the extracted email
+            String userId = jwtUtil.extractUserId(jwtToken); // Extract the userId
+
+            logger.info("JWT Token extracted. Email: " + email + ", UserId: " + userId); // Log the extracted email and userId
         }
 
 

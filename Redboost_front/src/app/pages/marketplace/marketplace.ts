@@ -10,124 +10,215 @@ import axios from 'axios';
   standalone: true,
   imports: [FormsModule, CommonModule, RouterModule],
   template: `
-    <div class="container mx-auto p-6 max-w-4xl">
-      <h1 class="text-4xl font-bold text-center text-gray-800 mb-6">Startup Marketplace</h1>
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold text-center text-[#245C67] mb-8">Startup Marketplace</h1>
 
-      <div class="flex gap-4 mb-6">
-        <input
-          type="text"
-          [(ngModel)]="searchQuery"
-          placeholder="Search startups..."
-          class="border p-3 rounded-lg w-full shadow-sm focus:ring-2 focus:ring-blue-500"
-        />
-        <select
-          [(ngModel)]="selectedCategory"
-          class="border p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="All">All</option>
-          <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-        </select>
+      <!-- Search and Filter Section -->
+      <div class="flex flex-col gap-4 mb-8">
+        <div class="relative w-full">
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            (ngModelChange)="filterStartups()"
+            placeholder="Search by name, category, or description..."
+            class="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0A4955] focus:border-[#0A4955]"
+          />
+          <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <!-- Category Checkboxes -->
+        <div class="flex flex-wrap gap-4">
+          <label *ngFor="let cat of categories" class="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              [checked]="selectedCategories.includes(cat)"
+              (change)="toggleCategory(cat)"
+              class="h-4 w-4 text-[#0A4955] border-gray-300 rounded focus:ring-[#0A4955]"
+            />
+            <span class="text-[#568086] text-sm">{{ cat }}</span>
+          </label>
+        </div>
       </div>
 
-      <div class="space-y-6">
+      <!-- Startup Cards Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div
           *ngFor="let startup of displayedStartups"
-          class="p-6 border rounded-lg shadow-md bg-white hover:shadow-lg transition duration-300"
+          class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200"
         >
-          <h2 class="text-xl font-semibold text-gray-800">{{ startup.name }}</h2>
-          <p class="text-sm text-gray-500">{{ startup.category }}</p>
-          <p class="mt-3 text-gray-700">{{ startup.description }}</p>
-          <div class="flex gap-4 mt-4">
-            <button
-              (click)="openModal(startup)"
-              class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-            >
-              Send Proposal
-            </button>
-            <button
-              (click)="viewStartupDetails(startup.id)"
-              class="w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
-            >
-              View Details
-            </button>
+          <div class="p-5">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold text-[#245C67]">{{ startup.name }}</h2>
+              <span class="text-xs font-medium px-2 py-1 rounded-full bg-[#E88D9A] text-[#DB1E37]">
+                {{ startup.category }}
+              </span>
+            </div>
+            
+            <p class="text-[#568086] text-sm mb-4 line-clamp-2">{{ startup.description }}</p>
+            
+            <div class="space-y-2 text-sm text-[#568086] mb-4">
+              <div class="flex justify-between">
+                <span>Funding Goal:</span>
+                <span class="font-medium">{{ startup.fundingGoal | currency }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Location:</span>
+                <span class="font-medium">{{ startup.location }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Team Size:</span>
+                <span class="font-medium">{{ startup.teamSize }}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center mb-4">
+              <div class="flex items-center text-[#E44D62]">
+                <span *ngFor="let star of [1,2,3,4,5]" [class.fill-star]="star <= startup.rating">★</span>
+              </div>
+              <span class="ml-2 text-sm text-[#568086]">({{ startup.rating }}/5)</span>
+            </div>
+
+            <div class="flex gap-3">
+              <button
+                (click)="openModal(startup)"
+                class="flex-1 bg-[#0A4955] text-white py-2 px-4 rounded-md hover:bg-[#245C67] transition-colors text-sm"
+              >
+                Send Proposal
+              </button>
+              <button
+                (click)="viewStartupDetails(startup.id)"
+                class="flex-1 bg-[#A0CED9] text-[#568086] py-2 px-4 rounded-md hover:bg-[#7BB4C2] transition-colors text-sm"
+              >
+                View Details
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div *ngIf="loading" class="text-center text-gray-500 mt-4">Loading more startups...</div>
+      <!-- No Results Message -->
+      <div *ngIf="displayedStartups.length === 0 && !loading" class="text-center text-[#568086] mt-6">
+        No startups found matching your criteria.
+      </div>
 
+      <!-- Loading Indicator -->
+      <div *ngIf="loading" class="text-center text-[#568086] mt-6 py-4">
+        Loading more startups...
+      </div>
+
+      <!-- Modal -->
       <div
         *ngIf="isModalOpen"
-        class="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50"
+        class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50"
       >
-        <div class="bg-white p-6 rounded-lg shadow-2xl w-96">
-          <h3 class="text-2xl font-semibold mb-4">Send Proposal</h3>
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-[#245C67]">Send Proposal to {{ selectedStartup?.name }}</h3>
+            <button (click)="closeModal()" class="text-[#568086] hover:text-[#245C67]">✕</button>
+          </div>
           <textarea
             [(ngModel)]="message"
-            placeholder="Your message"
-            class="w-full p-3 border rounded-lg mb-4"
+            placeholder="Your proposal message"
+            class="w-full p-3 border rounded-lg mb-4 focus:ring-2 focus:ring-[#0A4955]"
             rows="4"
           ></textarea>
           <input
             [(ngModel)]="proposedAmount"
             type="number"
-            placeholder="Proposed Amount"
-            class="w-full p-3 border rounded-lg mb-4"
+            placeholder="Proposed Amount ($)"
+            class="w-full p-3 border rounded-lg mb-4 focus:ring-2 focus:ring-[#0A4955]"
           />
-          <div class="flex justify-end gap-4">
+          <div class="flex justify-end gap-3">
             <button
               (click)="closeModal()"
-              class="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+              class="px-4 py-2 bg-[#A0CED9] rounded-md hover:bg-[#7BB4C2]"
             >
               Cancel
             </button>
             <button
               (click)="sendProposal()"
-              class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              class="px-4 py-2 bg-[#0A4955] text-white rounded-md hover:bg-[#245C67]"
             >
-              Send
+              Send Proposal
             </button>
           </div>
         </div>
       </div>
     </div>
   `,
+  styles: [`
+    .fill-star { color: #E44D62; }
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  `]
 })
 export class MarketplaceComponent {
   searchQuery: string = '';
-  selectedCategory: string = 'All';
-  startups: any[] = [
-    { name: 'GreenTech', category: 'Environment', description: 'AI-powered climate solutions.', id: 1 },
-    { name: 'FinAI', category: 'Finance', description: 'AI-driven financial analytics.', id: 2 },
-    { name: 'HealthSync', category: 'Health', description: 'Personalized AI-based healthcare.', id: 3 },
-    { name: 'EduFuture', category: 'Education', description: 'AI-enhanced learning platform.', id: 4 },
-    { name: 'AgriSmart', category: 'Environment', description: 'AI-driven precision farming.', id: 5 },
-  ];
+  selectedCategories: string[] = [];
+  startups: any[] = [];
   displayedStartups: any[] = [];
   message: string = '';
   proposedAmount: number = 0;
   isModalOpen: boolean = false;
   selectedStartup: any;
   loading: boolean = false;
-  categories = ['Environment', 'Finance', 'Health', 'Education'];
+  categories: string[] = [];
 
   constructor(private http: HttpClient, private router: Router) {
-    this.loadMoreStartups();
+    this.fetchStartups();
   }
 
-  get filteredStartups() {
-    return this.startups.filter(
-      (startup) =>
-        (this.selectedCategory === 'All' || startup.category === this.selectedCategory) &&
-        startup.name.toLowerCase().includes(this.searchQuery.toLowerCase())
-    );
+  fetchStartups() {
+    this.loading = true;
+    axios
+      .get('http://localhost:8085/api/projets/GetAll') // Assumed endpoint
+      .then((response) => {
+        this.startups = response.data;
+        this.categories = [...new Set(this.startups.map(startup => startup.category))]; // Dynamically generate categories
+        this.filterStartups();
+        this.loading = false;
+      })
+      .catch((error) => {
+        console.error('Error fetching startups:', error);
+        this.loading = false;
+      });
+  }
+
+  toggleCategory(category: string) {
+    if (this.selectedCategories.includes(category)) {
+      this.selectedCategories = this.selectedCategories.filter(cat => cat !== category);
+    } else {
+      this.selectedCategories.push(category);
+    }
+    this.filterStartups();
+  }
+
+  filterStartups() {
+    const query = this.searchQuery.toLowerCase();
+    this.displayedStartups = this.startups.filter(startup => {
+      const matchesCategory = this.selectedCategories.length === 0 || this.selectedCategories.includes(startup.category);
+      const matchesSearch = 
+        startup.name.toLowerCase().includes(query) ||
+        startup.category.toLowerCase().includes(query) ||
+        startup.description.toLowerCase().includes(query) ||
+        startup.location.toLowerCase().includes(query);
+      return matchesCategory && matchesSearch;
+    });
+    this.loading = false;
   }
 
   @HostListener('window:scroll', [])
   onScroll(): void {
     if (
       window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
-      !this.loading
+      !this.loading &&
+      this.displayedStartups.length < this.startups.length
     ) {
       this.loadMoreStartups();
     }
@@ -136,7 +227,14 @@ export class MarketplaceComponent {
   loadMoreStartups() {
     this.loading = true;
     setTimeout(() => {
-      const nextBatch = this.filteredStartups.slice(
+      const filtered = this.startups.filter(startup => {
+        const matchesCategory = this.selectedCategories.length === 0 || this.selectedCategories.includes(startup.category);
+        const matchesSearch = startup.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                              startup.category.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                              startup.description.toLowerCase().includes(this.searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch;
+      });
+      const nextBatch = filtered.slice(
         this.displayedStartups.length,
         this.displayedStartups.length + 3
       );

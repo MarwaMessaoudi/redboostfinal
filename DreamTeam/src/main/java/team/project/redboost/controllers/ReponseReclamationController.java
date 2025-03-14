@@ -1,79 +1,104 @@
 package team.project.redboost.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import team.project.redboost.dto.StatutReclamationDTO;
-import team.project.redboost.entities.Reclamation;
 import team.project.redboost.entities.ReponseReclamation;
+import team.project.redboost.entities.User;
 import team.project.redboost.services.ReponseReclamationService;
-import team.project.redboost.services.ReclamationService;
+import team.project.redboost.repositories.UserRepository; // Import UserRepository
+import team.project.redboost.entities.Reclamation; //Import reclamation
+import team.project.redboost.repositories.ReclamationRepository; //Import reclamation
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/reclamations/{idReclamation}/reponses")
+@RequestMapping("/api/reclamations/{idReclamation}/responses") // Typo Fix
 @CrossOrigin(origins = "http://localhost:4200")
 @RequiredArgsConstructor
 public class ReponseReclamationController {
 
     private final ReponseReclamationService reponseService;
-    private final ReclamationService reclamationService;
+    private final UserRepository userRepository; // Inject UserRepository
+    private final ReclamationRepository reclamationRepository;
 
     // Récupérer toutes les réponses pour une réclamation
     @GetMapping
-    public List<ReponseReclamation> getReponsesByReclamation(@PathVariable Long idReclamation) {
+    public List<ReponseReclamation> getResponsesByReclamation(@PathVariable Long idReclamation) { // Typo Fix
         return reponseService.getReponsesByReclamation(idReclamation);
     }
 
     // Ajouter une nouvelle réponse utilisateur
-    @PostMapping("/user/{userId}")
+    @PostMapping("/user") // Remove {userId} from URL
     public ResponseEntity<ReponseReclamation> createUserReponse(
             @PathVariable Long idReclamation,
-            @PathVariable Long userId,
-            @RequestBody ReponseReclamation reponse) {
-        ReponseReclamation saved = reponseService.createUserReponse(idReclamation, reponse, userId);
-        return saved != null ? ResponseEntity.ok(saved) : ResponseEntity.notFound().build();
+            @RequestBody String content) {
+
+        // Get the currently authenticated user
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName(); // Usually the email
+
+        // Retrieve the User object from the database based on the username (email)
+        User user = userRepository.findByEmail(username);
+
+        if (user == null) { // Handle the null case correctly
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED); // Or HttpStatus.FORBIDDEN
+        }
+
+        Optional<Reclamation>  reclamationOptional = reclamationRepository.findById(idReclamation);
+        if(reclamationOptional.isPresent()){
+
+            ReponseReclamation saved = reponseService.createUserReponse(idReclamation, content, user);
+
+            return new ResponseEntity<>(saved, HttpStatus.CREATED);
+
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
     }
 
     // Ajouter une nouvelle réponse admin
-    @PostMapping("/admin/{adminId}")
+    @PostMapping("/admin") // Remove {adminId} from the URL
     public ResponseEntity<ReponseReclamation> createAdminReponse(
             @PathVariable Long idReclamation,
-            @PathVariable Long adminId,
-            @RequestBody ReponseReclamation reponse) {
-        ReponseReclamation saved = reponseService.createAdminReponse(idReclamation, reponse, adminId);
-        return saved != null ? ResponseEntity.ok(saved) : ResponseEntity.notFound().build();
+            @RequestBody String content) {
+
+        // Get the currently authenticated admin (assuming you have a way to identify admins)
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+
+        // Retrieve the Admin User object from the database based on the username (email)
+        User admin = userRepository.findByEmail(username);
+
+        if (admin == null || !admin.getRoleName().equals("ADMIN")) { // Check if user is an admin
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED); // Or HttpStatus.FORBIDDEN
+        }
+
+        Optional<Reclamation>  reclamationOptional = reclamationRepository.findById(idReclamation);
+        if(reclamationOptional.isPresent()){
+            ReponseReclamation saved = reponseService.createAdminReponse(idReclamation, content, admin);
+            return new ResponseEntity<>(saved, HttpStatus.CREATED);
+        }  return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
     }
 
-    // Méthode générique (pour la compatibilité avec le code existant)
-    @PostMapping
-    public ResponseEntity<ReponseReclamation> createReponse(
-            @PathVariable Long idReclamation,
-            @RequestBody ReponseReclamation reponse) {
-        ReponseReclamation saved = reponseService.createReponse(idReclamation, reponse);
-        return saved != null ? ResponseEntity.ok(saved) : ResponseEntity.notFound().build();
-    }
 
     // Mettre à jour une réponse existante
-    @PutMapping("/{idReponse}")
+    @PutMapping("/{idResponse}")  // Typo Fix
     public ResponseEntity<ReponseReclamation> updateReponse(
-            @PathVariable Long idReponse,
-            @RequestBody ReponseReclamation updatedReponse) {
-        ReponseReclamation updated = reponseService.updateReponse(idReponse, updatedReponse);
+            @PathVariable Long idResponse, // Typo Fix
+            @RequestBody ReponseReclamation updatedResponse) { // Typo Fix
+        ReponseReclamation updated = reponseService.updateReponse(idResponse, updatedResponse); // Typo Fix
         return updated != null ? ResponseEntity.ok(updated) : ResponseEntity.notFound().build();
     }
 
     // Supprimer une réponse
-    @DeleteMapping("/{idReponse}")
-    public ResponseEntity<Void> deleteReponse(@PathVariable Long idReponse) {
-        return reponseService.deleteReponse(idReponse) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    @DeleteMapping("/{idResponse}")  // Typo Fix
+    public ResponseEntity<Void> deleteReponse(@PathVariable Long idResponse) { // Typo Fix
+        return reponseService.deleteReponse(idResponse) ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
-    // Mettre à jour le statut d'une réclamation
-   /* @PutMapping("/statut")
-    public ResponseEntity<Reclamation> updateReclamationStatut(
-            @RequestBody StatutReclamationDTO statutReclamationDTO) {
-        Reclamation updatedReclamation = reclamationService.updateReclamationStatut(statutReclamationDTO.getIdReclamation(), statutReclamationDTO.getStatut());
-        return updatedReclamation != null ? ResponseEntity.ok(updatedReclamation) : ResponseEntity.notFound().build();
-    }*/
 }

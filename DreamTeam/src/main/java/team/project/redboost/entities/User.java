@@ -72,7 +72,13 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference //  Serialize this side
-    private List<Reclamation> reclamations; // Relationship to Reclamation
+    private List<Reclamation> reclamations;
+    // Relationship to Reclamation
+
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true) // Add this
+    private List<ReponseReclamation> reponseReclamations;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(() -> "ROLE_" + role.name());

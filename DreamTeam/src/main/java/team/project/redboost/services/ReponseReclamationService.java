@@ -5,8 +5,10 @@ import org.springframework.stereotype.Service;
 import team.project.redboost.entities.Reclamation;
 import team.project.redboost.entities.ReponseReclamation;
 import team.project.redboost.entities.ReponseReclamation.SenderType;
+import team.project.redboost.entities.User;
 import team.project.redboost.repositories.ReclamationRepository;
 import team.project.redboost.repositories.ReponseReclamationRepository;
+import team.project.redboost.repositories.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,6 +20,7 @@ public class ReponseReclamationService {
 
     private final ReponseReclamationRepository reponseRepository;
     private final ReclamationRepository reclamationRepository;
+    private final UserRepository userRepository;
 
     public List<ReponseReclamation> getReponsesByReclamation(Long idReclamation) {
         // Utiliser findByReclamationId puis trier les résultats
@@ -29,38 +32,35 @@ public class ReponseReclamationService {
         // return reponseRepository.findByReclamationId(idReclamation, Sort.by(Sort.Direction.ASC, "dateCreation"));
     }
 
-    // Créer une nouvelle réponse
-    public ReponseReclamation createReponse(Long idReclamation, ReponseReclamation reponse) {
-        Optional<Reclamation> reclamationOpt = reclamationRepository.findById(idReclamation);
+    public ReponseReclamation createUserReponse(Long idReclamation, String content, User user) {
+        //Recieve String content
+        ReponseReclamation reponse = new ReponseReclamation(); //Create the DTO
+        reponse.setContenu(content); //Put the content, and now it is handled
+        reponse.setUser(user);  // Set the User entity
+        reponse.setDateCreation(LocalDateTime.now());
 
-        if (reclamationOpt.isPresent()) {
-            reponse.setReclamation(reclamationOpt.get());
-            reponse.setDateCreation(LocalDateTime.now());
-
-            // Assurer que le sender est défini correctement
-            if (reponse.getSender() == null) {
-                // Logique par défaut si nécessaire
-                reponse.setSender(SenderType.USER);
-            }
-
-            return reponseRepository.save(reponse);
+        // Assurer que le sender est défini correctement
+        if (reponse.getSender() == null) {
+            // Logique par défaut si nécessaire
+            reponse.setSender(SenderType.USER);
         }
 
-        return null;
-    }
+        return reponseRepository.save(reponse);
 
-    // Méthode spécifique pour créer une réponse d'admin
-    public ReponseReclamation createAdminReponse(Long idReclamation, ReponseReclamation reponse, Long adminId) {
+    }
+    public ReponseReclamation createAdminReponse(Long idReclamation, String content, User user) {
+        //Recieve String content
+        ReponseReclamation reponse = new ReponseReclamation(); //Create the DTO
+        reponse.setContenu(content); //Put the content, and now it is handled
+        reponse.setUser(user);  // Set the User entity
+        reponse.setDateCreation(LocalDateTime.now());
         reponse.setSender(SenderType.ADMIN);
-        reponse.setUserId(adminId);
-        return createReponse(idReclamation, reponse);
-    }
 
-    // Méthode spécifique pour créer une réponse d'utilisateur
-    public ReponseReclamation createUserReponse(Long idReclamation, ReponseReclamation reponse, Long userId) {
-        reponse.setSender(SenderType.USER);
-        reponse.setUserId(userId);
-        return createReponse(idReclamation, reponse);
+        // Assurer que le sender est défini correctement
+
+
+        return reponseRepository.save(reponse);
+
     }
 
     // Mettre à jour une réponse
@@ -71,6 +71,7 @@ public class ReponseReclamationService {
             ReponseReclamation existing = existingOpt.get();
             existing.setContenu(updatedReponse.getContenu());
             // Ne pas modifier sender, reclamation, ou userId lors d'une mise à jour
+            //existing.setUser(updatedReponse.getUser()); //Do not modify
 
             return reponseRepository.save(existing);
         }
@@ -86,6 +87,4 @@ public class ReponseReclamationService {
         }
         return false;
     }
-
-
 }

@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface ReponseReclamationRepository extends JpaRepository<ReponseReclamation, Long> {
-    @Query("SELECT r FROM ReponseReclamation r WHERE r.reclamation.id = :reclamationId ORDER BY r.dateCreation ASC")
+    @Query("SELECT r FROM ReponseReclamation r WHERE r.reclamation.idReclamation = :reclamationId ORDER BY r.dateCreation ASC")
     List<ReponseReclamation> findByReclamationId(@Param("reclamationId") Long reclamationId);
 
 

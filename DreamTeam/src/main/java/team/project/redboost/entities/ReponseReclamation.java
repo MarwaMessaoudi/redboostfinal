@@ -19,7 +19,7 @@ public class ReponseReclamation {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "idReclamation")
+    @JoinColumn(name = "idReclamation",nullable = false)
     private Reclamation reclamation;
 
 

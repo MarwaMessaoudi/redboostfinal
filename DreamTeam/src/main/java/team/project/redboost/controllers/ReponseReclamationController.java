@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import team.project.redboost.dto.ReponseContenuDTO;
 import team.project.redboost.entities.ReponseReclamation;
 import team.project.redboost.entities.User;
 import team.project.redboost.services.ReponseReclamationService;
@@ -36,7 +37,7 @@ public class ReponseReclamationController {
     @PostMapping("/user") // Remove {userId} from URL
     public ResponseEntity<ReponseReclamation> createUserReponse(
             @PathVariable Long idReclamation,
-            @RequestBody String content) {
+            @RequestBody ReponseContenuDTO reponseDTO) {
 
         // Get the currently authenticated user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -52,7 +53,7 @@ public class ReponseReclamationController {
         Optional<Reclamation>  reclamationOptional = reclamationRepository.findById(idReclamation);
         if(reclamationOptional.isPresent()){
 
-            ReponseReclamation saved = reponseService.createUserReponse(idReclamation, content, user);
+            ReponseReclamation saved = reponseService.createUserReponse(idReclamation, reponseDTO.getContenu(), user);
 
             return new ResponseEntity<>(saved, HttpStatus.CREATED);
 

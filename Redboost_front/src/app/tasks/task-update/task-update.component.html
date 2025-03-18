@@ -1,5 +1,5 @@
 <div class="task-update-container" [class.open]="isOpen" *ngIf="task">
-    <div class="task-update-content">
+    <div class="task-update-content" [formGroup]="taskForm">
         <!-- Header -->
         <div class="header-task-update">
             <div class="task-identifier">
@@ -38,10 +38,37 @@
                     </button>
                 </div>
                 <div *ngIf="editingTitle" class="edit-mode">
-                    <input type="text" [(ngModel)]="taskForm.value.title" class="title-input" placeholder="Titre de la tâche" />
+                    <input type="text" formControlName="title" class="title-input" placeholder="Titre de la tâche" />
                     <div class="edit-actions">
                         <button (click)="saveTitle()" class="save-button">Enregistrer</button>
                         <button (click)="cancelEditTitle()" class="cancel-edit-button">Annuler</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Category Display -->
+            <div class="task-category-section">
+                <div class="task-category-display" *ngIf="!editingCategory">
+                    <span>Catégorie: </span>
+                    <span class="category-name">{{ getCategoryName(task.taskCategoryId) }}</span>
+                    <button (click)="startEditingCategory()" class="edit-button" title="Modifier la catégorie">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </button>
+                </div>
+                <div *ngIf="editingCategory" class="edit-mode">
+                    <mat-form-field appearance="fill">
+                        <mat-label>Catégorie</mat-label>
+                        <mat-select [(ngModel)]="selectedCategoryId" [ngModelOptions]="{ standalone: true }">
+                            <mat-option *ngFor="let category of availableCategories" [value]="category.id">
+                                {{ category.name }}
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                    <div class="edit-actions">
+                        <button (click)="saveTaskCategory()" class="save-button">Enregistrer</button>
+                        <button (click)="cancelEditTaskCategory()" class="cancel-edit-button">Annuler</button>
                     </div>
                 </div>
             </div>
@@ -56,16 +83,56 @@
                         </svg>
                     </button>
                 </div>
-
                 <div *ngIf="!editingDescription" class="description-content">
                     <p>{{ task.description || 'Aucune description fournie' }}</p>
                 </div>
-
                 <div *ngIf="editingDescription" class="description-edit">
-                    <textarea [(ngModel)]="taskForm.value.description" rows="4" class="description-input"></textarea>
+                    <textarea formControlName="description" rows="4" class="description-input"></textarea>
                     <div class="edit-actions">
                         <button (click)="saveDescription()" class="save-button">Enregistrer</button>
                         <button (click)="cancelEditDescription()" class="cancel-edit-button">Annuler</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-Tasks Section -->
+            <div class="section">
+                <div class="section-header-task-update">
+                    <h3>Sous-tâches</h3>
+                </div>
+                <div class="sub-tasks-list">
+                    <div *ngIf="!subTasks.length" class="no-sub-tasks">Aucune sous-tâche pour le moment</div>
+                    <div class="sub-task-item" *ngFor="let subTask of subTasks; let i = index">
+                        <div *ngIf="editingSubTaskIndex !== i" class="display-mode">
+                            <div class="sub-task-title">{{ subTask.title }}</div>
+                            <div class="sub-task-description">{{ subTask.description || 'Aucune description' }}</div>
+                            <div class="sub-task-actions">
+                                <button (click)="startEditingSubTask(i)" class="edit-button">
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                                <button (click)="deleteSubTask(i)" class="delete-button">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div *ngIf="editingSubTaskIndex === i" class="edit-mode">
+                            <input type="text" [(ngModel)]="subTasks[i].title" [ngModelOptions]="{ standalone: true }" placeholder="Titre de la sous-tâche" />
+                            <textarea [(ngModel)]="subTasks[i].description" [ngModelOptions]="{ standalone: true }" rows="2" placeholder="Description"></textarea>
+                            <div class="edit-actions">
+                                <button (click)="saveSubTask(i)" class="save-button">Enregistrer</button>
+                                <button (click)="cancelEditSubTask(i)" class="cancel-edit-button">Annuler</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Add New Sub-Task -->
+                    <div class="new-sub-task">
+                        <input type="text" [(ngModel)]="newSubTask.title" [ngModelOptions]="{ standalone: true }" placeholder="Nouvelle sous-tâche" />
+                        <textarea [(ngModel)]="newSubTask.description" [ngModelOptions]="{ standalone: true }" rows="2" placeholder="Description"></textarea>
+                        <button (click)="addSubTask()" class="save-button">Ajouter</button>
                     </div>
                 </div>
             </div>
@@ -90,39 +157,28 @@
                 <div class="section-header-task-update">
                     <h3>RESPONSABLES</h3>
                 </div>
-
                 <div class="assignees-list">
-                    <!-- This should be updated to show actual assignees -->
-                    <!-- For now showing a placeholder if no assignees are loaded -->
-                    <div *ngIf="!assignees || assignees.length === 0" class="no-assignees">Aucun responsable pour le moment</div>
-
-                    <div class="assignee-item" *ngFor="let assignee of assignees">
-                        <div class="assignee-info">
-                            <img [src]="assignee.avatar || 'assets/default-avatar.png'" alt="Avatar du responsable" class="avatar" />
-                            <span>{{ assignee.name }}</span>
-                        </div>
-                        <button class="remove-assignee" (click)="removeAssignee(assignee.id)">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <button class="add-assignee-button" (click)="openAssigneeDropdown()"><span class="plus-icon">+</span> Ajouter un responsable</button>
-
-                    <!-- Add Assignee Dropdown -->
-                    <div class="dropdown-menu" *ngIf="showAssigneeDropdown">
-                        <div class="dropdown-item" *ngFor="let assignee of availableAssignees" (click)="addAssignee(assignee)">
+                    <div *ngIf="task?.assigneeId && availableAssignees.length > 0">
+                        <div class="assignee-item">
                             <div class="assignee-info">
-                                <img [src]="assignee.avatar || 'assets/default-avatar.png'" alt="Avatar du responsable" class="avatar" />
-                                <span>{{ assignee.name }}</span>
+                                <span>{{ getAssigneeName(task.assigneeId) }}</span>
                             </div>
                         </div>
                     </div>
+                    <div *ngIf="(!task?.assigneeId && availableAssignees.length === 0) || availableAssignees.length === 0" class="no-assignees">Aucun responsable pour le moment</div>
+                    <button class="add-assignee-button" (click)="openAssigneeDropdown()"><span class="plus-icon">+</span> Changer le responsable</button>
+                    <div class="dropdown-menu" *ngIf="showAssigneeDropdown">
+                        <div class="dropdown-item" *ngFor="let assignee of availableAssignees" (click)="selectAssignee(assignee)">
+                            <div class="assignee-info">
+                                <span>{{ assignee.firstName }} {{ assignee.lastName }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <mat-error *ngIf="taskForm.get('assigneeId')?.hasError('required')">Assignee is required</mat-error>
                 </div>
             </div>
 
-            <!-- Priority Section with Dropdown -->
+            <!-- Priority Section -->
             <div class="section priority-dropdown">
                 <div class="section-header-task-update">
                     <h3>PRIORITÉ</h3>
@@ -197,28 +253,26 @@
                 </div>
             </div>
 
-            <!-- Date Section with Improved Styling -->
+            <!-- Date Section -->
             <div class="section">
-                <div class="section-header-task-update">
-                    <h3>ÉCHÉANCIER</h3>
-                </div>
                 <div class="date-range">
                     <div class="date-field">
                         <label>Date de début</label>
                         <div class="date-input-container">
-                            <input type="date" [(ngModel)]="taskForm.value.startDate" class="date-input" />
+                            <input type="date" [min]="minStartDate" formControlName="startDate" class="date-picker-field" />
                             <div class="date-actions">
                                 <button class="save-button" (click)="saveStartDate()">Mettre à jour</button>
+                                <button class="cancel-edit-button" (click)="cancelEditStartDate()">Annuler</button>
                             </div>
                         </div>
                     </div>
-
                     <div class="date-field">
                         <label>Date d'échéance</label>
                         <div class="date-input-container">
-                            <input type="date" [(ngModel)]="taskForm.value.endDate" class="date-input" />
+                            <input type="date" [min]="minStartDate" formControlName="endDate" class="date-picker-field" />
                             <div class="date-actions">
                                 <button class="save-button" (click)="saveEndDate()">Mettre à jour</button>
+                                <button class="cancel-edit-button" (click)="cancelEditEndDate()">Annuler</button>
                             </div>
                         </div>
                     </div>
@@ -227,7 +281,7 @@
 
             <!-- Creation/Update Info -->
             <div class="meta-info">
-                <div *ngIf="task.createdAt">Créée le - {{ task.createdAt | date: 'medium' }}</div>
+                <div *ngIf="task.createdAt">Crée le - {{ task.createdAt | date: 'medium' }}</div>
                 <div *ngIf="task.updatedAt">Modifiée le - {{ task.updatedAt | date: 'medium' }}</div>
             </div>
 
@@ -236,15 +290,11 @@
                 <div class="section-header-task-update">
                     <h3>Commentaires</h3>
                 </div>
-
                 <div class="comments-list">
-                    <!-- Display existing comments if any -->
                     <div *ngIf="!comments || comments.length === 0" class="no-comments">Aucun commentaire pour le moment</div>
-
                     <div class="comment-item" *ngFor="let comment of comments">
                         <div class="comment-header-task-update">
                             <div class="commenter-info">
-                                <img [src]="comment.authorAvatar || 'assets/default-avatar.png'" alt="Avatar de l'utilisateur" class="avatar" />
                                 <span class="commenter-name">{{ comment.authorName }}</span>
                                 <span class="comment-date">{{ comment.createdAt | date: 'short' }}</span>
                             </div>
@@ -253,12 +303,9 @@
                             <p>{{ comment.content }}</p>
                         </div>
                     </div>
-
-                    <!-- New comment input -->
                     <div class="new-comment">
-                        <img src="assets/default-avatar.png" alt="Avatar de l'utilisateur" class="avatar" />
                         <div class="comment-form">
-                            <textarea [(ngModel)]="taskForm.value.comment" placeholder="Ajouter un commentaire" rows="2" class="comment-input"></textarea>
+                            <textarea formControlName="comment" placeholder="Ajouter un commentaire" rows="2" class="comment-input"></textarea>
                             <button class="save-button" [disabled]="!taskForm.value.comment" (click)="addComment()">Commenter</button>
                         </div>
                     </div>

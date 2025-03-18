@@ -57,6 +57,12 @@ public class TaskController {
         return taskService.getTasksByPhaseId(phaseId);
     }
 
+    // Get tasks by category ID
+    @GetMapping("/category/{categoryId}")
+    public List<Task> getTasksByCategoryId(@PathVariable Long categoryId) {
+        return taskService.getTasksByCategoryId(categoryId);
+    }
+
     // Download an attachment
     @GetMapping("/{taskId}/attachments/{fileName}")
     public ResponseEntity<Resource> downloadAttachment(
@@ -81,9 +87,6 @@ public class TaskController {
             // Set headers for file download
             HttpHeaders headers = new HttpHeaders();
             headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
-            headers.add(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate");
-            headers.add(HttpHeaders.PRAGMA, "no-cache");
-            headers.add(HttpHeaders.EXPIRES, "0");
 
             return ResponseEntity.ok()
                     .headers(headers)

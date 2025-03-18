@@ -1,13 +1,19 @@
 package team.project.redboost.services;
 
-import team.project.redboost.entities.Task;
-import team.project.redboost.entities.Phase;
-import team.project.redboost.repositories.TaskRepository;
-import team.project.redboost.repositories.PhaseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import team.project.redboost.entities.Task;
+import team.project.redboost.entities.Phase;
+import team.project.redboost.entities.TaskCategory;
+import team.project.redboost.entities.SubTask;
+import team.project.redboost.repositories.TaskRepository;
+import team.project.redboost.repositories.PhaseRepository;
+import team.project.redboost.repositories.TaskCategoryRepository;
+import org.hibernate.Hibernate;
+
 import java.time.LocalDateTime;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +28,9 @@ public class TaskService {
     @Autowired
     private PhaseRepository phaseRepository;
 
+    @Autowired
+    private TaskCategoryRepository taskCategoryRepository;
+
     // Create a new task
     public Task createTask(Task task) {
         if (task.getPhase() == null || task.getPhase().getPhaseId() == null) {
@@ -34,6 +43,20 @@ public class TaskService {
         task.setPhase(phase);
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
+
+        // Assign category if provided
+        if (task.getTaskCategory() != null && task.getTaskCategory().getId() != null) {
+            TaskCategory category = taskCategoryRepository.findById(task.getTaskCategory().getId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            task.setTaskCategory(category);
+        }
+
+        // Handle sub-tasks
+        if (task.getSubTasks() != null) {
+            for (SubTask subTask : task.getSubTasks()) {
+                task.addSubTask(subTask); // Ensure bidirectional relationship
+            }
+        }
 
         Task savedTask = taskRepository.save(task);
         updatePhaseTotalXpPoints(phase);
@@ -49,8 +72,10 @@ public class TaskService {
 
     // Get a task by ID
     public Task getTaskById(Long taskId) {
-        return taskRepository.findById(taskId)
+        Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
+        Hibernate.initialize(task.getSubTasks()); // Ensure sub-tasks are loaded
+        return task;
     }
 
     // Update a task
@@ -69,13 +94,28 @@ public class TaskService {
         task.setEndDate(updatedTask.getEndDate());
         task.setPriority(updatedTask.getPriority());
         task.setStatus(updatedTask.getStatus());
-        task.setAttachments(updatedTask.getAttachments()); // Explicitly set the attachments
+        task.setAttachments(updatedTask.getAttachments());
 
-        // Check if the phase exists before updating
+        // Update phase if provided
         if (updatedTask.getPhase() != null && updatedTask.getPhase().getPhaseId() != null) {
             Phase phase = phaseRepository.findById(updatedTask.getPhase().getPhaseId())
                     .orElseThrow(() -> new RuntimeException("Phase not found"));
             task.setPhase(phase);
+        }
+
+        // Update category if provided
+        if (updatedTask.getTaskCategory() != null && updatedTask.getTaskCategory().getId() != null) {
+            TaskCategory category = taskCategoryRepository.findById(updatedTask.getTaskCategory().getId())
+                    .orElseThrow(() -> new RuntimeException("Category not found"));
+            task.setTaskCategory(category);
+        }
+
+        // Update sub-tasks
+        if (updatedTask.getSubTasks() != null) {
+            task.getSubTasks().clear(); // Remove existing sub-tasks
+            for (SubTask subTask : updatedTask.getSubTasks()) {
+                task.addSubTask(subTask); // Add new/updated sub-tasks
+            }
         }
 
         task.setUpdatedAt(LocalDateTime.now());
@@ -99,13 +139,31 @@ public class TaskService {
 
     // Get tasks by phase ID
     public List<Task> getTasksByPhaseId(Long phaseId) {
-        return taskRepository.findByPhase_PhaseId(phaseId);
+        List<Task> tasks = taskRepository.findByPhase_PhaseId(phaseId);
+        tasks.forEach(task -> {
+            Hibernate.initialize(task.getTaskCategory());
+            Hibernate.initialize(task.getSubTasks()); // Load sub-tasks
+        });
+        return tasks;
+    }
+
+    // Get tasks by category ID
+    public List<Task> getTasksByCategoryId(Long categoryId) {
+        List<Task> tasks = taskRepository.findByTaskCategory_Id(categoryId);
+        tasks.forEach(task -> {
+            Hibernate.initialize(task.getTaskCategory());
+            Hibernate.initialize(task.getSubTasks()); // Load sub-tasks
+        });
+        return tasks;
     }
 
     // Update the total XP points in the phase
     private void updatePhaseTotalXpPoints(Phase phase) {
-        int totalXpPoints = phase.getTasks().stream().mapToInt(Task::getXpPoint).sum();
-        phase.setTotalXpPoints(totalXpPoints);
-        phaseRepository.save(phase);
+        if (phase != null) {
+            Hibernate.initialize(phase.getTasks());
+            int totalXpPoints = phase.getTasks().stream().mapToInt(Task::getXpPoint).sum();
+            phase.setTotalXpPoints(totalXpPoints);
+            phaseRepository.save(phase);
+        }
     }
 }

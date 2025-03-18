@@ -7,8 +7,8 @@
             {{ task.description }}
         </div>
         <div class="task-footer">
-            <img src="assets/default-avatar.png" alt="Avatar" class="task-avatar" />
-            <span class="task-id">{{ task.phase?.phaseName || 'TÂCHE' }}-{{ task.taskId }}</span>
+            <!-- Avatar Removed -->
+            <span class="task-id">{{ 'Tâche' }}-{{ task.taskId }}</span>
             <!-- Safe navigation operator -->
             <div class="task-icons">
                 <span class="priority-icon" [ngClass]="getPriorityClass(task.priority)">

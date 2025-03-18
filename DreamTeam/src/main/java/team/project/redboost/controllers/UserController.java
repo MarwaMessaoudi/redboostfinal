@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import team.project.redboost.repositories.UserRepository;
 import team.project.redboost.entities.Role;
 import team.project.redboost.services.UserService;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -25,6 +27,7 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
 
     @Autowired
     private CoachRepository coachRepository;
@@ -59,6 +62,9 @@ public class UserController {
         }
         if (updateRequest.containsKey("phoneNumber")) {
             user.setPhoneNumber((String) updateRequest.get("phoneNumber"));
+        }
+        if (updateRequest.containsKey("linkedin")) {
+            user.setPhoneNumber((String) updateRequest.get("linkedin"));
         }
 
         // Role-specific updates
@@ -96,15 +102,59 @@ public class UserController {
     }
 
 
+    
+
     @GetMapping("/profile")
-    public ResponseEntity<User> getCurrentUserProfile(@AuthenticationPrincipal UserDetails userDetails) {
-        // Fetch the user profile based on the authenticated user's details
-        User userProfile = userService.findByEmail(userDetails.getUsername());
-        return ResponseEntity.ok(userProfile);
+    public ResponseEntity<?> getLoggedInUserProfile(Authentication authentication) {
+        try {
+            // Get the email of the logged-in user from the authentication object
+            String email = authentication.getName();
 
+            // Fetch the user from the database
+            User user = userService.findByEmail(email);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                        "message", "User not found!",
+                        "errorCode", "USER001"
+                ));
+            }
+
+            // Create a response map to hold the user's details
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
+            response.put("firstName", user.getFirstName());
+            response.put("lastName", user.getLastName());
+            response.put("email", user.getEmail());
+            response.put("phoneNumber", user.getPhoneNumber());
+            response.put("role", user.getRole());
+            response.put("isActive", user.getisActive());
+
+            // Fetch additional details based on the user's role
+            if (user.getRole() == Role.COACH) {
+                Coach coach = coachRepository.findById(user.getId()).orElse(null);
+                if (coach != null) {
+                    response.put("specialization", coach.getSpecialization());
+                    response.put("yearsOfExperience", coach.getYearsOfExperience());
+                }
+            } else if (user.getRole() == Role.ENTREPRENEUR) {
+                Entrepreneur entrepreneur = entrepreneurRepository.findById(user.getId()).orElse(null);
+                if (entrepreneur != null) {
+                    // Add any additional fields specific to Entrepreneur
+                    response.put("StartupName", entrepreneur.getStartupName());
+                    response.put("Industry", entrepreneur.getIndustry()); // Example field
+
+                }
+            }
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Failed to fetch user profile",
+                    "error", e.getMessage()
+            ));
+        }
     }
-
-
 
 
 

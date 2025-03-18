@@ -1,18 +1,20 @@
 package team.project.redboost.controllers;
 
-import team.project.redboost.entities.Phase;
-import team.project.redboost.services.PhaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import team.project.redboost.entities.Phase;
+import team.project.redboost.services.PhaseService;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/phases")
 @CrossOrigin(origins = "http://localhost:4200") // Angular
 public class PhaseController {
+
     @Autowired
     private PhaseService phaseService;
 
@@ -59,5 +61,11 @@ public class PhaseController {
         LocalDate endDate = LocalDate.parse(end, formatter);
 
         return phaseService.getPhasesByDateRange(startDate, endDate);
+    }
+
+    // New endpoint to fetch entrepreneurs grouped by project ID
+    @GetMapping("/entrepreneurs/{projetId}")
+    public List<Map<String, Object>> getEntrepreneursByProject(@PathVariable Long projetId) {
+        return phaseService.getEntrepreneursByProject(projetId);
     }
 }

@@ -42,6 +42,7 @@ public class JwtUtil {
 
     // Retrieve email from JWT token
     public String extractEmail(String token) {
+
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -53,14 +54,15 @@ public class JwtUtil {
     /**
      * Generates a JWT token for email/password users (no provider or providerId).
      */
-    public String generateToken(String email, Collection<? extends GrantedAuthority> authorities) {
-        return generateToken(email, null, null, authorities); // Call the main method with null provider and providerId
+    public String generateToken(String email, String userId, Collection<? extends GrantedAuthority> authorities) {
+        return generateToken(email, userId, null, null, authorities);
     }
+
 
     /**
      * Generates a JWT token for OAuth2 users (with provider and providerId).
      */
-    public String generateToken(String email, String provider, String providerId, Collection<? extends GrantedAuthority> authorities) {
+    public String generateToken(String email, String userId, String provider, String providerId, Collection<? extends GrantedAuthority> authorities) {
         // Extract the single role from authorities
         String role = authorities.stream()
                 .map(GrantedAuthority::getAuthority)
@@ -73,6 +75,7 @@ public class JwtUtil {
         JwtBuilder builder = Jwts.builder()
                 .setSubject(email)
                 .claim("role", role) // Store the role as a single string
+                .claim("userId", userId) // Store the userId as a custom claim
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours validity
                 .signWith(key); // Use the Key object directly
@@ -107,6 +110,10 @@ public class JwtUtil {
                 .signWith(key) // Use the Key object directly
                 .compact();
     }
+    public String extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", String.class));
+    }
+
 
     // Helper method to remove the ROLE_ prefix
     private String removeRolePrefix(String authority) {

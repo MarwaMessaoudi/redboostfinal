@@ -1,3 +1,4 @@
+// team/project/redboost/entities/Phase.java
 package team.project.redboost.entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -5,6 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,7 +40,7 @@ public class Phase {
     private int totalXpPoints;
 
     @OneToMany(mappedBy = "phase", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonIgnore  // Prevent serialization issues
+    @JsonIgnore
     private List<Task> tasks;
 
     @Column(name = "created_at", updatable = false)
@@ -46,6 +48,11 @@ public class Phase {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "projet_id", nullable = false)
+    @JsonBackReference
+    private Projet projet;
 
     @PrePersist
     protected void onCreate() {
@@ -57,11 +64,20 @@ public class Phase {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-    // Many-to-One with Projet
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "projet_id", nullable = false)
-    @JsonBackReference
-    private Projet projet;
+
+    public Long getProjetId() {
+        return projet != null ? projet.getId() : null;
+    }
+
+    public void setProjetId(Long projetId) {
+        if (projetId != null) {
+            this.projet = new Projet();
+            this.projet.setId(projetId);
+        } else {
+            this.projet = null;
+        }
+    }
+
     public enum Status {
         NOT_STARTED, IN_PROGRESS, COMPLETED
     }

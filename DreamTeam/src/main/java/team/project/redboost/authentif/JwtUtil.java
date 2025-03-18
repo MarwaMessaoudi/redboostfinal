@@ -22,7 +22,7 @@ public class JwtUtil {
     private String secretKey;
 
 
-    private static final long ACCESS_TOKEN_EXPIRATION = 7 * 60 * 1000; // 15 minutes
+    private static final long ACCESS_TOKEN_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7 days
     private static final long REFRESH_TOKEN_EXPIRATION = 30L * 24 * 60 * 60 * 1000; // 30 days
 
     // Add method to get the secret key

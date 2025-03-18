@@ -9,3 +9,4 @@ public class CreateFolderRequest {
     private Long parentFolderId; //This is new!
     private String folderPath; //Optional. You can generate it in backend.
 }
+

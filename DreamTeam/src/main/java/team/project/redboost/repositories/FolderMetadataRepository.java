@@ -1,10 +1,11 @@
 package team.project.redboost.repositories;
 
-import team.project.redboost.entities.FolderMetadata;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import team.project.redboost.entities.FolderMetadata;
 
-@Repository
+import java.util.List;
+
 public interface FolderMetadataRepository extends JpaRepository<FolderMetadata, Long> {
     FolderMetadata findByFolderPath(String folderPath);
+    List<FolderMetadata> findByUserId(Long userId); // New method
 }

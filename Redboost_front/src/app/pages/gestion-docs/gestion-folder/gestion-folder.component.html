@@ -1,306 +1,315 @@
 <div class="container">
   <div class="personalized-header">
-    <div class="header-content">
-      <h1 class="greeting">Organiser vos documentation</h1>
-      <p class="welcome-message">
-        classification , organisation et un accées rapide et efficace a vos
-        dossier avec notre platform Redboost
-      </p>
-      <button class="modern-button">Learn more</button>
-    </div>
-    <div class="header-image">
-      <img src="assets/images/photo2.png" alt="Library Illustration" />
-    </div>
+      <div class="header-content">
+          <h1 class="greeting">Organiser vos documentation</h1>
+          <p class="welcome-message">
+              classification , organisation et un accées rapide et efficace a vos
+              dossier avec notre platform Redboost
+          </p>
+          <button class="modern-button">Learn more</button>
+      </div>
+      <div class="header-image">
+          <img src="assets/images/photo2.png" alt="Library Illustration" loading="lazy" />
+      </div>
   </div>
 
   <div class="action-buttons">
-    <button class="action-button" (click)="onCreateFolder()">
-      <i class="fas fa-folder-plus action-icon"></i>
-      <span class="action-text">Ajouter un dossier</span>
-    </button>
-    <button class="action-button" (click)="onCreateCategory()">
-      <i class="fas fa-folder-open action-icon"></i>
-      <span class="action-text">Ajouter une catégorie</span>
-    </button>
-    <button class="action-button">
-      <i class="fas fa-search action-icon"></i>
-      <span class="action-text">Rechercher</span>
-    </button>
+      <button class="action-button" (click)="onCreateFolder()">
+          <i class="fas fa-folder-plus action-icon"></i>
+          <span class="action-text">Ajouter un dossier</span>
+      </button>
+      <button class="action-button" (click)="onCreateCategory()">
+          <i class="fas fa-folder-open action-icon"></i>
+          <span class="action-text">Ajouter une catégorie</span>
+      </button>
+      <button class="action-button">
+          <i class="fas fa-search action-icon"></i>
+          <span class="action-text">Rechercher</span>
+      </button>
   </div>
 
   <div class="search-container">
-    <input
-      type="text"
-      class="search-input"
-      [(ngModel)]="searchTerm"
-      (ngModelChange)="onSearch()"
-      placeholder="Rechercher des dossiers..."
-    />
+      <input
+          type="text"
+          class="search-input"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearch()"
+          placeholder="Rechercher des dossiers..."
+      />
   </div>
 
   <!-- Display Folders by Category -->
-  <div *ngIf="foldersByCategory.length > 0">
-    <div
-      *ngFor="let categoryGroup of foldersByCategory; trackBy: trackByCategoryId"
-      class="category-group"
-    >
-      <h2>{{ categoryGroup.category.categoryName }}</h2>
-      <div class="folder-grid">
-        <div
-          *ngFor="
-            let folder of categoryGroup.folders;
-            trackBy: trackByFolderId
-          "
-          class="folder-grid-item"
-          (click)="onFolderClick(folder)"
-        >
-          <div class="folder-card">
+  <div *ngIf="foldersByCategory.length > 0 && !searchTerm">  <!-- Added check for searchTerm -->
+      <div *ngFor="let categoryGroup of foldersByCategory; trackBy: trackByCategoryId" class="category-group">
+          <h2>{{ categoryGroup.category.categoryName }}</h2>
+          <div class="folder-grid">
+              <div *ngFor="let folder of categoryGroup.folders; trackBy: trackByFolderId" class="folder-grid-item" (click)="onFolderClick(folder)">
+                  <div class="folder-card">
+                      <div class="folder-image-container">
+                          <img [src]="'dummyValue' | randomImage" alt="Folder Image" />
+                      </div>
+                      <div class="folder-details">
+                          <!-- Empty for now, as content is moved to footer -->
+                      </div>
+                      <div class="folder-footer">
+                          <h3 class="folder-name">{{ folder.folderName }}</h3>
+                          <div class="folder-actions">
+                              <span class="material-symbols-outlined folder-action-icon" (click)="editFolder(folder.id, $event)">
+                                  edit
+                              </span>
+                              <!-- Delete button (example) -->
+                              <span class="material-symbols-outlined folder-action-icon" (click)="deleteThisFolder(folder.id, $event)">
+                                  delete
+                              </span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- Display filtered folders if searchTerm is present -->
+  <div *ngIf="searchTerm && filteredFolders.length > 0">
+    <h2>Search Results</h2>
+    <div class="folder-grid">
+      <div *ngFor="let folder of filteredFolders; trackBy: trackByFolderId" class="folder-grid-item" (click)="onFolderClick(folder)">
+        <div class="folder-card">
             <div class="folder-image-container">
-              <img [src]="'dummyValue' | randomImage" alt="Folder Image" />
+                <img [src]="'dummyValue' | randomImage" alt="Folder Image" />
             </div>
             <div class="folder-details">
-              <!-- Empty for now, as content is moved to footer -->
+                <!-- Empty for now, as content is moved to footer -->
             </div>
             <div class="folder-footer">
-              <h3 class="folder-name">{{ folder.folderName }}</h3>
-              <div class="folder-actions">
-                  <span class="material-symbols-outlined folder-action-icon" (click)="editFolder(folder.id, $event)">
-                    edit
-                  </span>
-                <!-- Delete button (example) -->
-                <span
-                  class="material-symbols-outlined folder-action-icon"
-                  (click)="deleteThisFolder(folder.id, $event)"
-                >
-                  delete
-                </span>
-              </div>
+                <h3 class="folder-name">{{ folder.folderName }}</h3>
+                <div class="folder-actions">
+                    <span class="material-symbols-outlined folder-action-icon" (click)="editFolder(folder.id, $event)">
+                        edit
+                    </span>
+                    <!-- Delete button (example) -->
+                    <span class="material-symbols-outlined folder-action-icon" (click)="deleteThisFolder(folder.id, $event)">
+                        delete
+                    </span>
+                </div>
             </div>
-          </div>
         </div>
-        <div
-          class="no-results"
-          *ngIf="searchTerm && categoryGroup.folders.length === 0"
-        >
-          Aucun dossier trouvé pour "{{ searchTerm }}" dans la catégorie
-          {{ categoryGroup.category.categoryName }}.
-        </div>
-      </div>
+    </div>
     </div>
   </div>
 
   <!-- Empty State (if no folders exist) -->
-  <div class="empty-state" *ngIf="folders.length === 0">
-    <i class="far fa-folder-open empty-icon"></i>
-    <p>Aucun dossier disponible</p>
-    <p class="empty-hint">
-      Créez votre premier dossier en cliquant sur le bouton ci-dessus
-    </p>
+  <div class="empty-state" *ngIf="folders && folders.length === 0">
+      <i class="far fa-folder-open empty-icon"></i>
+      <p>Aucun dossier disponible</p>
+      <p class="empty-hint">
+          Créez votre premier dossier en cliquant sur le bouton ci-dessus
+      </p>
   </div>
 
   <div class="overlay" *ngIf="showForm" (click)="onCancel()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>Nouveau Dossier</h2>
-        <button type="button" class="close-button" (click)="onCancel()">
-          <i class="fas fa-times"></i>
-        </button>
+      <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+              <h2>Nouveau Dossier</h2>
+              <button type="button" class="close-button" (click)="onCancel()">
+                  <i class="fas fa-times"></i>
+              </button>
+          </div>
+
+          <form [formGroup]="folderForm" (ngSubmit)="onSubmit()">
+              <div class="form-group">
+                  <label for="name">Nom du dossier</label>
+                  <input
+                      type="text"
+                      id="name"
+                      formControlName="name"
+                      placeholder="Entrez un nom de dossier"
+                      autofocus
+                  />
+                  <div
+                      class="form-error"
+                      *ngIf="
+                          folderForm.get('name')?.invalid && folderForm.get('name')?.touched
+                      "
+                  >
+                      Le nom du dossier est requis
+                  </div>
+              </div>
+
+              <div class="form-group">
+                  <label for="category">Catégorie</label>
+                  <select id="category" formControlName="category">
+                      <option value="" disabled selected>Sélectionner une catégorie</option>
+                      <option *ngFor="let category of categories" [ngValue]="category.id">
+                          {{ category.categoryName }}
+                      </option>
+                  </select>
+                  <div
+                      class="form-error"
+                      *ngIf="
+                          folderForm.get('category')?.invalid &&
+                          folderForm.get('category')?.touched
+                      "
+                  >
+                      Veuillez sélectionner une catégorie
+                  </div>
+              </div>
+
+              <div class="form-actions">
+                  <button type="button" class="cancel-button" (click)="onCancel()">
+                      Annuler
+                  </button>
+                  <button
+                      type="submit"
+                      class="save-button"
+                      [disabled]="folderForm.invalid"
+                  >
+                      Enregistrer
+                  </button>
+              </div>
+          </form>
       </div>
-
-      <form [formGroup]="folderForm" (ngSubmit)="onSubmit()">
-        <div class="form-group">
-          <label for="name">Nom du dossier</label>
-          <input
-            type="text"
-            id="name"
-            formControlName="name"
-            placeholder="Entrez un nom de dossier"
-            autofocus
-          />
-          <div
-            class="form-error"
-            *ngIf="
-              folderForm.get('name')?.invalid && folderForm.get('name')?.touched
-            "
-          >
-            Le nom du dossier est requis
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="category">Catégorie</label>
-          <select id="category" formControlName="category">
-            <option value="" disabled selected>Sélectionner une catégorie</option>
-            <option *ngFor="let category of categories" [ngValue]="category.id">
-              {{ category.categoryName }}
-            </option>
-          </select>
-          <div
-            class="form-error"
-            *ngIf="
-              folderForm.get('category')?.invalid &&
-              folderForm.get('category')?.touched
-            "
-          >
-            Veuillez sélectionner une catégorie
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="cancel-button" (click)="onCancel()">
-            Annuler
-          </button>
-          <button
-            type="submit"
-            class="save-button"
-            [disabled]="folderForm.invalid"
-          >
-            Enregistrer
-          </button>
-        </div>
-      </form>
-    </div>
   </div>
 
   <div class="overlay" *ngIf="showCategoryForm" (click)="onCancel()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>Nouvelle Catégorie</h2>
-        <button type="button" class="close-button" (click)="onCancel()">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <form [formGroup]="categoryForm" (ngSubmit)="onCategorySubmit()">
-        <div class="form-group">
-          <label for="categoryName">Nom de la Catégorie</label>
-          <input
-            type="text"
-            id="categoryName"
-            formControlName="categoryName"
-            placeholder="Entrez un nom de catégorie"
-            autofocus
-          />
-          <div
-            class="form-error"
-            *ngIf="
-              categoryForm.get('categoryName')?.invalid &&
-              categoryForm.get('categoryName')?.touched
-            "
-          >
-            Le nom de la catégorie est requis
+      <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+              <h2>Nouvelle Catégorie</h2>
+              <button type="button" class="close-button" (click)="onCancel()">
+                  <i class="fas fa-times"></i>
+              </button>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label for="description">Description</label>
-          <textarea
-            id="description"
-            formControlName="description"
-            placeholder="Entrez une description"
-          ></textarea>
-        </div>
+          <form [formGroup]="categoryForm" (ngSubmit)="onCategorySubmit()">
+              <div class="form-group">
+                  <label for="categoryName">Nom de la Catégorie</label>
+                  <input
+                      type="text"
+                      id="categoryName"
+                      formControlName="categoryName"
+                      placeholder="Entrez un nom de catégorie"
+                      autofocus
+                  />
+                  <div
+                      class="form-error"
+                      *ngIf="
+                          categoryForm.get('categoryName')?.invalid &&
+                          categoryForm.get('categoryName')?.touched
+                      "
+                  >
+                      Le nom de la catégorie est requis
+                  </div>
+              </div>
 
-        <div class="form-actions">
-          <button type="button" class="cancel-button" (click)="onCancel()">
-            Annuler
-          </button>
-          <button
-            type="submit"
-            class="save-button"
-            [disabled]="categoryForm.invalid || isCategoryCreating"
-          >
-            <span *ngIf="!isCategoryCreating">Enregistrer</span>
-            <span *ngIf="isCategoryCreating">Création...</span>
-          </button>
-        </div>
-      </form>
+              <div class="form-group">
+                  <label for="description">Description</label>
+                  <textarea
+                      id="description"
+                      formControlName="description"
+                      placeholder="Entrez une description"
+                  ></textarea>
+              </div>
 
-      <div class="form-error" *ngIf="categoryCreationError">
-        {{ categoryCreationError }}
+              <div class="form-actions">
+                  <button type="button" class="cancel-button" (click)="onCancel()">
+                      Annuler
+                  </button>
+                  <button
+                      type="submit"
+                      class="save-button"
+                      [disabled]="categoryForm.invalid || isCategoryCreating"
+                  >
+                      <span *ngIf="!isCategoryCreating">Enregistrer</span>
+                      <span *ngIf="isCategoryCreating">Création...</span>
+                  </button>
+              </div>
+          </form>
+
+          <div class="form-error" *ngIf="categoryCreationError">
+              {{ categoryCreationError }}
+          </div>
+
+          <div class="form-success" *ngIf="categoryCreationSuccess">
+              Category created successfully!
+          </div>
+          <div *ngIf="categoryCreationError" class="error-message">
+              {{ categoryCreationError }}
+          </div>
       </div>
-
-      <div class="form-success" *ngIf="categoryCreationSuccess">
-        Category created successfully!
-      </div>
-      <div *ngIf="categoryCreationError" class="error-message">
-        {{ categoryCreationError }}
-      </div>
-    </div>
   </div>
 
   <!-- Edit Folder Form -->
   <div class="overlay" *ngIf="showEditForm" (click)="onEditCancel()">
-    <div class="modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>Modifier le Dossier</h2>
-        <button type="button" class="close-button" (click)="onEditCancel()">
-          <i class="fas fa-times"></i>
-        </button>
+      <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+              <h2>Modifier le Dossier</h2>
+              <button type="button" class="close-button" (click)="onEditCancel()">
+                  <i class="fas fa-times"></i>
+              </button>
+          </div>
+
+          <form [formGroup]="editFolderForm" (ngSubmit)="onEditSubmit()">
+              <div class="form-group">
+                  <label for="name">Nom du dossier</label>
+                  <input
+                      type="text"
+                      id="name"
+                      formControlName="name"
+                      placeholder="Entrez un nom de dossier"
+                      autofocus
+                  />
+                  <div
+                      class="form-error"
+                      *ngIf="
+                          editFolderForm.get('name')?.invalid &&
+                          editFolderForm.get('name')?.touched
+                      "
+                  >
+                      Le nom du dossier est requis
+                  </div>
+              </div>
+
+              <div class="form-group">
+                  <label for="category">Catégorie</label>
+                  <select id="category" formControlName="category">
+                      <option value="" disabled selected>Sélectionner une catégorie</option>
+                      <option *ngFor="let category of categories" [ngValue]="category.id">
+                          {{ category.categoryName }}
+                      </option>
+                  </select>
+                  <div
+                      class="form-error"
+                      *ngIf="
+                          editFolderForm.get('category')?.invalid &&
+                          editFolderForm.get('category')?.touched
+                      "
+                  >
+                      Veuillez sélectionner une catégorie
+                  </div>
+              </div>
+
+              <div class="form-actions">
+                  <button type="button" class="cancel-button" (click)="onEditCancel()">
+                      Annuler
+                  </button>
+                  <button
+                      type="submit"
+                      class="save-button"
+                      [disabled]="editFolderForm.invalid || isFolderUpdating"
+                  >
+                      <span *ngIf="!isFolderUpdating">Enregistrer</span>
+                      <span *ngIf="isFolderUpdating">Enregistrement...</span>
+                  </button>
+              </div>
+              <div class="form-error" *ngIf="folderUpdateError">
+                  {{ folderUpdateError }}
+              </div>
+          </form>
       </div>
-
-      <form [formGroup]="editFolderForm" (ngSubmit)="onEditSubmit()">
-        <div class="form-group">
-          <label for="name">Nom du dossier</label>
-          <input
-            type="text"
-            id="name"
-            formControlName="name"
-            placeholder="Entrez un nom de dossier"
-            autofocus
-          />
-          <div
-            class="form-error"
-            *ngIf="
-              editFolderForm.get('name')?.invalid &&
-              editFolderForm.get('name')?.touched
-            "
-          >
-            Le nom du dossier est requis
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="category">Catégorie</label>
-          <select id="category" formControlName="category">
-            <option value="" disabled selected>Sélectionner une catégorie</option>
-            <option *ngFor="let category of categories" [ngValue]="category.id">
-              {{ category.categoryName }}
-            </option>
-          </select>
-          <div
-            class="form-error"
-            *ngIf="
-              editFolderForm.get('category')?.invalid &&
-              editFolderForm.get('category')?.touched
-            "
-          >
-            Veuillez sélectionner une catégorie
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="button" class="cancel-button" (click)="onEditCancel()">
-            Annuler
-          </button>
-          <button
-            type="submit"
-            class="save-button"
-            [disabled]="editFolderForm.invalid || isFolderUpdating"
-          >
-            <span *ngIf="!isFolderUpdating">Enregistrer</span>
-            <span *ngIf="isFolderUpdating">Enregistrement...</span>
-          </button>
-        </div>
-        <div class="form-error" *ngIf="folderUpdateError">
-          {{ folderUpdateError }}
-        </div>
-      </form>
-    </div>
   </div>
 
   <!-- Display folder delete error if it exists -->
   <div *ngIf="folderDeleteError" class="error-message">
-    {{ folderDeleteError }}
+      {{ folderDeleteError }}
   </div>
 </div>

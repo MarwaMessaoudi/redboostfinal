@@ -43,6 +43,7 @@ export class SubFolderComponent implements OnInit {
 
             // Call a function to load files based on the parameters
             this.loadFiles();
+            
         });
     }
     onFileSelected(event: any) {

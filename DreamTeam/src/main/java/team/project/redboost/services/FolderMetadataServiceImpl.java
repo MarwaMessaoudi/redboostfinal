@@ -1,3 +1,4 @@
+// FolderMetadataServiceImpl.java
 package team.project.redboost.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -6,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import team.project.redboost.entities.FolderMetadata;
 import team.project.redboost.repositories.FolderMetadataRepository;
 import team.project.redboost.repositories.FileMetadataRepository;
-import team.project.redboost.services.FolderMetadataService;
 
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -15,7 +15,7 @@ import java.util.NoSuchElementException;
 public class FolderMetadataServiceImpl implements FolderMetadataService {
 
     private final FolderMetadataRepository folderMetadataRepository;
-    private final FileMetadataRepository fileMetadataRepository; // Inject FileMetadataRepository
+    private final FileMetadataRepository fileMetadataRepository;
 
     @Autowired
     public FolderMetadataServiceImpl(FolderMetadataRepository folderMetadataRepository, FileMetadataRepository fileMetadataRepository) {
@@ -58,6 +58,7 @@ public class FolderMetadataServiceImpl implements FolderMetadataService {
         folderMetadata.setFolderName(folderMetadataDetails.getFolderName());
         folderMetadata.setFolderPath(folderMetadataDetails.getFolderPath());
         folderMetadata.setCategory(folderMetadataDetails.getCategory());
+        folderMetadata.setUser(folderMetadataDetails.getUser()); // Update the User if needed
 
         return folderMetadataRepository.save(folderMetadata);
     }
@@ -76,5 +77,10 @@ public class FolderMetadataServiceImpl implements FolderMetadataService {
         }
 
         folderMetadataRepository.deleteById(id);
+    }
+
+    @Override
+    public List<FolderMetadata> getAllFolderMetadataForUser(Long userId) {
+        return folderMetadataRepository.findByUserId(userId); // Use the repository method
     }
 }

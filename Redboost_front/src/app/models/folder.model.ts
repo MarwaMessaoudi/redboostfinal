@@ -1,9 +1,7 @@
-
 export interface Folder {
-  id?: string;
+  id?: number;
   folderName: string;
-  categoryId: any ;
+  categoryId: number; // Ensure this field is included
   folderPath?: string;
-  files? : any[];
-  
+  files?: any[];
 }

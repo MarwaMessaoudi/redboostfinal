@@ -15,6 +15,7 @@ import team.project.redboost.entities.Entrepreneur;
 import team.project.redboost.entities.RendezVous;
 import team.project.redboost.repositories.CoachRepository;
 import team.project.redboost.repositories.EntrepreneurRepository;
+import team.project.redboost.repositories.RendezVousRepository;
 import team.project.redboost.services.RendezVousService;
 import team.project.redboost.services.GoogleCalendarService;
 
@@ -44,53 +45,70 @@ public class RendezVousController {
             @ApiResponse(responseCode = "404", description = "Rendez-vous non trouvé"),
             @ApiResponse(responseCode = "500", description = "Erreur lors de la mise à jour ou de l’ajout à Google Calendar")
     })
-    @PatchMapping("/update-status/{id}")
+  /*  @PatchMapping("/update-status/{id}")
     public ResponseEntity<ResponseMessage> updateRendezVousStatus(
             @PathVariable Long id,
             @RequestBody RendezVous.Status status,
-            Authentication authentication) {  // Added Authentication parameter
+            Authentication authentication) { // Ajouter Authentication comme paramètre
         try {
-            logger.info("Updating status for rendezvous ID: {} to {}", id, status);
-
             Optional<RendezVous> optionalRendezVous = rendezVousService.getRendezVousById(id);
             if (optionalRendezVous.isEmpty()) {
-                logger.warn("Rendezvous with ID {} not found", id);
                 return ResponseEntity.notFound().build();
             }
 
             RendezVous rendezVous = optionalRendezVous.get();
             rendezVous.setStatus(status);
-            rendezVousService.updateRendezVous(id, rendezVous);
+            rendezVousService.updateRendezVousStatus(id, status); // Correction : passer status au lieu de rendezVous
 
             boolean success = true;
             String message;
 
             if (RendezVous.Status.ACCEPTED.equals(status)) {
                 try {
-                    if (authentication == null) {
-                        logger.error("No authentication provided for Google Calendar integration");
-                        throw new IllegalStateException("User must be authenticated to add to Google Calendar");
-                    }
-                    googleCalendarService.ajouterRendezVous(rendezVous, authentication);  // Pass Authentication
+                    googleCalendarService.ajouterRendezVous(rendezVous, authentication); // Passer authentication
                     message = "Rendez-vous approuvé et ajouté avec succès à Google Calendar";
-                    logger.info("Rendezvous ID {} added to Google Calendar for user {}", id, authentication.getName());
                 } catch (Exception e) {
                     success = false;
                     message = "Erreur lors de l’ajout à Google Calendar : " + e.getMessage();
-                    logger.error("Failed to add rendezvous ID {} to Google Calendar: {}", id, e.getMessage(), e);
                     return ResponseEntity.status(500).body(new ResponseMessage(message, false));
                 }
             } else {
                 message = "Statut du rendez-vous mis à jour avec succès";
-                logger.info("Rendezvous ID {} status updated to {}", id, status);
             }
 
             return ResponseEntity.ok(new ResponseMessage(message, success));
         } catch (Exception e) {
-            logger.error("Error updating rendezvous status for ID {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(500).body(new ResponseMessage("Erreur lors de la mise à jour du statut : " + e.getMessage(), false));
         }
+
+    }*/
+    @PatchMapping("/update-status/{id}")
+    public ResponseEntity<ResponseMessage> updateRendezVousStatus(@PathVariable Long id, @RequestBody RendezVous.Status status) {
+        try {
+            Optional<RendezVous> optionalRendezVous = rendezVousService.getRendezVousById(id);
+            if (optionalRendezVous.isEmpty()) {
+                return ResponseEntity.status(404).body(new ResponseMessage("Rendez-vous non trouvé", false));
+            }
+
+            RendezVous rendezVous = optionalRendezVous.get();
+            rendezVous.setStatus(status);
+            rendezVousService.updateRendezVousStatus(id, status);
+
+            String message = "Statut du rendez-vous mis à jour avec succès";
+            boolean success = true;
+
+            if (RendezVous.Status.ACCEPTED.equals(status)) {
+                // Désactiver temporairement pour tester sans Google Calendar
+                 googleCalendarService.ajouterRendezVous(rendezVous);
+                message += " (ajout à Google Calendar désactivé)";
+            }
+
+            return ResponseEntity.ok(new ResponseMessage(message, success));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ResponseMessage("Erreur: " + e.getMessage(), false));
+        }
     }
+
 
     // Classe interne pour la réponse JSON
     public static class ResponseMessage {
@@ -112,48 +130,62 @@ public class RendezVousController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<RendezVous> createRendezVous(
+    public ResponseEntity<?> createRendezVous(
             @RequestBody RendezVous rendezVous,
             @RequestParam Long coachId,
             @RequestParam Long entrepreneurId
     ) {
         try {
+            // Validate input
+            if (rendezVous.getTitle() == null || rendezVous.getTitle().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Title is required"));
+            }
+            if (rendezVous.getEmail() == null || rendezVous.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Email is required"));
+            }
+            if (rendezVous.getDate() == null) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Date is required"));
+            }
+            if (rendezVous.getHeure() == null || rendezVous.getHeure().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Heure is required"));
+            }
+            if (rendezVous.getDescription() == null || rendezVous.getDescription().trim().isEmpty() || rendezVous.getDescription().length() > 500) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Description is required and must not exceed 500 characters"));
+            }
+            if (rendezVous.getStatus() == null) {
+                rendezVous.setStatus(RendezVous.Status.PENDING);
+            } else if (!rendezVous.getStatus().name().equals("PENDING") &&
+                    !rendezVous.getStatus().name().equals("ACCEPTED") &&
+                    !rendezVous.getStatus().name().equals("REJECTED")) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Invalid status value"));
+            }
+
             // Fetch the coach and entrepreneur from the database
-            Optional<Coach> coach = coachRepository .findById(coachId);
+            Optional<Coach> coach = coachRepository.findById(coachId);
             Optional<Entrepreneur> entrepreneur = entrepreneurRepository.findById(entrepreneurId);
 
-            if (coach.isEmpty() || entrepreneur.isEmpty()) {
-                return ResponseEntity.badRequest().body(null); // Coach or entrepreneur not found
+            if (coach.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Coach not found for id: " + coachId));
+            }
+            if (entrepreneur.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Entrepreneur not found for id: " + entrepreneurId));
             }
 
             // Set the coach and entrepreneur for the rendezvous
             rendezVous.setCoach(coach.get());
             rendezVous.setEntrepreneur(entrepreneur.get());
 
-            // Vérifier les rendez-vous approuvés pour la même date
+            // Check for time conflicts
             List<RendezVous> acceptedAppointments = rendezVousService.getRendezVousByDateAndStatus(rendezVous.getDate(), RendezVous.Status.ACCEPTED);
-
-            // Convertir les heures en objets LocalTime pour comparer
-            String newHeure = rendezVous.getHeure();
-            if (newHeure == null || newHeure.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body(null); // ou une réponse d'erreur personnalisée
-            }
-
-            java.time.LocalTime newTime = java.time.LocalTime.parse(newHeure);
-            int bufferMinutes = 45; // Augmenté à 45 minutes au lieu de 15
+            java.time.LocalTime newTime = java.time.LocalTime.parse(rendezVous.getHeure());
+            int bufferMinutes = 45;
 
             for (RendezVous existing : acceptedAppointments) {
                 java.time.LocalTime existingTime = java.time.LocalTime.parse(existing.getHeure());
                 long minutesDiff = java.time.Duration.between(existingTime, newTime).toMinutes();
                 if (Math.abs(minutesDiff) < bufferMinutes || minutesDiff == 0) {
-                    return ResponseEntity.badRequest()
-                            .body(null); // ou { error: "Cette heure n’est pas disponible ou trop proche d’un rendez-vous existant." }
+                    return ResponseEntity.badRequest().body(new ErrorResponse("Time conflict: Appointment too close to an existing accepted appointment at " + existing.getHeure()));
                 }
-            }
-
-            // Créer le rendez-vous si pas de conflit (statut PENDING par défaut)
-            if (rendezVous.getStatus() == null) {
-                rendezVous.setStatus(RendezVous.Status.PENDING);
             }
 
             // Save the appointment
@@ -161,10 +193,64 @@ public class RendezVousController {
             return ResponseEntity.ok(savedRendezVous);
         } catch (Exception e) {
             logger.error("Erreur lors de la création du rendez-vous : {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(null); // ou une réponse d'erreur personnalisée
+            return ResponseEntity.status(500).body(new ErrorResponse("Internal server error: " + e.getMessage()));
         }
     }
 
+
+
+
+
+
+
+
+
+
+
+    // Récupérer les rendez-vous par entrepreneurId
+    @GetMapping("/entrepreneur/{entrepreneurId}")
+    public ResponseEntity<List<RendezVous>> getRendezVousByEntrepreneurId(@PathVariable Long entrepreneurId) {
+        List<RendezVous> rendezVous = rendezVousService.getRendezVousByEntrepreneurId(entrepreneurId);
+        return ResponseEntity.ok(rendezVous);
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Inner class for error responses
+    public static class ErrorResponse {
+        private String message;
+
+        public ErrorResponse(String message) {
+            this.message = message;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+    }
     @GetMapping("/all")
     public ResponseEntity<List<RendezVous>> getAllRendezVous() {
         logger.info("Fetching all rendezvous");
@@ -182,11 +268,33 @@ public class RendezVousController {
     }
 
     @PutMapping("/update/{id}")
-    public ResponseEntity<RendezVous> updateRendezVous(@PathVariable Long id, @RequestBody RendezVous rendezVous) {
-        logger.info("Updating rendezvous ID: {}", id);
-        return ResponseEntity.ok(rendezVousService.updateRendezVous(id, rendezVous));
-    }
+    public ResponseEntity<?> updateRendezVous(@PathVariable Long id, @RequestBody RendezVous rendezVous) {
+        logger.info("Updating rendezvous with ID: {}", id);
 
+        try {
+            // Vérifier si le rendez-vous existe
+            RendezVous existingRendezVous = rendezVousService.getRendezVousById(id)
+                    .orElseThrow(() -> new RuntimeException("Rendez-vous not found with id: " + id));
+
+            // Si coach ou entrepreneur ne sont pas fournis, réutiliser les existants
+            if (rendezVous.getCoach() == null || rendezVous.getCoach().getId() == null) {
+                rendezVous.setCoach(existingRendezVous.getCoach());
+            }
+            if (rendezVous.getEntrepreneur() == null || rendezVous.getEntrepreneur().getId() == null) {
+                rendezVous.setEntrepreneur(existingRendezVous.getEntrepreneur());
+            }
+
+            // Mettre à jour le rendez-vous
+            RendezVous updatedRendezVous = rendezVousService.updateRendezVous(id, rendezVous);
+            return ResponseEntity.ok(updatedRendezVous);
+        } catch (RuntimeException e) {
+            logger.error("Error updating rendezvous with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.status(404).body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error updating rendezvous with ID {}: {}", id, e.getMessage());
+            return ResponseEntity.status(500).body(new ErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
     @Operation(summary = "Obtenir les rendez-vous approuvés pour une date spécifique")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Liste des rendez-vous approuvés récupérée avec succès"),

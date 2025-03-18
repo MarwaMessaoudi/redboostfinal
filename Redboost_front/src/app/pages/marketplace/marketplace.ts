@@ -1,14 +1,16 @@
 import { Component, HostListener } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import axios from 'axios';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-marketplace',
   standalone: true,
   imports: [FormsModule, CommonModule, RouterModule],
+  providers: [MessageService],
   template: `
     <div class="container mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold text-center text-[#245C67] mb-8">Startup Marketplace</h1>
@@ -20,7 +22,7 @@ import axios from 'axios';
             type="text"
             [(ngModel)]="searchQuery"
             (ngModelChange)="filterStartups()"
-            placeholder="Search by name, category, or description..."
+            placeholder="Search by name, sector, or description..."
             class="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0A4955] focus:border-[#0A4955]"
           />
           <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,16 +30,16 @@ import axios from 'axios';
           </svg>
         </div>
 
-        <!-- Category Checkboxes -->
+        <!-- Sector Checkboxes -->
         <div class="flex flex-wrap gap-4">
-          <label *ngFor="let cat of categories" class="flex items-center space-x-2">
+          <label *ngFor="let sector of sectors" class="flex items-center space-x-2">
             <input
               type="checkbox"
-              [checked]="selectedCategories.includes(cat)"
-              (change)="toggleCategory(cat)"
+              [checked]="selectedSectors.includes(sector)"
+              (change)="toggleSector(sector)"
               class="h-4 w-4 text-[#0A4955] border-gray-300 rounded focus:ring-[#0A4955]"
             />
-            <span class="text-[#568086] text-sm">{{ cat }}</span>
+            <span class="text-[#568086] text-sm">{{ sector }}</span>
           </label>
         </div>
       </div>
@@ -52,7 +54,7 @@ import axios from 'axios';
             <div class="flex items-center justify-between mb-4">
               <h2 class="text-xl font-semibold text-[#245C67]">{{ startup.name }}</h2>
               <span class="text-xs font-medium px-2 py-1 rounded-full bg-[#E88D9A] text-[#DB1E37]">
-                {{ startup.category }}
+                {{ startup.sector }}
               </span>
             </div>
             
@@ -70,6 +72,10 @@ import axios from 'axios';
               <div class="flex justify-between">
                 <span>Team Size:</span>
                 <span class="font-medium">{{ startup.teamSize }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>ID:</span>
+                <span class="font-medium">{{ startup.id }}</span> <!-- Display ID for verification -->
               </div>
             </div>
 
@@ -115,7 +121,7 @@ import axios from 'axios';
       >
         <div class="bg-white rounded-lg p-6 w-full max-w-md">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-[#245C67]">Send Proposal to {{ selectedStartup?.name }}</h3>
+            <h3 class="text-xl font-semibold text-[#245C67]">Send Proposal to {{ selectedStartup?.name }} (ID: {{ selectedStartup?.id }})</h3>
             <button (click)="closeModal()" class="text-[#568086] hover:text-[#245C67]">✕</button>
           </div>
           <textarea
@@ -160,7 +166,7 @@ import axios from 'axios';
 })
 export class MarketplaceComponent {
   searchQuery: string = '';
-  selectedCategories: string[] = [];
+  selectedSectors: string[] = [];
   startups: any[] = [];
   displayedStartups: any[] = [];
   message: string = '';
@@ -168,33 +174,90 @@ export class MarketplaceComponent {
   isModalOpen: boolean = false;
   selectedStartup: any;
   loading: boolean = false;
-  categories: string[] = [];
+  sectors: string[] = [];
+  currentUser: any = null;
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private messageService: MessageService
+  ) {
+    this.fetchCurrentUser();
     this.fetchStartups();
+  }
+
+  private fetchCurrentUser(): void {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No authentication token found. Please log in.',
+      });
+      this.router.navigate(['/signin']);
+      return;
+    }
+
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    });
+
+    this.http.get('http://localhost:8085/users/profile', { headers }).subscribe({
+      next: (response: any) => {
+        this.currentUser = response;
+        if (response.role !== 'INVESTOR') {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Warning',
+            detail: 'Only investors can send proposals.',
+          });
+          this.router.navigate(['/dashboard']);
+        }
+      },
+      error: (error) => {
+        console.error('Failed to fetch user profile:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to fetch user profile',
+        });
+        this.router.navigate(['/signin']);
+      },
+    });
   }
 
   fetchStartups() {
     this.loading = true;
     axios
-      .get('http://localhost:8085/api/projets/GetAll') // Assumed endpoint
+      .get('http://localhost:8085/api/projets/GetAll')
       .then((response) => {
-        this.startups = response.data;
-        this.categories = [...new Set(this.startups.map(startup => startup.category))]; // Dynamically generate categories
+        this.startups = response.data.map((startup: any) => {
+          // Ensure each startup has an id
+          if (!startup.id) {
+            console.warn('Startup missing ID:', startup);
+          }
+          return startup;
+        });
+        this.sectors = [...new Set(this.startups.map(startup => startup.sector))];
         this.filterStartups();
         this.loading = false;
       })
       .catch((error) => {
         console.error('Error fetching startups:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load startups.',
+        });
         this.loading = false;
       });
   }
 
-  toggleCategory(category: string) {
-    if (this.selectedCategories.includes(category)) {
-      this.selectedCategories = this.selectedCategories.filter(cat => cat !== category);
+  toggleSector(sector: string) {
+    if (this.selectedSectors.includes(sector)) {
+      this.selectedSectors = this.selectedSectors.filter(s => s !== sector);
     } else {
-      this.selectedCategories.push(category);
+      this.selectedSectors.push(sector);
     }
     this.filterStartups();
   }
@@ -202,13 +265,13 @@ export class MarketplaceComponent {
   filterStartups() {
     const query = this.searchQuery.toLowerCase();
     this.displayedStartups = this.startups.filter(startup => {
-      const matchesCategory = this.selectedCategories.length === 0 || this.selectedCategories.includes(startup.category);
+      const matchesSector = this.selectedSectors.length === 0 || this.selectedSectors.includes(startup.sector);
       const matchesSearch = 
         startup.name.toLowerCase().includes(query) ||
-        startup.category.toLowerCase().includes(query) ||
+        startup.sector.toLowerCase().includes(query) ||
         startup.description.toLowerCase().includes(query) ||
         startup.location.toLowerCase().includes(query);
-      return matchesCategory && matchesSearch;
+      return matchesSector && matchesSearch;
     });
     this.loading = false;
   }
@@ -228,11 +291,11 @@ export class MarketplaceComponent {
     this.loading = true;
     setTimeout(() => {
       const filtered = this.startups.filter(startup => {
-        const matchesCategory = this.selectedCategories.length === 0 || this.selectedCategories.includes(startup.category);
+        const matchesSector = this.selectedSectors.length === 0 || this.selectedSectors.includes(startup.sector);
         const matchesSearch = startup.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-                              startup.category.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                              startup.sector.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
                               startup.description.toLowerCase().includes(this.searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
+        return matchesSector && matchesSearch;
       });
       const nextBatch = filtered.slice(
         this.displayedStartups.length,
@@ -244,6 +307,14 @@ export class MarketplaceComponent {
   }
 
   openModal(startup: any) {
+    if (!startup.id) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Selected startup is missing an ID.',
+      });
+      return;
+    }
     this.selectedStartup = startup;
     this.isModalOpen = true;
   }
@@ -255,21 +326,69 @@ export class MarketplaceComponent {
   }
 
   sendProposal() {
+    if (!this.currentUser) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Please log in to send a proposal.',
+      });
+      this.closeModal();
+      this.router.navigate(['/signin']);
+      return;
+    }
+
+    if (!this.selectedStartup?.id) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No startup selected or startup ID is missing.',
+      });
+      this.closeModal();
+      return;
+    }
+
     const proposal = {
-      investor: { id: 1 },
-      startup: { id: this.selectedStartup.id },
+      investor: { id: this.currentUser.id },
+      projet: { id: this.selectedStartup.id },
       message: this.message,
       proposedAmount: this.proposedAmount,
       status: 'PENDING',
+      requestDate: new Date().toISOString()
     };
+
+    console.log('Sending proposal:', proposal);
 
     axios
       .post('http://localhost:8085/api/investment-requests', proposal)
-      .then(() => this.closeModal())
-      .catch((error) => console.error('Error sending proposal:', error));
+      .then((response) => {
+        console.log('Proposal sent successfully:', response.data);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Proposal sent successfully!',
+        });
+        this.closeModal();
+      })
+      .catch((error) => {
+        console.error('Error sending proposal:', error.response?.data || error);
+        console.log(this.currentUser.id);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to send proposal: ' + (error.response?.data?.error || 'Unknown error'),
+        });
+      });
   }
 
   viewStartupDetails(startupId: number) {
+    if (!startupId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Startup ID is missing.',
+      });
+      return;
+    }
     this.router.navigate([`/startup/${startupId}`]);
   }
 }

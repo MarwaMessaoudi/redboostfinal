@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.List;
 
 @Setter
 @Getter
 @Entity
+@Table(name = "investor")
 public class Investor {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,18 +18,15 @@ public class Investor {
     private String name; // Raison sociale (Company name)
     private String email; // Adresse électronique (Email)
     private String phoneNumber; // Tél (Telephone)
-
-    // New fields
     private String legalRepresentative; // Le représentant légal (Legal representative)
     private String governorate; // Gouvernorat (Region/State)
     private String address; // Adresse (Physical address)
     private String uniqueIdentifier; // Identifiant unique (Tax ID or Registration Number)
     private String legalForm; // Forme juridique (Legal form, e.g., SARL, SA)
-    private Double shareCapital; // Capital social (Share capital, using Double for monetary value)
+    private Double shareCapital; // Capital social (Share capital)
 
-    // Relationship with InvestmentRequest
     @OneToMany(mappedBy = "investor", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnoreProperties("investor") // Ignore investor reference inside InvestmentRequest
+    @JsonIgnoreProperties("investor")
     private List<InvestmentRequest> investmentRequests;
 
     public Investor() {}

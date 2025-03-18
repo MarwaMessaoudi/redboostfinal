@@ -48,7 +48,7 @@ import axios from 'axios';
              class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-200">
           <div class="p-5">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-xl font-semibold text-[#245C67]">{{ request.startup?.name }}</h2>
+              <h2 class="text-xl font-semibold text-[#245C67]">{{ request.projet?.name }}</h2>
               <span class="text-xs font-medium px-2 py-1 rounded-full"
                     [ngClass]="{
                       'bg-[#568086] text-[#E44D62]': request.status === 'ACCEPTED',
@@ -59,12 +59,12 @@ import axios from 'axios';
               </span>
             </div>
 
-            <p class="text-[#568086] text-sm mb-4 line-clamp-2">{{ request.startup?.description }}</p>
+            <p class="text-[#568086] text-sm mb-4 line-clamp-2">{{ request.projet?.description }}</p>
 
             <div class="space-y-2 text-sm text-[#568086] mb-4">
               <div class="flex justify-between">
                 <span>Industry:</span>
-                <span class="font-medium">{{ request.startup?.industry }}</span>
+                <span class="font-medium">{{ request.projet?.sector }}</span>
               </div>
               <div class="flex justify-between">
                 <span>Investment:</span>
@@ -72,13 +72,13 @@ import axios from 'axios';
               </div>
               <div class="flex justify-between" *ngIf="request.status === 'ACCEPTED'">
                 <span>Current Value:</span>
-                <span class="font-medium">{{ (request.startup?.revenue * 0.1) | currency }}</span>
+                <span class="font-medium">{{ (request.projet?.revenue * 0.1) | currency }}</span>
               </div>
             </div>
 
             <div class="flex gap-3">
               <button *ngIf="request.status === 'ACCEPTED'"
-                      (click)="viewStartupDetails(request.startup?.id)"
+                      (click)="viewProjetDetails(request.projet?.id)"
                       class="flex-1 bg-[#0A4955] text-white py-2 px-4 rounded-md hover:bg-[#245C67] transition-colors text-sm">
                 📊 View Full Details
               </button>
@@ -152,18 +152,18 @@ export class InvestorStartupsComponent {
     this.displayedRequests = this.investmentRequests.filter(request => {
       const matchesStatus = this.selectedStatuses.length === 0 || this.selectedStatuses.includes(request.status);
       const matchesSearch = 
-        (request.startup?.name || '').toLowerCase().includes(query) ||
-        (request.startup?.industry || '').toLowerCase().includes(query) ||
-        (request.startup?.description || '').toLowerCase().includes(query);
+        (request.projet?.name || '').toLowerCase().includes(query) ||
+        (request.projet?.sector || '').toLowerCase().includes(query) ||
+        (request.projet?.description || '').toLowerCase().includes(query);
       return matchesStatus && matchesSearch;
     });
   }
 
-  viewStartupDetails(startupId?: number) {
-    if (startupId) {
-      this.router.navigate(['/startup-details', startupId]);
+  viewProjetDetails(projetId?: number) {
+    if (projetId) {
+      this.router.navigate(['/startup-details', projetId]);
     } else {
-      console.error('Startup ID is undefined');
+      console.error('Projet ID is undefined');
       this.router.navigate(['/investor-startups']); // Fallback route
     }
   }

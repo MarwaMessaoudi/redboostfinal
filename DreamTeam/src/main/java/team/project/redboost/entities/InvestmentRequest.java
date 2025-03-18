@@ -9,26 +9,24 @@ import java.time.LocalDateTime;
 @Setter
 @Getter
 @Entity
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Prevent Hibernate proxy issues
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class InvestmentRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Investor relationship
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "investor_id", nullable = false)
-    @JsonIgnoreProperties("investmentRequests") // Ignore the back reference
-    private Investor investor;
+    @JsonIgnoreProperties("investmentRequests")
+    private Investor investor; // Changed from User to Investor
 
-    // Projet relationship (changed from Startup)
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "projet_id", nullable = false) // Changed from startup_id to projet_id
-    @JsonIgnoreProperties("investmentRequests") // Ignore the back reference
-    private Projet projet; // Changed from Startup to Projet
+    @JoinColumn(name = "projet_id", nullable = false)
+    @JsonIgnoreProperties("investmentRequests")
+    private Projet projet;
 
     @Enumerated(EnumType.STRING)
-    private InvestmentStatus status; // PENDING, ACCEPTED, DECLINED
+    private InvestmentStatus status;
 
     private String message;
     private double proposedAmount;

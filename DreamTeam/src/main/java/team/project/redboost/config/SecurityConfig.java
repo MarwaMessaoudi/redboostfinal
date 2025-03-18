@@ -40,7 +40,10 @@ public class SecurityConfig {
                         .requestMatchers("/Auth/confirm-email", "/Auth/firebase", "/Auth/login", "/Auth/**").permitAll()
                         .requestMatchers("/api/rendezvous/add", "/api/rendezvous/all", "/api/rendezvous/accepted").permitAll()
                         .requestMatchers("/api/v1/coachlist/**").permitAll()
-                        // Protected endpoints
+
+                        .requestMatchers("/api/projets/**").permitAll() // Require auth for AddProjet
+                        .requestMatchers("/api/projets/pending-invitations").authenticated() // Add this line// Protected endpoints
+                        .requestMatchers("/api/projets/AddProjet/**").authenticated()
                         .requestMatchers("/api/rendezvous/update-status/**").authenticated()  // Require auth for Google Calendar
                         .anyRequest().permitAll()  // All other endpoints require authentication
                 )

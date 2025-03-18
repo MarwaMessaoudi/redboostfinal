@@ -1,5 +1,7 @@
 package team.project.redboost.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
@@ -16,6 +18,7 @@ import java.util.Random;
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 @Table(name = "user")
+@JsonIgnoreProperties("projets")
 public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,6 +58,7 @@ public class User implements UserDetails {
     private String providerId; // OAuth2 ID
     // Projects where this User is an Entrepreneur
     @ManyToMany(mappedBy = "entrepreneurs")
+    @JsonBackReference // Mark as the back reference
     private List<Projet> entrepreneurProjects = new ArrayList<>();
 
     // Projects where this User is a Coach

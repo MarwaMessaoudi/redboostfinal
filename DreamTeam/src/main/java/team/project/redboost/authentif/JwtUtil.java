@@ -72,7 +72,8 @@ public class JwtUtil {
 
         JwtBuilder builder = Jwts.builder()
                 .setSubject(email)
-                .claim("role", role) // Store the role as a single string
+                .claim("role", role)
+                // Store the role as a single string
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 hours validity
                 .signWith(key); // Use the Key object directly

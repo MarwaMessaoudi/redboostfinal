@@ -57,3 +57,4 @@ public class CategoryServiceImpl implements CategoryService { // Implémente l'i
         categoryRepository.deleteById(id); // Supprime la catégorie de la base de données.
     }
 }
+

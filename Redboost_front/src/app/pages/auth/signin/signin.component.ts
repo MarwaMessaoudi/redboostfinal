@@ -36,20 +36,29 @@ export class SigninComponent {
   ) {}
 
   onLogin() {
-    console.log('Attempting login with email:', this.email); // Debugging
+    console.log('Attempting login with email:', this.email);
     this.authService.login(this.email, this.password).subscribe({
       next: (response) => {
-        console.log('Login successful:', response); // Debugging
-        const accessToken = response.accessToken; // Extract the accessToken from the response
+        console.log('Login successful:', response);
+        const accessToken = response.accessToken;
+        const refreshToken = response.refreshToken;
         if (accessToken) {
-          // Store the token in local storage
-          localStorage.setItem('authToken', accessToken);
+          localStorage.setItem('accessToken', accessToken);
+          console.log('Access token stored:', localStorage.getItem('accessToken'));
+        } else {
+          console.warn('No accessToken in response');
+        }
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+          console.log('Refresh token stored:', localStorage.getItem('refreshToken'));
         }
         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Login successful' });
-        this.router.navigate(['dashboard']);
+        this.router.navigate(['dashboard']).then(() => {
+          console.log('Navigated to dashboard');
+        });
       },
       error: (error) => {
-        console.error('Login failed:', error); // Debugging
+        console.error('Login failed:', error);
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Login failed' });
       },
     });

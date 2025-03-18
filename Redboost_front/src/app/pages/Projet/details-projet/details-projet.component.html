@@ -1,188 +1,135 @@
-<div class="breadcrumb">
-  <h1>Détails du Projet</h1>
-  <ul>
-    <li><a routerLink="/projets">Projets</a></li>
-    <li>Détails</li>
-  </ul>
-</div>
-
-<div class="separator-breadcrumb border-top"></div>
-
-<div class="project-details-container" *ngIf="projet; else noProject">
-  <!-- Top Header Section with Edit Controls -->
-  <div class="project-header">
-    <div class="logo-container" 
-         [style.backgroundImage]="'url(' + getLogoUrl() + ')'"
-         [attr.data-image-url]="getLogoUrl()">
-    </div>
-    <div class="header-info">
-      <h2 class="project-name">{{ projet.name || 'Nom non disponible' }}</h2>
-      <p class="project-details">{{ projet.sector || 'Secteur inconnu' }} - {{ projet.type || 'Type inconnu' }}</p>
-      <p class="project-creation-date"><i class="fas fa-calendar-alt"></i> {{ projet.creationDate || 'Non disponible' }}</p>
-      <p class="project-description">{{ projet.description || 'Aucune description' }}</p>
-      <p class="project-website" *ngIf="projet.websiteUrl">
-        <a [href]="projet.websiteUrl" target="_blank" rel="noopener noreferrer">{{ projet.websiteUrl }}</a>
-      </p>
-    </div>
-    <div class="edit-controls">
-      <i class="fas fa-pencil-alt edit-icon" (click)="toggleEdit()" *ngIf="!isEditing" title="Modifier"></i>
-      <div class="edit-actions" *ngIf="isEditing">
-        <i class="fas fa-check confirm-icon" (click)="saveChanges()" [ngClass]="{'disabled': isSaving}" title="Sauvegarder"></i>
-        <i class="fas fa-times cancel-icon" (click)="cancelEdit()" title="Annuler"></i>
-        <span class="spinner" *ngIf="isSaving"></span>
-        <div class="message" *ngIf="updateMessage">{{ updateMessage }}</div>
+<!-- Main Content -->
+<main class="main-content" *ngIf="projet; else noProject">
+  <!-- Hero Section -->
+  <section class="hero-section" [ngStyle]="{'background-image': 'url(' + sanitizedImageUrl(projet.logoUrl) + ')'}">
+    <div class="hero-overlay">
+      <div class="hero-content container">
+        <div class="hero-text">
+          <span class="pre-title">Featured Project</span>
+          <h1>{{ projet.name || 'Nom non disponible' }}</h1>
+          <p class="subtitle">{{ projet.description || 'Aucune description' }}</p>
+          <div class="hero-cta">
+            <a [href]="projet.websiteUrl || '#'" target="_blank" class="cta-button primary" aria-label="Explore Project">
+              <span>Explore Project</span>
+              <span class="material-icons">arrow_forward</span>
+            </a>
+            <a href="#products-services" class="cta-button secondary" aria-label="Learn More">Learn More</a>
+          </div>
+        </div>
+        <div class="hero-image">
+          <div class="image-wrapper">
+            <img [src]="sanitizedImageUrl(projet.logoUrl)" alt="Project Logo" (error)="onImageError($event)">
+          </div>
+          <div class="shape shape-1"></div>
+          <div class="shape shape-2"></div>
+        </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Edit Controls -->
+  <div class="edit-controls">
+    <span class="material-icons edit-button" (click)="toggleEdit()" *ngIf="!isEditing" title="Modifier" aria-label="Edit Project">edit</span>
+    <div class="edit-actions" *ngIf="isEditing">
+      <span class="material-icons edit-button save" (click)="saveChanges()" [ngClass]="{'disabled': isSaving}" title="Sauvegarder" aria-label="Save Changes">check</span>
+      <span class="material-icons edit-button cancel" (click)="cancelEdit()" title="Annuler" aria-label="Cancel Edit">close</span>
+      <span *ngIf="isSaving" class="spinner"></span>
+      <div *ngIf="updateMessage" class="update-message">{{ updateMessage }}</div>
     </div>
   </div>
 
-  <!-- Sections -->
-  <form #projectForm="ngForm" [ngClass]="{'edit-mode': isEditing}" (ngSubmit)="saveChanges()" *ngIf="projet">
-    <!-- Objectives & Status Section -->
-    <div class="section">
-      <h4><i class="fas fa-bullseye"></i> Objectifs & Statut</h4>
-      <div class="section-line"></div>
-      <div class="detail-row">
-        <div class="detail-item">
-          <label><i class="fas fa-bullseye"></i> Objectifs</label>
-          <ng-container *ngIf="!isEditing; else editObjectives">
-            <p>{{ projet.objectives || 'Non spécifiés' }}</p>
-          </ng-container>
-          <ng-template #editObjectives>
-            <input type="text" [(ngModel)]="projet.objectives" name="objectives" placeholder="Objectifs" required>
-          </ng-template>
-        </div>
-        <div class="detail-item">
-          <label><i class="fas fa-tasks"></i> Statut</label>
-          <ng-container *ngIf="!isEditing; else editStatus">
-            <p>{{ projet.status || 'Non défini' }}</p>
-          </ng-container>
-          <ng-template #editStatus>
-            <input type="text" [(ngModel)]="projet.status" name="status" placeholder="Statut" required>
-          </ng-template>
-        </div>
-        <div class="detail-item">
-          <label><i class="fas fa-star"></i> Score Global</label>
-          <ng-container *ngIf="!isEditing; else editGlobalScore">
-            <p>{{ projet.globalScore || 'Non calculé' }}</p>
-          </ng-container>
-          <ng-template #editGlobalScore>
-            <input type="number" step="0.1" [(ngModel)]="projet.globalScore" name="globalScore" placeholder="Score" required>
-          </ng-template>
+  <!-- Products & Services Section -->
+  <section class="products-services-section" id="products-services">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-subtitle">What We Offer</span>
+        <h2>Products & Services</h2>
+        <div class="title-separator"></div>
+      </div>
+      <div class="products-services-grid">
+        <div class="product-service-card" 
+             *ngFor="let item of productServices"
+             (mouseenter)="hoveredItem = item.id"
+             (mouseleave)="hoveredItem = null"
+             [ngClass]="{'hovered': hoveredItem === item.id}"
+             [attr.aria-label]="item.title">
+          <div class="card-icon" [ngStyle]="{'background-color': item.color + '20', 'color': item.color}">
+            <span class="material-icons">{{ item.icon }}</span>
+          </div>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.description }}</p>
+          <div class="card-hover-effect" [ngStyle]="{'background-color': item.color}"></div>
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- Financial & Team Section -->
-    <div class="section">
-      <h4><i class="fas fa-money-bill-wave"></i> Financier & Équipe</h4>
-      <div class="section-line"></div>
-      <div class="detail-row">
-        <div class="detail-item">
-          <label><i class="fas fa-money-bill-wave"></i> Revenu</label>
-          <ng-container *ngIf="!isEditing; else editRevenue">
-            <p>{{ (projet.revenue || 0) | currency }}</p>
-          </ng-container>
-          <ng-template #editRevenue>
-            <input type="number" [(ngModel)]="projet.revenue" name="revenue" placeholder="Revenu" required>
-          </ng-template>
+  <!-- Project Highlights (Features Section) -->
+  <section class="features-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-subtitle">Project Details</span>
+        <h2>Project Highlights</h2>
+        <div class="title-separator"></div>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-icons">flag</span>
+          </div>
+          <h3>Objectives</h3>
+          <p *ngIf="!isEditing">{{ projet?.objectives || 'Non spécifiés' }}</p>
+          <input *ngIf="isEditing" [(ngModel)]="projet!.objectives" name="objectives" required aria-label="Project Objectives">
         </div>
-        <div class="detail-item">
-          <label><i class="fas fa-hand-holding-usd"></i> Objectif de Financement</label>
-          <ng-container *ngIf="!isEditing; else editFundingGoal">
-            <p>{{ (projet.fundingGoal || 0) | currency }}</p>
-          </ng-container>
-          <ng-template #editFundingGoal>
-            <input type="number" [(ngModel)]="projet.fundingGoal" name="fundingGoal" placeholder="Objectif de financement" required>
-          </ng-template>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-icons">trending_up</span>
+          </div>
+          <h3>Status</h3>
+          <p *ngIf="!isEditing">{{ projet?.status || 'Non défini' }}</p>
+          <input *ngIf="isEditing" [(ngModel)]="projet!.status" name="status" required aria-label="Project Status">
         </div>
-        <div class="detail-item">
-          <label><i class="fas fa-users"></i> Nombre d'Employés</label>
-          <ng-container *ngIf="!isEditing; else editNumberOfEmployees">
-            <p>{{ projet.numberOfEmployees || 'Non spécifié' }}</p>
-          </ng-container>
-          <ng-template #editNumberOfEmployees>
-            <input type="number" [(ngModel)]="projet.numberOfEmployees" name="numberOfEmployees" placeholder="Nombre d'employés" required>
-          </ng-template>
-        </div>
-        <div class="detail-item">
-          <label><i class="fas fa-female"></i> Employées Féminines</label>
-          <ng-container *ngIf="!isEditing; else editNbFemaleEmployees">
-            <p>{{ projet.nbFemaleEmployees || 'Non spécifié' }}</p>
-          </ng-container>
-          <ng-template #editNbFemaleEmployees>
-            <input type="number" [(ngModel)]="projet.nbFemaleEmployees" name="nbFemaleEmployees" placeholder="Employées féminines" required>
-          </ng-template>
+        <div class="feature-card">
+          <div class="feature-icon">
+            <span class="material-icons">score</span>
+          </div>
+          <h3>Global Score</h3>
+          <p *ngIf="!isEditing">{{ projet?.globalScore || 'Non calculé' }}</p>
+          <input *ngIf="isEditing" type="number" [(ngModel)]="projet!.globalScore" name="globalScore" aria-label="Project Global Score">
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- Additional Info Section -->
-    <div class="section">
-      <h4><i class="fas fa-plus"></i> Informations Supplémentaires</h4>
-      <div class="section-line"></div>
-      <div class="detail-row">
-        <div class="detail-item">
-          <label><i class="fas fa-map-marker-alt"></i> Localisation</label>
-          <ng-container *ngIf="!isEditing; else editLocation">
-            <p>{{ projet.location || 'Non précisée' }}</p>
-          </ng-container>
-          <ng-template #editLocation>
-            <input type="text" [(ngModel)]="projet.location" name="location" placeholder="Localisation" required>
-          </ng-template>
-        </div>
-        <div class="detail-item">
-          <label><i class="fas fa-user-tie"></i> Fondateurs</label>
-          <ng-container *ngIf="!isEditing; else editFoundersIds">
-            <p>{{ projet.foundersIds || 'Non spécifiés' }}</p>
-          </ng-container>
-          <ng-template #editFoundersIds>
-            <input type="text" [(ngModel)]="projet.foundersIds" name="foundersIds" placeholder="Fondateurs" required>
-          </ng-template>
-        </div>
-        <div class="detail-item">
-          <label><i class="fas fa-laptop-code"></i> Technologies Utilisées</label>
-          <ng-container *ngIf="!isEditing; else editTechnologiesUsed">
-            <p>{{ projet.technologiesUsed || 'Non spécifiées' }}</p>
-          </ng-container>
-          <ng-template #editTechnologiesUsed>
-            <input type="text" [(ngModel)]="projet.technologiesUsed" name="technologiesUsed" placeholder="Technologies" required>
-          </ng-template>
-        </div>
-        <div class="detail-item">
-          <label><i class="fas fa-sitemap"></i> Secteurs Associés</label>
-          <ng-container *ngIf="!isEditing; else editAssociatedSectors">
-            <p>{{ projet.associatedSectors || 'Non spécifiés' }}</p>
-          </ng-container>
-          <ng-template #editAssociatedSectors>
-            <input type="text" [(ngModel)]="projet.associatedSectors" name="associatedSectors" placeholder="Secteurs" required>
-          </ng-template>
-        </div>
-        <div class="detail-item">
-          <label><i class="fas fa-history"></i> Dernière Mise à Jour</label>
-          <ng-container *ngIf="!isEditing; else editLastUpdated">
-            <p>{{ projet.lastUpdated || 'Non mise à jour' }}</p>
-          </ng-container>
-          <ng-template #editLastUpdated>
-            <input type="date" [(ngModel)]="projet.lastUpdated" name="lastUpdated" required>
-          </ng-template>
-        </div>
-        <div class="detail-item">
-          <label><i class="fas fa-check-circle"></i> Dernière Évaluation</label>
-          <ng-container *ngIf="!isEditing; else editLastEvaluationDate">
-            <p>{{ projet.lastEvaluationDate || 'Non disponible' }}</p>
-          </ng-container>
-          <ng-template #editLastEvaluationDate>
-            <input type="date" [(ngModel)]="projet.lastEvaluationDate" name="lastEvaluationDate" required>
-          </ng-template>
-        </div>
-      </div>
+  <!-- Static CTA Section 1 -->
+  <section class="cta-section">
+    <div class="cta-overlay"></div>
+    <div class="cta-content container">
+      <span class="cta-subtitle">Ready to Start?</span>
+      <h2>Get Started with Your Project</h2>
+      <p>Take the first step towards success with our expert guidance.</p>
+      <a href="#" class="cta-button primary" aria-label="Get Started">
+        <span>Get Started</span>
+        <span class="material-icons">arrow_forward</span>
+      </a>
     </div>
-  </form>
-</div>
+  </section>
 
-<!-- Fallback for no project -->
+  <!-- Static CTA Section 2 -->
+  <section class="cta-section alternate">
+    <div class="cta-overlay"></div>
+    <div class="cta-content container">
+      <span class="cta-subtitle">Need Help?</span>
+      <h2>Contact Us for Support</h2>
+      <p>Have questions? Our team is here to help you succeed.</p>
+      <a href="#" class="cta-button primary" aria-label="Contact Us">
+        <span>Contact Us</span>
+        <span class="material-icons">arrow_forward</span>
+      </a>
+    </div>
+  </section>
+</main>
+
 <ng-template #noProject>
-  <div class="alert alert-warning text-center">
-    Aucun projet trouvé ou erreur lors du chargement.
-  </div>
+  <div class="alert">No project found or error loading data.</div>
 </ng-template>

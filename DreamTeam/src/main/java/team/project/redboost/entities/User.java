@@ -135,4 +135,7 @@ public class User implements UserDetails {
         this.profilePictureUrl = profilePictureUrl;
     }
 
+    public Object getRoleName() {
+        return role;
+    }
 }

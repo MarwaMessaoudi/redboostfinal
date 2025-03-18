@@ -38,15 +38,8 @@
     "bootstrap-icons": "^1.11.3",
     "chart.js": "^4.4.2",
     "dhtmlx-gantt": "^9.0.5",
-<<<<<<< HEAD
     "firebase": "^11.4.0",
-=======
-    "firebase": "^11.3.1",
     "jwt-decode": "^4.0.0",
-<<<<<<< HEAD
->>>>>>> Eya
-=======
->>>>>>> Baylassen
     "ng2-charts": "^8.0.0",
     "ngx-toastr": "^19.0.0",
     "primeclt": "^0.1.5",

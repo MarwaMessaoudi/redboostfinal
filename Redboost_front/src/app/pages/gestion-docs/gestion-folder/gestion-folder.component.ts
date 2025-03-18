@@ -111,7 +111,7 @@ export class GestionFolderComponent implements OnInit, OnDestroy {
         const accessToken = this.getAccessToken();
         const headers = this.getHeaders(accessToken);
 
-        return this.categoryService.getAllCategories(headers).pipe(
+        return this.categoryService.getAllCategories().pipe(
             map((categories: Category[]) => {
                 const filteredCategories = categories.filter(cat => cat.id != null);
                 console.log('Loaded categories:', filteredCategories);
@@ -125,7 +125,7 @@ export class GestionFolderComponent implements OnInit, OnDestroy {
         const accessToken = this.getAccessToken();
         const headers = this.getHeaders(accessToken);
 
-        return this.folderService.getAllFolders(headers).pipe(
+        return this.folderService.getAllFolders().pipe(
             map((folders) => {
                 return folders;
             }),
@@ -201,7 +201,7 @@ export class GestionFolderComponent implements OnInit, OnDestroy {
             const headers = this.getHeaders(accessToken);
 
             this.subscriptions.add(
-                this.folderService.createFolder(newFolder, headers).subscribe({
+                this.folderService.createFolder(newFolder).subscribe({
                     next: (response: IFolder) => {
                         console.log('Folder created successfully:', response);
                         newFolder.id = response.id;
@@ -251,7 +251,7 @@ export class GestionFolderComponent implements OnInit, OnDestroy {
             const headers = this.getHeaders(accessToken);
 
             this.subscriptions.add(
-                this.folderService.deleteFolder(folderId, headers).subscribe({
+                this.folderService.deleteFolder(folderId.toString()).subscribe({
                     next: () => {
                         console.log(`Folder with ID ${folderId} deleted successfully.`);
                         this.isFolderDeleting = false;
@@ -319,7 +319,7 @@ export class GestionFolderComponent implements OnInit, OnDestroy {
             const headers = this.getHeaders(accessToken);
 
             this.subscriptions.add(
-                this.categoryService.createCategory(newCategory, headers).subscribe(
+                this.categoryService.createCategory(newCategory).subscribe(
                     (response: Category) => {
                         console.log('Category created successfully:', response);
                         newCategory.id = response.id;
@@ -380,7 +380,7 @@ export class GestionFolderComponent implements OnInit, OnDestroy {
             const headers = this.getHeaders(accessToken);
 
             this.subscriptions.add(
-                this.folderService.updateFolder(updatedFolder, headers).subscribe({
+                this.folderService.updateFolder(updatedFolder).subscribe({
                     next: (response: IFolder) => {
                         console.log('Folder updated successfully:', response);
                         this.isFolderUpdating = false;

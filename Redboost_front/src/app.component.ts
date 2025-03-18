@@ -19,40 +19,41 @@ export class AppComponent implements OnInit {
   constructor(private authService: AuthService, private router: Router) {}
 
   // app.component.ts
-ngOnInit() {
-  const accessToken = localStorage.getItem('accessToken');
-  const refreshToken = localStorage.getItem('refreshToken');
-
-  if (accessToken && refreshToken) {
-    // Verify the token
-    this.authService.verifyToken().subscribe({
-      next: (response) => {
-        console.log('User automatically logged in:', response);
-        this.router.navigate(['profile']);
-      },
-      error: (error) => {
-        console.error('Token verification failed:', error);
-        this.clearTokens();
-        this.router.navigate(['landing']);
-      },
-    });
-  } else {
-    // Check for tokens in cookies
-    this.authService.refreshToken().subscribe({
-      next: (response: any) => {
-        // Store new tokens in localStorage
-        localStorage.setItem('accessToken', response.accessToken);
-        localStorage.setItem('refreshToken', response.refreshToken);
-        this.router.navigate(['profile']);
-      },
-      error: (error) => {
-        console.error('Token refresh failed:', error);
-        this.clearTokens();
-        this.router.navigate(['landing']);
-      },
-    });
+  ngOnInit() {
+    const accessToken = localStorage.getItem('accessToken');
+    const refreshToken = localStorage.getItem('refreshToken');
+  
+    console.log('Access Token:', accessToken);
+    console.log('Refresh Token:', refreshToken);
+  
+    if (accessToken && refreshToken) {
+      this.authService.verifyToken().subscribe({
+        next: (response) => {
+          console.log('Token verification successful:', response);
+          this.router.navigate(['profile']);
+        },
+        error: (error) => {
+          console.error('Token verification failed:', error);
+          this.clearTokens();
+          this.router.navigate(['landing']);
+        },
+      });
+    } else {
+      this.authService.refreshToken().subscribe({
+        next: (response: any) => {
+          console.log('Token refresh successful:', response);
+          localStorage.setItem('accessToken', response.accessToken);
+          localStorage.setItem('refreshToken', response.refreshToken);
+          this.router.navigate(['profile']);
+        },
+        error: (error) => {
+          console.error('Token refresh failed:', error);
+          this.clearTokens();
+          this.router.navigate(['landing']);
+        },
+      });
+    }
   }
-}
 
 clearTokens() {
   localStorage.removeItem('accessToken');

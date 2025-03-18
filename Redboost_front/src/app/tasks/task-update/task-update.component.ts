@@ -1,23 +1,24 @@
-import { Component, OnInit, ViewEncapsulation, ElementRef, ViewChild, Input, Output, EventEmitter, Inject } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, ElementRef, ViewChild, Input, Output, EventEmitter, Renderer2, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { TaskService } from '../../services/task.service';
 import { PhaseService } from '../../services/phase.service';
-import { Task, Priority, Status, Attachment } from '../../models/task';
-import { Phase } from '../../models/phase';
+import { TaskCategoryService } from '../../services/taskCategory.service';
+import { Task, Priority, Status, Attachment, TaskCategory, SubTask } from '../../models/task';
+import { Phase, PhaseStatus } from '../../models/phase'; // Import Phase and PhaseStatus
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatInputModule } from '@angular/material/input';
-import { MatNativeDateModule } from '@angular/material/core';
-import { Observable } from 'rxjs';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 
 interface Assignee {
     id: number;
-    name: string;
-    avatar?: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    role: string;
 }
 
 interface Comment {
@@ -31,7 +32,7 @@ interface Comment {
 @Component({
     selector: 'app-task-update',
     standalone: true,
-    imports: [CommonModule, FormsModule, RouterModule, ReactiveFormsModule, MatSnackBarModule, MatIconModule, MatDatepickerModule, MatInputModule, MatNativeDateModule],
+    imports: [CommonModule, FormsModule, RouterModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule, MatFormFieldModule, MatSelectModule],
     templateUrl: './task-update.component.html',
     styleUrls: ['./task-update.component.scss'],
     encapsulation: ViewEncapsulation.None
@@ -50,41 +51,68 @@ export class TaskUpdateComponent implements OnInit {
     error = '';
     priorityOptions = Object.values(Priority);
     statusOptions = Object.values(Status);
-    phases: Phase[] = [];
-    phaseId: number | null = null;
-    @ViewChild('fileInput') fileInput!: ElementRef;
-    selectedStartDate: any;
-    selectedEndDate: any;
 
-    // UI state properties
+    @ViewChild('fileInput') fileInput!: ElementRef;
+
     editingTitle: boolean = false;
     editingDescription: boolean = false;
+    editingCategory: boolean = false;
     showStatusDropdown: boolean = false;
     showPriorityDropdown: boolean = false;
     showAssigneeDropdown: boolean = false;
 
-    // Will be populated from actual data later
-    assignees: Assignee[] = [];
     availableAssignees: Assignee[] = [];
+    availableCategories: TaskCategory[] = [];
     comments: Comment[] = [];
+    selectedCategoryId: number | undefined;
+
+    subTasks: SubTask[] = []; // List of sub-tasks
+    editingSubTaskIndex: number | null = null; // Index of sub-task being edited
+    newSubTask: SubTask = { title: '', description: '' }; // New sub-task input
+
+    minStartDate: string = new Date().toISOString().split('T')[0];
+    minEndDate: string = '';
 
     constructor(
         private fb: FormBuilder,
         private taskService: TaskService,
         private phaseService: PhaseService,
-        private route: ActivatedRoute,
-        private router: Router,
-        private snackBar: MatSnackBar
+        private taskCategoryService: TaskCategoryService,
+        private snackBar: MatSnackBar,
+        private renderer: Renderer2,
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
         this.initForm();
-        this.loadAvailableAssignees();
+        this.updateMinEndDate();
     }
 
-    ngOnChanges(): void {
-        if (this.task && this.task.taskId) {
-            this.loadTask(this.task.taskId);
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes['task'] && this.taskForm) {
+            if (this.task && this.task.taskId) {
+                this.loadTask(this.task.taskId);
+            } else {
+                this.task = {
+                    taskId: 1,
+                    title: 'New Task',
+                    xpPoint: 0,
+                    priority: Priority.MEDIUM,
+                    status: Status.TO_DO,
+                    phase: {
+                        phaseId: 1,
+                        phaseName: 'Phase 1',
+                        status: PhaseStatus.NOT_STARTED, // Use enum value
+                        startDate: '', // Required field
+                        endDate: '' // Required field
+                    },
+                    taskCategory: { id: undefined, name: '' },
+                    startDate: '',
+                    endDate: '',
+                    subTasks: []
+                } as Task;
+                this.patchForm(this.task);
+            }
         }
     }
 
@@ -98,7 +126,13 @@ export class TaskUpdateComponent implements OnInit {
             comment: [''],
             xpPoint: [0, [Validators.min(0)]],
             startDate: [''],
-            endDate: ['']
+            endDate: [''],
+            assigneeId: [null, [Validators.required]],
+            categoryId: [null]
+        });
+
+        this.taskForm.get('startDate')?.valueChanges.subscribe((startDate) => {
+            this.updateMinEndDate(startDate);
         });
     }
 
@@ -107,68 +141,93 @@ export class TaskUpdateComponent implements OnInit {
         this.taskService.getTaskById(id).subscribe({
             next: (task) => {
                 this.task = task;
+                this.subTasks = task.subTasks || []; // Load sub-tasks
                 this.patchForm(task);
-                if (task.taskId) {
-                    this.loadTaskAssignees(task.taskId);
-                    this.loadTaskComments(task.taskId);
+                this.selectedCategoryId = task.taskCategoryId;
+                console.log('Task loaded - taskCategoryId:', this.task.taskCategoryId);
+                console.log('Task loaded - subTasks:', this.subTasks);
+
+                const projetId = task.phase?.projetId;
+                if (projetId !== null && projetId !== undefined) {
+                    this.loadTaskAssignees(projetId);
+                } else {
+                    this.loadTaskAssignees(1);
                 }
+                this.loadAvailableCategories();
                 this.loading = false;
-                console.log('Task loaded successfully:', this.task);
+                this.cdr.detectChanges();
             },
             error: (error) => {
                 this.error = 'Failed to load task. Please try again later.';
                 this.loading = false;
-                console.error('Error loading task:', error);
                 this.snackBar.open('Failed to load task details', 'Close', { duration: 3000 });
             }
         });
     }
 
     patchForm(task: Task): void {
-        this.taskForm.patchValue({
-            title: task.title,
-            description: task.description,
-            comments: task.comments,
-            priority: task.priority,
-            status: task.status,
-            xpPoint: task.xpPoint,
-            startDate: task.startDate,
-            endDate: task.endDate
-        });
-    }
+        const startDate = task.startDate && task.startDate.length === 10 ? task.startDate : '';
+        const endDate = task.endDate && task.endDate.length === 10 ? task.endDate : '';
 
-    loadAvailableAssignees(): void {
-        // Replace with actual service call to get all available assignees
-        this.availableAssignees = [
-            { id: 1, name: 'Assignee 1', avatar: 'assets/default-avatar.png' },
-            { id: 2, name: 'Assignee 2', avatar: 'assets/default-avatar.png' },
-            { id: 3, name: 'Assignee 3', avatar: 'assets/default-avatar.png' },
-            { id: 4, name: 'Assignee 4', avatar: 'assets/default-avatar.png' }
-        ];
-    }
-
-    loadTaskAssignees(taskId: number): void {
-        this.taskService.getAssigneesForTask(taskId).subscribe({
-            next: (assignees: Assignee[]) => {
-                this.assignees = assignees;
+        this.taskForm?.patchValue(
+            {
+                title: task.title || '',
+                description: task.description || '',
+                comments: task.comments || '',
+                priority: task.priority || Priority.MEDIUM,
+                status: task.status || Status.TO_DO,
+                comment: '',
+                xpPoint: task.xpPoint || 0,
+                startDate: startDate,
+                endDate: endDate,
+                assigneeId: task.assigneeId || null,
+                categoryId: task.taskCategoryId || null
             },
-            error: (error: any) => {
-                console.error('Error loading assignees:', error);
+            { emitEvent: false }
+        );
+
+        this.task!.startDate = startDate;
+        this.task!.endDate = endDate;
+        this.cdr.detectChanges();
+    }
+
+    updateMinEndDate(startDate: string = this.taskForm.get('startDate')?.value): void {
+        this.minEndDate = startDate && startDate.length === 10 ? startDate : this.minStartDate;
+    }
+
+    loadTaskAssignees(projectId: number): void {
+        this.phaseService.getEntrepreneursByProject(projectId).subscribe({
+            next: (entrepreneurs) => {
+                this.availableAssignees = entrepreneurs;
+            },
+            error: (error) => {
                 this.snackBar.open('Failed to load assignees', 'Close', { duration: 3000 });
             }
         });
     }
 
-    loadTaskComments(taskId: number): void {
-        this.taskService.getCommentsForTask(taskId).subscribe({
-            next: (comments: Comment[]) => {
-                this.comments = comments;
+    loadAvailableCategories(): void {
+        this.taskCategoryService.getAllTaskCategories().subscribe({
+            next: (categories) => {
+                this.availableCategories = categories;
+                console.log('Available categories loaded:', this.availableCategories);
+                if (this.task && this.task.taskCategoryId !== undefined) {
+                    this.selectedCategoryId = this.task.taskCategoryId;
+                }
             },
-            error: (error: any) => {
-                console.error('Error loading comments:', error);
-                this.snackBar.open('Failed to load comments', 'Close', { duration: 3000 });
+            error: (err) => {
+                console.error('Error fetching categories:', err);
+                this.snackBar.open('Failed to load categories', 'Close', { duration: 3000 });
             }
         });
+    }
+
+    getCategoryName(categoryId: number | undefined): string {
+        if (categoryId === undefined || categoryId === null) {
+            return 'Aucune catégorie';
+        }
+        const category = this.availableCategories.find((cat) => cat.id === categoryId);
+        return category ? category.name : 'Catégorie inconnue';
     }
 
     onSubmit(): void {
@@ -184,15 +243,20 @@ export class TaskUpdateComponent implements OnInit {
         if (this.task && this.task.taskId) {
             this.taskService.updateTask(this.task.taskId, taskData).subscribe({
                 next: (updatedTask) => {
+                    console.log('Server response - updatedTask:', updatedTask);
+                    this.task = { ...updatedTask };
+                    this.subTasks = updatedTask.subTasks || []; // Update sub-tasks
+                    this.selectedCategoryId = updatedTask.taskCategoryId;
+                    this.patchForm(this.task);
+                    console.log('After update - this.task.taskCategoryId:', this.task.taskCategoryId);
                     this.submitting = false;
-                    this.task = updatedTask;
-                    this.taskUpdated.emit(updatedTask);
+                    this.taskUpdated.emit(this.task);
                     this.snackBar.open('Task updated successfully', 'Close', { duration: 3000 });
+                    this.cdr.detectChanges();
                 },
                 error: (error) => {
                     this.error = 'Failed to update task. Please try again later.';
                     this.submitting = false;
-                    console.error('Error updating task:', error);
                     this.snackBar.open('Failed to update task', 'Close', { duration: 3000 });
                 }
             });
@@ -201,14 +265,14 @@ export class TaskUpdateComponent implements OnInit {
                 next: (newTask) => {
                     this.submitting = false;
                     this.task = newTask;
+                    this.subTasks = newTask.subTasks || [];
                     this.taskUpdated.emit(newTask);
-                    this.snackBar.open('Task created successfully', 'Close', { duration: 3000 });
                     this.close();
+                    this.snackBar.open('Task created successfully', 'Close', { duration: 3000 });
                 },
                 error: (error) => {
                     this.error = 'Failed to create task. Please try again later.';
                     this.submitting = false;
-                    console.error('Error creating task:', error);
                     this.snackBar.open('Failed to create task', 'Close', { duration: 3000 });
                 }
             });
@@ -217,6 +281,10 @@ export class TaskUpdateComponent implements OnInit {
 
     prepareTaskData(): Task {
         const formValues = this.taskForm.value;
+        const selectedCategory = this.availableCategories.find((cat) => cat.id === this.selectedCategoryId);
+
+        console.log('Preparing task data - selectedCategoryId:', this.selectedCategoryId);
+        console.log('Preparing task data - subTasks:', this.subTasks);
 
         return {
             ...(this.task && this.task.taskId ? { taskId: this.task.taskId } : {}),
@@ -226,11 +294,14 @@ export class TaskUpdateComponent implements OnInit {
             priority: formValues.priority,
             status: formValues.status,
             phase: this.task?.phase,
+            taskCategoryId: this.selectedCategoryId,
+            taskCategory: selectedCategory || this.task?.taskCategory,
             attachments: this.task?.attachments,
             xpPoint: formValues.xpPoint,
-            startDate: formValues.startDate,
-            endDate: formValues.endDate,
-            assigneeId: this.assignees.length > 0 ? this.assignees[0].id : undefined
+            startDate: formValues.startDate || undefined,
+            endDate: formValues.endDate || undefined,
+            assigneeId: formValues.assigneeId,
+            subTasks: this.subTasks // Include sub-tasks
         } as Task;
     }
 
@@ -248,28 +319,24 @@ export class TaskUpdateComponent implements OnInit {
     deleteTask(): void {
         if (!this.task || !this.task.taskId) return;
 
-        if (confirm('Are you sure you want to delete this task?')) {
-            this.loading = true;
-            this.taskService.deleteTask(this.task.taskId).subscribe({
-                next: () => {
-                    this.loading = false;
-                    this.snackBar.open('Task deleted successfully', 'Close', { duration: 3000 });
-                    this.close();
-                },
-                error: (error) => {
-                    this.loading = false;
-                    this.snackBar.open('Failed to delete task', 'Close', { duration: 3000 });
-                    console.error('Error deleting task:', error);
-                }
-            });
-        }
+        this.loading = true;
+        this.taskService.deleteTask(this.task.taskId).subscribe({
+            next: () => {
+                this.loading = false;
+                this.snackBar.open('Task deleted successfully', 'Close', { duration: 3000 });
+                this.close();
+            },
+            error: (error) => {
+                this.loading = false;
+                this.snackBar.open('Failed to delete task', 'Close', { duration: 3000 });
+            }
+        });
     }
 
     close() {
         this.closeEvent.emit(false);
     }
 
-    // Title editing methods
     startEditingTitle(): void {
         this.editingTitle = true;
     }
@@ -283,7 +350,6 @@ export class TaskUpdateComponent implements OnInit {
         if (this.task) {
             this.task.title = this.taskForm.value.title;
         }
-
         this.editingTitle = false;
         this.onSubmit();
     }
@@ -295,7 +361,6 @@ export class TaskUpdateComponent implements OnInit {
         this.editingTitle = false;
     }
 
-    // Description editing methods
     startEditingDescription(): void {
         this.editingDescription = true;
     }
@@ -304,7 +369,6 @@ export class TaskUpdateComponent implements OnInit {
         if (this.task) {
             this.task.description = this.taskForm.value.description;
         }
-
         this.editingDescription = false;
         this.onSubmit();
     }
@@ -342,59 +406,52 @@ export class TaskUpdateComponent implements OnInit {
         }
     }
 
-    // Assignee methods
     openAssigneeDropdown(): void {
         this.showAssigneeDropdown = !this.showAssigneeDropdown;
     }
 
-    addAssignee(assignee: Assignee): void {
-        if (!this.assignees.some((a) => a.id === assignee.id)) {
-            this.assignees.push(assignee);
+    selectAssignee(assignee: Assignee): void {
+        if (this.task) {
+            this.task.assigneeId = assignee.id;
+            this.taskForm.patchValue({ assigneeId: assignee.id });
+            this.onSubmit();
             this.showAssigneeDropdown = false;
-
-            if (this.task) {
-                this.task.assigneeId = assignee.id;
-                this.onSubmit();
-            }
         }
     }
 
-    removeAssignee(assigneeId: number): void {
-        this.assignees = this.assignees.filter((a) => a.id !== assigneeId);
+    startEditingCategory(): void {
+        this.loadAvailableCategories();
+        this.editingCategory = true;
+    }
 
-        if (this.task) {
-            this.task.assigneeId = this.assignees.length > 0 ? this.assignees[0].id : undefined;
+    saveTaskCategory(): void {
+        if (this.task && this.selectedCategoryId !== undefined) {
+            this.task.taskCategoryId = this.selectedCategoryId;
+            this.taskForm.get('categoryId')?.setValue(this.selectedCategoryId);
+            console.log('Before save - task.taskCategoryId:', this.task.taskCategoryId);
             this.onSubmit();
+            this.editingCategory = false;
+        } else {
+            this.snackBar.open('Aucune catégorie sélectionnée', 'Close', { duration: 3000 });
+            this.editingCategory = false;
         }
     }
 
-    saveStartDate(): void {
-        if (this.task) {
-            this.task.startDate = this.taskForm.value.startDate;
-            this.onSubmit();
+    cancelEditTaskCategory(): void {
+        if (this.task && this.task.taskCategoryId !== undefined) {
+            this.selectedCategoryId = this.task.taskCategoryId;
+        } else {
+            this.selectedCategoryId = undefined;
         }
+        this.editingCategory = false;
     }
 
-    cancelEditStartDate(): void {
-        if (this.task) {
-            this.taskForm.patchValue({ startDate: this.task.startDate });
-        }
+    getAssigneeName(assigneeId: number | undefined): string {
+        if (!assigneeId) return 'Aucun responsable';
+        const assignee = this.availableAssignees.find((a) => a.id === assigneeId);
+        return assignee ? `${assignee.firstName} ${assignee.lastName}` : 'Aucun responsable';
     }
 
-    saveEndDate(): void {
-        if (this.task) {
-            this.task.endDate = this.taskForm.value.endDate;
-            this.onSubmit();
-        }
-    }
-
-    cancelEditEndDate(): void {
-        if (this.task) {
-            this.taskForm.patchValue({ endDate: this.task.endDate });
-        }
-    }
-
-    // Add a comment
     addComment(): void {
         const commentValue = this.taskForm.value.comment;
         if (!commentValue?.trim()) {
@@ -403,8 +460,8 @@ export class TaskUpdateComponent implements OnInit {
 
         const newComment: Comment = {
             id: Date.now(),
-            authorName: 'Current User', // Replace with actual user name
-            authorAvatar: 'assets/default-avatar.png', // Replace with actual user avatar
+            authorName: 'Current User',
+            authorAvatar: 'assets/default-avatar.png',
             content: commentValue,
             createdAt: new Date()
         };
@@ -418,7 +475,6 @@ export class TaskUpdateComponent implements OnInit {
     }
 
     downloadAttachment(attachment: Attachment) {
-        console.log('downloadAttachment called with attachment:', attachment);
         this.taskService.downloadAttachment(this.task!.taskId!, attachment.name).subscribe({
             next: (blob: Blob) => {
                 const url = window.URL.createObjectURL(blob);
@@ -429,7 +485,6 @@ export class TaskUpdateComponent implements OnInit {
                 window.URL.revokeObjectURL(url);
             },
             error: (err) => {
-                console.error('Error downloading attachment:', err);
                 this.snackBar.open('Failed to download attachment.', 'Close', { duration: 3000 });
             }
         });
@@ -438,31 +493,83 @@ export class TaskUpdateComponent implements OnInit {
     deleteAttachment(attachment: Attachment) {
         if (!this.task || !this.task.taskId) return;
 
-        // Confirm deletion
-        if (!confirm(`Are you sure you want to delete ${attachment.name}?`)) return;
-
-        // Remove attachment from the task's attachments array
         this.task.attachments = this.task.attachments?.filter((att) => att.name !== attachment.name) || [];
 
-        // Update the task via the service
         this.loading = true;
         this.taskService.updateTask(this.task.taskId, this.task).subscribe({
             next: (updatedTask) => {
                 this.task = updatedTask;
                 this.loading = false;
-                this.taskUpdated.emit(updatedTask); // Emit the updated task
+                this.taskUpdated.emit(updatedTask);
                 this.snackBar.open('Attachment deleted successfully.', 'Close', { duration: 2000 });
             },
             error: (err) => {
-                console.error('Error deleting attachment:', err);
                 this.loading = false;
                 this.snackBar.open('Failed to delete attachment.', 'Close', { duration: 3000 });
-                // Revert on error by reloading the task
                 this.taskService.getTaskById(this.task!.taskId!).subscribe((task) => {
                     this.task = task;
                     this.patchForm(task);
                 });
             }
         });
+    }
+
+    saveStartDate(): void {
+        if (this.task) {
+            this.task.startDate = this.taskForm.value.startDate;
+            this.onSubmit();
+        }
+    }
+
+    cancelEditStartDate(): void {
+        if (this.task) {
+            this.taskForm.patchValue({ startDate: this.task.startDate || '' });
+        }
+    }
+
+    saveEndDate(): void {
+        if (this.task) {
+            this.task.endDate = this.taskForm.value.endDate;
+            this.onSubmit();
+        }
+    }
+
+    cancelEditEndDate(): void {
+        if (this.task) {
+            this.taskForm.patchValue({ endDate: this.task.endDate || '' });
+        }
+    }
+
+    // Sub-task methods
+    addSubTask(): void {
+        if (this.newSubTask.title.trim()) {
+            this.subTasks.push({ ...this.newSubTask });
+            this.newSubTask = { title: '', description: '' }; // Reset form
+            this.onSubmit(); // Save immediately
+        } else {
+            this.snackBar.open('Sub-task title is required', 'Close', { duration: 3000 });
+        }
+    }
+
+    startEditingSubTask(index: number): void {
+        this.editingSubTaskIndex = index;
+    }
+
+    saveSubTask(index: number): void {
+        if (this.subTasks[index].title.trim()) {
+            this.editingSubTaskIndex = null;
+            this.onSubmit(); // Save changes
+        } else {
+            this.snackBar.open('Sub-task title is required', 'Close', { duration: 3000 });
+        }
+    }
+
+    cancelEditSubTask(index: number): void {
+        this.editingSubTaskIndex = null;
+    }
+
+    deleteSubTask(index: number): void {
+        this.subTasks.splice(index, 1);
+        this.onSubmit(); // Save changes
     }
 }

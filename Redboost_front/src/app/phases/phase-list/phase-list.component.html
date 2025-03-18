@@ -1,79 +1,180 @@
 <div class="dashboard-container">
     <div class="header">
         <h1>Phases</h1>
-        <p class="date">{{ currentDate | date: 'MMMM d' }}</p>
+        <p class="date">{{ currentDate | date: 'MMMM d, y' }}</p>
     </div>
 
     <div class="actions-container">
-        <button mat-fab color="primary" (click)="openCreateDialog()">
-            <mat-icon>add</mat-icon>
-        </button>
+        <button class="add-phase-btn" (click)="openCreateDialog()">+</button>
     </div>
 
-    <div class="metrics-container white-container">
+    <div class="metrics-container">
         <div class="summary-metrics">
             <div class="metric">
-                <div class="value">{{ inProgressCount }}</div>
-                <div class="label">En cours</div>
+                <div class="value">{{ upcomingCount }}</div>
+                <div class="label">Pas Commencé</div>
             </div>
             <div class="metric">
-                <div class="value">{{ upcomingCount }}</div>
-                <div class="label">À venir</div>
+                <div class="value">{{ inProgressCount }}</div>
+                <div class="label">En Cours</div>
+            </div>
+            <div class="metric">
+                <div class="value">{{ phases.length - upcomingCount - inProgressCount }}</div>
+                <div class="label">Terminé</div>
             </div>
             <div class="metric">
                 <div class="value">{{ phases.length }}</div>
-                <div class="label">Nombre Total de Projets</div>
+                <div class="label">Phases Totales</div>
             </div>
         </div>
     </div>
 
+    <!-- Loading, error, and no data states -->
     <div *ngIf="loading" class="loading">Chargement des phases...</div>
-
     <div *ngIf="error" class="error-message">{{ error }}</div>
-
     <div *ngIf="!loading && !error && phases.length === 0" class="no-data">Aucune phase trouvée.</div>
 
-    <div class="phase-cards-container white-container">
-        <div class="phase-grid" *ngIf="!loading && !error && phases.length > 0">
-            <div class="phase-card" *ngFor="let phase of phases; let i = index" (click)="goToKanbanBoard(phase.phaseId!)" style="cursor: pointer">
-                <div class="card-header">
-                    <h2 class="phase-name">{{ phase.phaseName }}</h2>
-                </div>
-
-                <div class="phase-xp">Points XP : {{ phase.totalXpPoints }}</div>
-
-                <div class="done-xp">XP Terminé : {{ calculateDoneXP(phase.phaseId!) }}</div>
-
-                <div class="progress-container">
-                    <label>Progression</label>
-                    <div class="progress-bar">
-                        <div class="progress" [style.width.%]="calculateXPProgress(phase.phaseId!)"></div>
-                    </div>
-                    <span class="progress-percentage">{{ calculateXPProgress(phase.phaseId!) }}%</span>
-                </div>
-
-                <div class="team-members">
-                    <div class="member-avatar">
-                        <img src="path/to/avatar1.jpg" alt="Membre 1" />
-                    </div>
-                    <div class="member-avatar">
-                        <img src="path/to/avatar2.jpg" alt="Membre 2" />
-                    </div>
-                </div>
-
-                <div class="card-actions">
-                    <button mat-icon-button color="primary" (click)="openEditDialog(phase); $event.stopPropagation()">
-                        <mat-icon>edit</mat-icon>
-                    </button>
-                    <button mat-icon-button color="warn" (click)="deletePhase(phase.phaseId!); $event.stopPropagation()">
-                        <mat-icon>delete</mat-icon>
-                    </button>
-                    <button mat-icon-button (click)="openDescriptionDialog(phase); $event.stopPropagation()">
-                        <mat-icon>info_outline</mat-icon>
-                    </button>
-                </div>
-                <div class="days-left">{{ getDaysLeft(phase.endDate!) }} Jours restants</div>
-            </div>
+    <!-- Not Started Phases -->
+    <div *ngIf="!loading && !error && getPhasesByStatus(PhaseStatus.NOT_STARTED).length > 0" class="phase-category category-not-started">
+        <div class="category-header">
+            <h2 class="category-title">Pas Commencé</h2>
         </div>
+        <table class="phase-table">
+            <thead>
+                <tr>
+                    <th>Nom de la Phase</th>
+                    <th>Date de Début</th>
+                    <th>Date de Fin</th>
+                    <th>Statut</th>
+                    <th>Progression</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let phase of getPhasesByStatus(PhaseStatus.NOT_STARTED)" (click)="goToKanbanBoard(phase.phaseId!)">
+                    <td>{{ phase.phaseName }}</td>
+                    <td>{{ phase.startDate | date: 'MMM d, y' }}</td>
+                    <td>{{ phase.endDate | date: 'MMM d, y' }}</td>
+                    <td><span class="status-badge status-not-started">Pas Commencé</span></td>
+                    <td>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress" [style.width.%]="calculateXPProgress(phase.phaseId!)" [style.background]="'linear-gradient(to right, #db1e37, #0a4955)'"></div>
+                            </div>
+                            <div class="progress-text">{{ calculateXPProgress(phase.phaseId!) }}% ({{ calculateDoneXP(phase.phaseId!) }}/{{ phase.totalXpPoints || 0 }} XP)</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons" (click)="$event.stopPropagation()">
+                            <button class="action-btn edit" (click)="openEditDialog(phase)">
+                                <mat-icon>edit</mat-icon>
+                            </button>
+                            <button class="action-btn delete" (click)="deletePhase(phase.phaseId!)">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                            <button class="action-btn info" (click)="openDescriptionDialog(phase)">
+                                <mat-icon>info</mat-icon>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- In Progress Phases -->
+    <div *ngIf="!loading && !error && getPhasesByStatus(PhaseStatus.IN_PROGRESS).length > 0" class="phase-category category-in-progress">
+        <div class="category-header">
+            <h2 class="category-title">En Cours</h2>
+        </div>
+        <table class="phase-table">
+            <thead>
+                <tr>
+                    <th>Nom de la Phase</th>
+                    <th>Date de Début</th>
+                    <th>Date de Fin</th>
+                    <th>Statut</th>
+                    <th>Progression</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let phase of getPhasesByStatus(PhaseStatus.IN_PROGRESS)" (click)="goToKanbanBoard(phase.phaseId!)">
+                    <td>{{ phase.phaseName }}</td>
+                    <td>{{ phase.startDate | date: 'MMM d, y' }}</td>
+                    <td>{{ phase.endDate | date: 'MMM d, y' }}</td>
+                    <td><span class="status-badge status-in-progress">En Cours</span></td>
+                    <td>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress" [style.width.%]="calculateXPProgress(phase.phaseId!)" [style.background]="'linear-gradient(to right, #db1e37, #0a4955)'"></div>
+                            </div>
+                            <div class="progress-text">{{ calculateXPProgress(phase.phaseId!) }}% ({{ calculateDoneXP(phase.phaseId!) }}/{{ phase.totalXpPoints || 0 }} XP)</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons" (click)="$event.stopPropagation()">
+                            <button class="action-btn edit" (click)="openEditDialog(phase)">
+                                <mat-icon>edit</mat-icon>
+                            </button>
+                            <button class="action-btn delete" (click)="deletePhase(phase.phaseId!)">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                            <button class="action-btn info" (click)="openDescriptionDialog(phase)">
+                                <mat-icon>info</mat-icon>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Completed Phases -->
+    <div *ngIf="!loading && !error && getPhasesByStatus(PhaseStatus.COMPLETED).length > 0" class="phase-category category-completed">
+        <div class="category-header">
+            <h2 class="category-title">Terminé</h2>
+        </div>
+        <table class="phase-table">
+            <thead>
+                <tr>
+                    <th>Nom de la Phase</th>
+                    <th>Date de Début</th>
+                    <th>Date de Fin</th>
+                    <th>Statut</th>
+                    <th>Progression</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let phase of getPhasesByStatus(PhaseStatus.COMPLETED)" (click)="goToKanbanBoard(phase.phaseId!)">
+                    <td>{{ phase.phaseName }}</td>
+                    <td>{{ phase.startDate | date: 'MMM d, y' }}</td>
+                    <td>{{ phase.endDate | date: 'MMM d, y' }}</td>
+                    <td><span class="status-badge status-completed">Terminé</span></td>
+                    <td>
+                        <div class="progress-container">
+                            <div class="progress-bar">
+                                <div class="progress" [style.width.%]="calculateXPProgress(phase.phaseId!)" [style.background]="'linear-gradient(to right, #db1e37, #0a4955)'"></div>
+                            </div>
+                            <div class="progress-text">{{ calculateXPProgress(phase.phaseId!) }}% ({{ calculateDoneXP(phase.phaseId!) }}/{{ phase.totalXpPoints || 0 }} XP)</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons" (click)="$event.stopPropagation()">
+                            <button class="action-btn edit" (click)="openEditDialog(phase)">
+                                <mat-icon>edit</mat-icon>
+                            </button>
+                            <button class="action-btn delete" (click)="deletePhase(phase.phaseId!)">
+                                <mat-icon>delete</mat-icon>
+                            </button>
+                            <button class="action-btn info" (click)="openDescriptionDialog(phase)">
+                                <mat-icon>info</mat-icon>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>

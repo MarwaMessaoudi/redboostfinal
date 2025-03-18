@@ -17,4 +17,5 @@ export interface Phase {
     tasks?: Task[];
     createdAt?: string;
     updatedAt?: string;
+    projetId?: number; // Added projetId
 }

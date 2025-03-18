@@ -2,7 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TaskService } from '../services/task.service';
-import { Task, Status, Priority } from '../models/task';
+import { PhaseService } from '../services/phase.service';
+import { Task, Status, Priority, TaskCategory } from '../models/task';
+import { Phase, PhaseStatus } from '../models/phase';
+import { User } from '../models/user';
 import { CdkDragDrop, moveItemInArray, transferArrayItem, CdkDropList } from '@angular/cdk/drag-drop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -19,6 +22,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { Subject, debounceTime } from 'rxjs';
 import { TaskCardComponent } from '../tasks/task-card/task-card.component';
+import { TaskCategoryService } from '../services/taskCategory.service';
+import { TaskCategoryFormComponent } from '../tasks/task-category-form/task-category-form.component';
 
 @Component({
     selector: 'app-kanban-board',
@@ -36,9 +41,13 @@ export class KanbanBoardComponent implements OnInit {
     completed: Task[] = [];
     statusFilter: Status | 'ALL' = 'ALL';
     priorityFilter: Priority | 'ALL' = 'ALL';
+    categoryFilter: number | 'ALL' = 'ALL';
     searchTerm: string = '';
     selectedTask: Task | null = null;
     isPanelOpen: boolean = false;
+    phase: Phase | null = null;
+    entrepreneurs: User[] = [];
+    taskCategories: TaskCategory[] = [];
 
     TaskStatus = Status;
     TaskPriority = Priority;
@@ -49,18 +58,24 @@ export class KanbanBoardComponent implements OnInit {
         private route: ActivatedRoute,
         private router: Router,
         private taskService: TaskService,
+        private phaseService: PhaseService,
+        private taskCategoryService: TaskCategoryService,
         private snackBar: MatSnackBar,
         private dialog: MatDialog
-    ) {}
+    ) {
+        this.categoryFilter = 'ALL';
+    }
 
     ngOnInit(): void {
         this.route.paramMap.subscribe((params) => {
             this.phaseId = params.get('phaseId') ? +params.get('phaseId')! : null;
             if (this.phaseId) {
                 this.loadTasksForPhase(this.phaseId);
+                this.loadPhase(this.phaseId);
+                this.loadTaskCategories();
             } else {
                 console.error('Phase ID is null!');
-                this.snackBar.open("Erreur : L'ID de phase est nul !", 'Fermer', { duration: 3000 });
+                this.snackBar.open("Erreur : L'ID de phase est nul !", 'Fermer', { duration: 3000 });
             }
         });
 
@@ -69,15 +84,62 @@ export class KanbanBoardComponent implements OnInit {
         });
     }
 
+    loadPhase(phaseId: number): void {
+        this.phaseService.getPhaseById(phaseId).subscribe({
+            next: (phase) => {
+                this.phase = phase;
+                if (phase.projetId) {
+                    this.loadEntrepreneurs(phase.projetId);
+                } else {
+                    console.warn('No projetId found in phase:', phase);
+                    this.snackBar.open('Aucun projet associé à cette phase', 'Fermer', { duration: 3000 });
+                }
+            },
+            error: (err) => {
+                console.error('Failed to load phase:', err);
+                this.snackBar.open('Erreur : Échec du chargement de la phase.', 'Fermer', { duration: 3000 });
+            }
+        });
+    }
+
+    loadEntrepreneurs(projetId: number): void {
+        console.log('KanbanBoard: Loading entrepreneurs for projetId:', projetId);
+        this.phaseService.getEntrepreneursByProject(projetId).subscribe({
+            next: (entrepreneurs) => {
+                this.entrepreneurs = entrepreneurs;
+                console.log('KanbanBoard: Entrepreneurs loaded:', this.entrepreneurs);
+            },
+            error: (err) => {
+                console.error('KanbanBoard: Failed to load entrepreneurs:', err);
+                this.snackBar.open('Erreur : Échec du chargement des entrepreneurs.', 'Fermer', { duration: 3000 });
+            }
+        });
+    }
+
     loadTasksForPhase(phaseId: number): void {
         this.taskService.getTasksByPhaseId(phaseId).subscribe({
             next: (tasks) => {
+                console.log('Tasks loaded:', tasks);
+                tasks.forEach((task) => console.log(`Task ${task.taskId}:`, { taskCategory: task.taskCategory, taskCategoryId: task.taskCategoryId }));
                 this.tasks = tasks;
                 this.applyFilters();
             },
             error: (err) => {
-                console.error('Échec du chargement des tâches :', err);
-                this.snackBar.open('Erreur : Échec du chargement des tâches. Veuillez réessayer.', 'Fermer', { duration: 3000 });
+                console.error('Échec du chargement des tâches :', err);
+                this.snackBar.open('Erreur : Échec du chargement des tâches.', 'Fermer', { duration: 3000 });
+            }
+        });
+    }
+
+    loadTaskCategories(): void {
+        this.taskCategoryService.getAllTaskCategories().subscribe({
+            next: (categories) => {
+                this.taskCategories = categories;
+                console.log('Task categories loaded:', categories);
+            },
+            error: (err) => {
+                console.error('Failed to load task categories:', err);
+                this.snackBar.open('Erreur : Échec du chargement des catégories.', 'Fermer', { duration: 3000 });
             }
         });
     }
@@ -104,47 +166,94 @@ export class KanbanBoardComponent implements OnInit {
                 } else {
                     newStatus = Status.DONE;
                 }
-                task.status = newStatus;
-                this.updateTaskStatus(task);
+                let taskCategory = task.taskCategory;
+                if (!taskCategory && task.taskCategoryId) {
+                    taskCategory = this.taskCategories.find((cat) => cat.id === task.taskCategoryId) as TaskCategory;
+                }
+                const updatedTask = { ...task, status: newStatus, taskCategory: taskCategory };
+                console.log('Updated task before update:', updatedTask);
+                this.updateTaskStatus(updatedTask);
             }
         }
     }
 
     updateTaskStatus(task: Task) {
-        // Optimistic update
-        const originalStatus = task.status; // Store original status
-        task.status = task.status; // optimistically update
+        const originalStatus = task.status;
         this.taskService.updateTask(task.taskId!, task).subscribe({
             next: () => {
                 console.log(`Task ${task.taskId} status updated to ${task.status}`);
-                //this.snackBar.open(`Task status updated to ${task.status}`, 'Close', { duration: 2000 });  // COMMENT OUT THIS LINE!
+                this.updatePhaseStatus();
             },
             error: (err) => {
-                console.error(`Échec de la mise à jour de la tâche ${task.taskId} :`, err);
-                this.snackBar.open('Erreur : Échec de la mise à jour de la tâche. Veuillez réessayer.', 'Fermer', { duration: 3000 });
-                task.status = originalStatus; // Revert to original status on error
-                this.loadTasksForPhase(this.phaseId!); // Refresh the data
+                console.error(`Échec de la mise à jour de la tâche ${task.taskId} :`, err);
+                this.snackBar.open('Erreur : Échec de la mise à jour de la tâche.', 'Fermer', { duration: 3000 });
+                task.status = originalStatus;
+                this.loadTasksForPhase(this.phaseId!);
             }
         });
+    }
+
+    updatePhaseStatus(): void {
+        if (!this.phase || !this.phaseId) return;
+
+        let newPhaseStatus: PhaseStatus;
+        if (this.tasks.every((task) => task.status === Status.DONE)) {
+            newPhaseStatus = PhaseStatus.COMPLETED;
+        } else if (this.tasks.some((task) => task.status === Status.IN_PROGRESS || task.status === Status.DONE)) {
+            newPhaseStatus = PhaseStatus.IN_PROGRESS;
+        } else {
+            newPhaseStatus = PhaseStatus.NOT_STARTED;
+        }
+        if (this.phase.status !== newPhaseStatus) {
+            this.phase.status = newPhaseStatus;
+            this.phaseService.updatePhase(this.phaseId, { ...this.phase, status: newPhaseStatus }).subscribe({
+                next: () => {
+                    console.log(`Phase ${this.phaseId} status updated to ${newPhaseStatus}`);
+                    this.loadPhase(this.phaseId!);
+                },
+                error: (err) => {
+                    console.error(`Failed to update phase ${this.phaseId}:`, err);
+                    this.snackBar.open('Erreur : Échec de la mise à jour de la phase.', 'Fermer', { duration: 3000 });
+                    this.loadPhase(this.phaseId!);
+                }
+            });
+        }
     }
 
     openCreateTaskDialog(): void {
         const dialogRef = this.dialog.open(TaskFormComponent, {
-            width: '60vw', // Make the dialog 90% of the viewport width
-            maxWidth: 'none', // Allow it to expand if needed
-            data: { phaseId: this.phaseId, task: null, isEdit: false } // Pass phaseId to pre-select
+            maxWidth: 'none',
+            data: {
+                phaseId: this.phaseId,
+                task: null,
+                isEdit: false,
+                entrepreneurs: this.entrepreneurs
+            }
         });
 
         dialogRef.afterClosed().subscribe((result) => {
             if (result) {
-                this.loadTasksForPhase(this.phaseId!); // Reload tasks if a new task was created
+                this.loadTasksForPhase(this.phaseId!);
             }
         });
     }
 
-    // You can also adjust the width of the edit dialog here if you want it different
+    openCreateTaskCategoryDialog(): void {
+        const dialogRef = this.dialog.open(TaskCategoryFormComponent, {
+            maxWidth: 'none',
+            data: {}
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+            if (result) {
+                this.loadTaskCategories();
+            }
+        });
+    }
+
     openEditTaskDialog(task: Task): void {
-        this.selectedTask = task;
+        const taskCategory = task.taskCategory ?? this.taskCategories.find((cat) => cat.id === task.taskCategoryId);
+        this.selectedTask = { ...task, taskCategory: taskCategory || task.taskCategory };
         this.isPanelOpen = true;
     }
 
@@ -163,6 +272,15 @@ export class KanbanBoardComponent implements OnInit {
 
         if (this.priorityFilter !== 'ALL') {
             result = result.filter((task) => task.priority === this.priorityFilter);
+        }
+
+        if (this.categoryFilter !== 'ALL') {
+            if (this.categoryFilter.toString() === 'ALL') {
+                // No filtering needed
+            } else {
+                const categoryId = Number(this.categoryFilter);
+                result = result.filter((task) => task.taskCategory && task.taskCategory.id === categoryId);
+            }
         }
 
         if (this.searchTerm.trim()) {
@@ -194,11 +312,16 @@ export class KanbanBoardComponent implements OnInit {
     resetFilters(): void {
         this.statusFilter = 'ALL';
         this.priorityFilter = 'ALL';
+        this.categoryFilter = 'ALL';
         this.searchTerm = '';
         this.applyFilters();
     }
 
     onSearchTermChange(term: string): void {
         this.searchTermSubject.next(term);
+    }
+
+    calculateTotalXp(tasks: Task[]): number {
+        return tasks.reduce((sum, task) => sum + task.xpPoint, 0);
     }
 }

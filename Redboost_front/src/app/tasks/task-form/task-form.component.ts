@@ -5,7 +5,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray, For
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TaskService } from '../../services/task.service';
 import { PhaseService } from '../../services/phase.service';
-import { Task, Priority, Status } from '../../models/task';
+import { TaskCategoryService } from '../../services/taskCategory.service'; // Import TaskCategoryService
+import { Task, Priority, Status, TaskCategory } from '../../models/task'; // Import TaskCategory
 import { Phase } from '../../models/phase';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -21,18 +22,14 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatListModule } from '@angular/material/list';
 import { MatCardModule } from '@angular/material/card';
+import { User } from '../../models/user';
 
 interface DialogData {
     phaseId: number;
     taskId: number;
     task: Task;
     isEdit: boolean;
-}
-
-interface Assignee {
-    id: number;
-    name: string;
-    avatar?: string;
+    entrepreneurs: User[];
 }
 
 @Component({
@@ -75,18 +72,33 @@ export class TaskFormComponent implements OnInit {
     priorityOptions = Object.values(Priority);
     statusOptions = Object.values(Status);
     phases: Phase[] = [];
+    taskCategories: TaskCategory[] = []; // Added to store task categories
     phaseId: number | null = null;
     @ViewChild('fileInput') fileInput!: ElementRef;
-    assignees: Assignee[] = [];
 
-    // New properties for dropdowns and assignee display
-    showPriorityDropdown: boolean = false;
-    showAssigneeDropdown: boolean = false;
+    // Minimum date (today)
+    minStartDate: Date = new Date();
+
+    // Date filters for the datepickers
+    startDateFilter = (date: Date | null): boolean => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return date ? date >= today : true;
+    };
+
+    endDateFilter = (date: Date | null): boolean => {
+        const startDate = this.taskForm.get('startDate')?.value;
+        if (!startDate || !date) return true;
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        return date >= start;
+    };
 
     constructor(
         private fb: FormBuilder,
         private taskService: TaskService,
         private phaseService: PhaseService,
+        private taskCategoryService: TaskCategoryService, // Inject TaskCategoryService
         private route: ActivatedRoute,
         private router: Router,
         private snackBar: MatSnackBar,
@@ -97,7 +109,7 @@ export class TaskFormComponent implements OnInit {
     ngOnInit(): void {
         this.initForm();
         this.loadPhases();
-        this.loadAssignees();
+        this.loadTaskCategories(); // Load task categories
 
         this.isEditMode = this.data.isEdit;
         this.phaseId = this.data.phaseId;
@@ -108,6 +120,11 @@ export class TaskFormComponent implements OnInit {
         } else if (this.phaseId) {
             this.taskForm.patchValue({ phase: { phaseId: this.phaseId } });
         }
+
+        // Add listener to update end date filter when start date changes
+        this.taskForm.get('startDate')?.valueChanges.subscribe(() => {
+            this.taskForm.get('endDate')?.updateValueAndValidity();
+        });
     }
 
     initForm(): void {
@@ -115,10 +132,11 @@ export class TaskFormComponent implements OnInit {
             title: ['', [Validators.required]],
             xpPoint: [0, [Validators.required, Validators.min(0)]],
             description: [''],
-            assigneeId: [null],
+            assigneeId: [null, [Validators.required]],
             startDate: ['', [Validators.required]],
             endDate: ['', [Validators.required]],
             priority: [Priority.MEDIUM, [Validators.required]],
+            taskCategory: [null, [Validators.required]], // Added taskCategory field
             status: [Status.TO_DO],
             phase: this.fb.group({
                 phaseId: [null, [Validators.required]]
@@ -134,7 +152,19 @@ export class TaskFormComponent implements OnInit {
             },
             error: (error) => {
                 this.snackBar.open('Impossible de charger les phases', 'Fermer', { duration: 3000 });
-                console.error('Erreur lors du chargement des phases :', error);
+                console.error('Erreur lors du chargement des phases :', error);
+            }
+        });
+    }
+
+    loadTaskCategories(): void {
+        this.taskCategoryService.getAllTaskCategories().subscribe({
+            next: (categories) => {
+                this.taskCategories = categories;
+            },
+            error: (error) => {
+                this.snackBar.open('Impossible de charger les catégories', 'Fermer', { duration: 3000 });
+                console.error('Erreur lors du chargement des catégories :', error);
             }
         });
     }
@@ -149,7 +179,7 @@ export class TaskFormComponent implements OnInit {
             error: (error) => {
                 this.error = 'Impossible de charger la tâche. Veuillez réessayer plus tard.';
                 this.loading = false;
-                console.error('Erreur lors du chargement de la tâche :', error);
+                console.error('Erreur lors du chargement de la tâche :', error);
                 this.snackBar.open('Impossible de charger les détails de la tâche', 'Fermer', { duration: 3000 });
             }
         });
@@ -164,13 +194,14 @@ export class TaskFormComponent implements OnInit {
             startDate: task.startDate ? new Date(task.startDate) : null,
             endDate: task.endDate ? new Date(task.endDate) : null,
             priority: task.priority,
+            taskCategory: task.taskCategory?.id || null, // Patch taskCategory ID
             status: task.status,
             phase: {
                 phaseId: task.phase.phaseId
             }
         });
         if (task.attachments && task.attachments.length > 0) {
-            const attachmentsFormArray = this.fb.array(task.attachments);
+            const attachmentsFormArray = this.fb.array(task.attachments.map((att) => this.fb.control(att.name)));
             this.taskForm.setControl('attachments', attachmentsFormArray);
         }
     }
@@ -195,7 +226,7 @@ export class TaskFormComponent implements OnInit {
                 error: (error) => {
                     this.error = 'Impossible de mettre à jour la tâche. Veuillez réessayer plus tard.';
                     this.submitting = false;
-                    console.error('Erreur lors de la mise à jour de la tâche :', error);
+                    console.error('Erreur lors de la mise à jour de la tâche :', error);
                     this.snackBar.open('Impossible de mettre à jour la tâche', 'Fermer', { duration: 3000 });
                 }
             });
@@ -209,7 +240,7 @@ export class TaskFormComponent implements OnInit {
                 error: (error) => {
                     this.error = 'Impossible de créer la tâche. Veuillez réessayer plus tard.';
                     this.submitting = false;
-                    console.error('Erreur lors de la création de la tâche :', error);
+                    console.error('Erreur lors de la création de la tâche :', error);
                     this.snackBar.open('Impossible de créer la tâche', 'Fermer', { duration: 3000 });
                 }
             });
@@ -218,8 +249,12 @@ export class TaskFormComponent implements OnInit {
 
     prepareTaskData(): Task {
         const formValues = this.taskForm.value;
-        const startDate = formValues.startDate instanceof Date ? formValues.startDate.toISOString().split('T')[0] : formValues.startDate;
-        const endDate = formValues.endDate instanceof Date ? formValues.endDate.toISOString().split('T')[0] : formValues.endDate;
+
+        // Normalize dates to YYYY-MM-DD using local time
+        const startDate = new Date(formValues.startDate);
+        const endDate = new Date(formValues.endDate);
+        const normalizedStartDate = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+        const normalizedEndDate = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
         return {
             ...(this.isEditMode && this.taskId ? { taskId: this.taskId } : {}),
@@ -227,9 +262,10 @@ export class TaskFormComponent implements OnInit {
             xpPoint: formValues.xpPoint,
             description: formValues.description,
             assigneeId: formValues.assigneeId,
-            startDate: startDate,
-            endDate: endDate,
+            startDate: normalizedStartDate,
+            endDate: normalizedEndDate,
             priority: formValues.priority,
+            taskCategory: { id: formValues.taskCategory }, // Include taskCategory as an object with ID
             status: Status.TO_DO,
             phase: {
                 phaseId: formValues.phase.phaseId
@@ -288,35 +324,5 @@ export class TaskFormComponent implements OnInit {
             }
         }
         this.fileInput.nativeElement.value = '';
-    }
-
-    // Load assignees
-    loadAssignees(): void {
-        this.assignees = [
-            { id: 1, name: 'John Doe', avatar: 'assets/default-avatar.png' },
-            { id: 2, name: 'Jane Smith', avatar: 'assets/default-avatar.png' },
-            { id: 3, name: 'Peter Jones', avatar: 'assets/default-avatar.png' }
-        ];
-    }
-
-    // Priority dropdown methods
-    togglePriorityDropdown(): void {
-        this.showPriorityDropdown = !this.showPriorityDropdown;
-    }
-
-    selectPriority(priority: Priority): void {
-        this.taskForm.get('priority')?.setValue(priority);
-        this.showPriorityDropdown = false;
-    }
-
-    // Assignee dropdown methods
-    openAssigneeDropdown(): void {
-        this.showAssigneeDropdown = !this.showAssigneeDropdown;
-    }
-
-    // Computed property to get the selected assignee
-    get selectedAssignee(): Assignee | undefined {
-        const assigneeId = this.taskForm.get('assigneeId')?.value;
-        return this.assignees.find((a) => a.id === assigneeId);
     }
 }

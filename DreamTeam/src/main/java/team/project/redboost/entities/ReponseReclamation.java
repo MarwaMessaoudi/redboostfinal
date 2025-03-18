@@ -1,10 +1,10 @@
 package team.project.redboost.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 
 import java.time.LocalDateTime;
 
@@ -19,17 +19,20 @@ public class ReponseReclamation {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "idReclamation")
+    @JoinColumn(name = "idReclamation",nullable = false)
     private Reclamation reclamation;
+
+
+    @ManyToOne // Add this relationship
+    @JoinColumn(name = "user_id") // Specify the foreign key column
+    @JsonBackReference //add this
+    private User user;  // Reference the User entity
 
     @Column(columnDefinition = "TEXT")
     private String contenu;
 
     @Enumerated(EnumType.STRING)
     private SenderType sender;
-
-    @Column(name = "user_id")
-    private Long userId;
 
     private LocalDateTime dateCreation = LocalDateTime.now();
 

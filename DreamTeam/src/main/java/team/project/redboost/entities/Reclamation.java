@@ -2,6 +2,7 @@ package team.project.redboost.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference; // Import!
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -54,5 +55,14 @@ public class Reclamation {
     private List<ReponseReclamation> reponses;
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false) // Foreign key to User table
+    @JsonBackReference // Skip serializing this
     private User user;
+
+    public @NotNull(message = "La catégorie est obligatoire") CategorieReclamation getCategorie() {
+        return categorie;
+    }
+
+    public void setCategorie(@NotNull(message = "La catégorie est obligatoire") CategorieReclamation categorie) {
+        this.categorie = categorie;
+    }
 }

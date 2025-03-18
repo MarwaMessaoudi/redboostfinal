@@ -40,9 +40,12 @@ public class SecurityConfig {
                         .requestMatchers("/Auth/**").permitAll()
                         .requestMatchers("/api/rendezvous/add", "/api/rendezvous/all", "/api/rendezvous/accepted").permitAll()
                         .requestMatchers("/api/v1/coachlist/**").permitAll()
+                        .requestMatchers("/api/reclamations/**").permitAll()
+
+
                         // Protected endpoints
                         .requestMatchers("/api/rendezvous/update-status/**").authenticated()  // Require auth for Google Calendar
-                        .anyRequest().permitAll()  // All other endpoints require authentication
+                        .anyRequest().authenticated()  // All other endpoints require authentication
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2Login(oauth2 -> oauth2

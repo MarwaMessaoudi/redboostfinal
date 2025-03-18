@@ -44,6 +44,7 @@ export const appRoutes: Routes = [
     { path: '', component: Landing },
     { path: 'signin', component: SigninComponent },
     { path: 'signup', component: SignUpComponent },
+    
     { path: 'confirm-email', component: ConfirmEmailComponent },
     {
         path: '',

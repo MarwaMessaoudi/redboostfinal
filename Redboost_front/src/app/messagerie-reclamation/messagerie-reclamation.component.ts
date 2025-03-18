@@ -23,7 +23,7 @@ export class MessagerieReclamationComponent implements OnInit {
   fichiersSelectionnes: File[] = [];
   statutOptions: StatutReclamation[] = [StatutReclamation.NOUVELLE, StatutReclamation.EN_ATTENTE, StatutReclamation.TRAITE, StatutReclamation.FERMEE];
   nouveauStatut: StatutReclamation | null = null;
-  isAdmin: boolean = true;
+  isAdmin: boolean = false;
   retourListeReclamations: boolean = false;
   reponses: ReponseReclamation[] = [];
   messageSucces: string = '';

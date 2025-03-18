@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import team.project.redboost.entities.Reclamation;
 import team.project.redboost.entities.User;
+import team.project.redboost.entities.StatutReclamation; // Import the enum!
 import team.project.redboost.repositories.ReclamationRepository;
 
 import java.util.List;
@@ -53,5 +54,15 @@ public class ReclamationService {
         } else {
             return false;
         }
+    }
+
+    // Mettre à jour le statut d'une réclamation
+    public Reclamation updateReclamationStatut(Long idReclamation, StatutReclamation nouveauStatut) {
+        return reclamationRepository.findById(idReclamation)
+                .map(reclamation -> {
+                    reclamation.setStatut(nouveauStatut);
+                    return reclamationRepository.save(reclamation);
+                })
+                .orElse(null);
     }
 }

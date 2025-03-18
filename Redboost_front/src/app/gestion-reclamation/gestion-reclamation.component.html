@@ -4,6 +4,7 @@
   <form [formGroup]="reclamationForm" (ngSubmit)="onSubmit()"
     class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
       <!-- Nom -->
       <div class="mb-4">
         <label class="block text-gray-700 text-sm font-bold mb-2" for="nom">
@@ -31,8 +32,8 @@
         </div>
       </div>
 
-      <!-- Date (readonly) -->
-      <div class="mb-4">
+       <!-- Date (readonly) -->
+       <div class="mb-4">
         <label class="block text-gray-700 text-sm font-bold mb-2" for="date">
           Date
         </label>
@@ -40,6 +41,32 @@
           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-gray-100 leading-tight focus:outline-none focus:shadow-outline"
           id="date" type="text" formControlName="date" readonly>
       </div>
+</div>
+     <!-- Sujet -->
+     <div class="mb-4">
+      <label class="block text-gray-700 text-sm font-bold mb-2" for="sujet">
+        Sujet
+      </label>
+      <input
+        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+        id="sujet" type="text" formControlName="sujet" placeholder="Sujet de la réclamation">
+      <div *ngIf="f['sujet'].touched && f['sujet'].invalid" class="text-red-500 text-xs mt-1">
+        <div *ngIf="f['sujet'].errors?.['required']">Le sujet est requis</div>
+      </div>
+    </div>
+    <!-- Description -->
+    <div class="mb-4">
+      <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
+        Description
+      </label>
+      <textarea
+        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+        id="description" formControlName="description" rows="4"
+        placeholder="Décrivez votre problème en détail"></textarea>
+      <div *ngIf="f['description'].touched && f['description'].invalid" class="text-red-500 text-xs mt-1">
+        <div *ngIf="f['description'].errors?.['required']">La description est requise</div>
+      </div>
+    </div>
 
       <!-- Catégorie -->
       <div class="mb-4">
@@ -59,34 +86,6 @@
           <div *ngIf="f['categorie'].errors?.['required']">La catégorie est requise</div>
         </div>
       </div>
-    </div>
-
-    <!-- Sujet -->
-    <div class="mb-4">
-      <label class="block text-gray-700 text-sm font-bold mb-2" for="sujet">
-        Sujet
-      </label>
-      <input
-        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-        id="sujet" type="text" formControlName="sujet" placeholder="Sujet de la réclamation">
-      <div *ngIf="f['sujet'].touched && f['sujet'].invalid" class="text-red-500 text-xs mt-1">
-        <div *ngIf="f['sujet'].errors?.['required']">Le sujet est requis</div>
-      </div>
-    </div>
-
-    <!-- Description -->
-    <div class="mb-4">
-      <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
-        Description
-      </label>
-      <textarea
-        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-        id="description" formControlName="description" rows="4"
-        placeholder="Décrivez votre problème en détail"></textarea>
-      <div *ngIf="f['description'].touched && f['description'].invalid" class="text-red-500 text-xs mt-1">
-        <div *ngIf="f['description'].errors?.['required']">La description est requise</div>
-      </div>
-    </div>
 
     <!-- File Upload (Multiple) -->
     <div class="mb-6">

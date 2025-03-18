@@ -36,9 +36,9 @@
         height: auto;
     }
 
-    font-family: var(--phase-form-font-family);
+   &{ font-family: var(--phase-form-font-family);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    -moz-osx-font-smoothing: grayscale;}
 
     h1,
     h2,
@@ -62,7 +62,7 @@
         margin: 0;
     }
 
-    /* Component-Specific Styles - MATCHING TASKUPDATE */
+    &{  /* Component-Specific Styles - MATCHING TASKUPDATE */
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -76,7 +76,7 @@
     margin: 0 auto; /* Centers the element */
 
     color: var(--phase-form-text-color);
-
+    }
     & .app-phase-form-mat-dialog-title {
         font-size: 18px; /* task-form title size */
         font-weight: 600; /* task-form title weight */

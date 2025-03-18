@@ -2,17 +2,19 @@ package team.project.redboost.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
 
-@Setter
-@Getter
+@Data
 @Entity
-public class Investor {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@Table(name = "investor_details")
+@PrimaryKeyJoinColumn(name = "user_id") // Maps to the primary key of the User table
+@EqualsAndHashCode(callSuper = true)
+public class Investor extends User {
+
 
     private String name;
     private String email;

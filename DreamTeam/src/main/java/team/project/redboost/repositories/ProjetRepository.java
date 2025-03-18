@@ -10,6 +10,8 @@ import java.util.List;
 
 @Repository
 public interface ProjetRepository extends JpaRepository<Projet, Long> {
-    @Query("SELECT p.name, p.logoUrl, p.sector, p.location, p.creationDate, p.websiteUrl, p.globalScore, p.id FROM Projet p WHERE p.foundersIds = :founderId")
-    List<Object[]> findProjetCardByFounderId(@Param("founderId") String founderId);
+    @Query("SELECT p.name, p.logoUrl, p.sector, p.location, p.creationDate, p.websiteUrl, p.globalScore, p.id " +
+            "FROM Projet p JOIN p.entrepreneurs e WHERE e.id = :userId")
+    List<Object[]> findProjetCardByUserId(@Param("userId") Long userId);
+    boolean existsByNameIgnoreCase(String name);
 }

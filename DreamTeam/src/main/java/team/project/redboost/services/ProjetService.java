@@ -1,9 +1,14 @@
 package team.project.redboost.services;
 
 import jakarta.transaction.Transactional;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import team.project.redboost.entities.Projet;
+import team.project.redboost.entities.Role;
+import team.project.redboost.entities.User;
 import team.project.redboost.repositories.ProjetRepository;
+import team.project.redboost.repositories.UserRepository;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -14,31 +19,47 @@ import java.util.NoSuchElementException;
 @Service
 public class ProjetService {
     private final ProjetRepository projetRepository;
+    private final UserRepository userRepository;
 
-    public ProjetService(ProjetRepository projetRepository) {
+    public ProjetService(ProjetRepository projetRepository, UserRepository userRepository) {
         this.projetRepository = projetRepository;
+        this.userRepository = userRepository;
     }
 
-    public Projet createProjet(Projet projet, String imageUrl) {
+    public Projet createProjet(Projet projet, String imageUrl, Long creatorId) {
+        if (projetRepository.existsByNameIgnoreCase(projet.getName())) {
+            throw new IllegalArgumentException("A project with the name '" + projet.getName() + "' already exists. Please join it or use a different name.");
+        }
+
         if (imageUrl != null && !imageUrl.isEmpty()) {
             projet.setLogoUrl(imageUrl);
         }
         if (projet.getGlobalScore() == null) projet.setGlobalScore(0.0);
         if (projet.getLastUpdated() == null) projet.setLastUpdated(LocalDate.now());
         if (projet.getLastEvaluationDate() == null) projet.setLastEvaluationDate(LocalDate.now());
-        return projetRepository.save(projet);
+
+        User founder = userRepository.findById(creatorId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + creatorId));
+        System.out.println("Setting founder with ID: " + creatorId);
+        if (founder.getRole() != Role.ENTREPRENEUR) {
+            throw new IllegalArgumentException("User with ID " + creatorId + " is not an Entrepreneur");
+        }
+        projet.setFounder(founder);
+        projet.getEntrepreneurs().add(founder);
+
+        Projet savedProjet = projetRepository.save(projet);
+        System.out.println(" ditt project with ID: " + savedProjet.getId() + ", Founder ID: " + savedProjet.getFounder().getId());
+        return savedProjet;
     }
 
     public Projet updateProjet(Long id, Projet updatedProjet, String imageUrl) {
         Projet projet = projetRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Projet non trouvé avec l'ID : " + id));
 
-        // Delete old logo file if a new one is provided
         if (imageUrl != null && !imageUrl.isEmpty() && projet.getLogoUrl() != null) {
             try {
-                Files.deleteIfExists(Paths.get(projet.getLogoUrl().substring(1))); // Remove old file
+                Files.deleteIfExists(Paths.get(projet.getLogoUrl().substring(1)));
             } catch (Exception e) {
-                // Log the error if needed, but don’t fail the update
                 System.err.println("Failed to delete old logo file: " + e.getMessage());
             }
         }
@@ -66,7 +87,6 @@ public class ProjetService {
         Projet projet = projetRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Projet non trouvé avec l'ID : " + id));
 
-        // Delete logo file if it exists
         if (projet.getLogoUrl() != null) {
             try {
                 Files.deleteIfExists(Paths.get(projet.getLogoUrl().substring(1)));
@@ -78,7 +98,119 @@ public class ProjetService {
         projetRepository.delete(projet);
     }
 
-    public List<Object[]> getProjetCardByFounderId(String founderId) {
-        return projetRepository.findProjetCardByFounderId(founderId);
+    public List<Object[]> getProjetCardByUserId(Long userId) {
+        return projetRepository.findProjetCardByUserId(userId);
+    }
+
+    @Transactional
+    public Projet inviteCollaborator(Long projetId, Long userId) {
+        Projet projet = projetRepository.findById(projetId)
+                .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByEmail(currentUserEmail);
+        if (currentUser == null) {
+            throw new IllegalArgumentException("Authenticated user not found with email: " + currentUserEmail);
+        }
+        System.out.println("Authenticated user ID: " + currentUser.getId());
+        User founder = projet.getFounder();
+        System.out.println("Founder ID: " + (founder != null ? founder.getId() : "null"));
+        if (founder == null || !founder.getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Only the project founder can invite a collaborator");
+        }
+
+        User collaborator = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+        if (collaborator.getRole() != Role.ENTREPRENEUR) {
+            throw new IllegalArgumentException("User with ID " + userId + " is not an Entrepreneur");
+        }
+
+        projet.setPendingCollaborator(collaborator);
+        return projetRepository.save(projet);
+    }
+
+    @Transactional
+    public Projet acceptInvitation(Long projetId, Long userId) {
+        Projet projet = projetRepository.findById(projetId)
+                .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
+        User collaborator = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+
+        if (projet.getPendingCollaborator() != null && projet.getPendingCollaborator().getId().equals(userId)) {
+            projet.getEntrepreneurs().add(collaborator);
+            projet.setPendingCollaborator(null);
+        } else {
+            throw new IllegalArgumentException("No pending invitation for this user");
+        }
+
+        return projetRepository.save(projet);
+    }
+
+    @Transactional
+    public Projet declineInvitation(Long projetId, Long userId) {
+        Projet projet = projetRepository.findById(projetId)
+                .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
+
+        if (projet.getPendingCollaborator() != null && projet.getPendingCollaborator().getId().equals(userId)) {
+            projet.setPendingCollaborator(null);
+        } else {
+            throw new IllegalArgumentException("No pending invitation for this user");
+        }
+
+        return projetRepository.save(projet);
+    }
+
+    public Projet addEntrepreneurToProjet(Long projetId, Long userId) {
+        Projet projet = projetRepository.findById(projetId)
+                .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+        if (user.getRole() != Role.ENTREPRENEUR) {
+            throw new IllegalArgumentException("User with ID " + userId + " is not an Entrepreneur");
+        }
+        projet.getEntrepreneurs().add(user);
+        return projetRepository.save(projet);
+    }
+
+    public Projet addCoachToProjet(Long projetId, Long userId) {
+        Projet projet = projetRepository.findById(projetId)
+                .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+        projet.getCoaches().add(user);
+        return projetRepository.save(projet);
+    }
+
+    public Projet addInvestorToProjet(Long projetId, Long userId) {
+        Projet projet = projetRepository.findById(projetId)
+                .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+        projet.getInvestors().add(user);
+        return projetRepository.save(projet);
+    }
+
+    public User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            return null;
+        }
+        String email = auth.getName(); // Email from JWT subject
+        return userRepository.findByEmail(email); // Direct return, no Optional
+    }
+
+    public Projet findProjetEntityById(Long id) {
+        return projetRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + id));
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
+    }
+    public User getUserByEmail(String email) {
+        User user = userRepository.findByEmail(email);
+        if (user == null) {
+            System.err.println("No user found with email: " + email);
+        }
+        return user;
     }
 }

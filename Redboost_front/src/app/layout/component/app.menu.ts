@@ -130,6 +130,12 @@ export class AppMenu implements OnInit {
         ],
       },
       {
+        label: 'Marketplace',
+        items: [
+          { label: 'Marketplace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace/v1'] },
+        ],
+      },
+      {
         label: 'Rendez-vous',
         items: [
           { label: 'Rendez-vous', icon: 'pi pi-fw pi-calendar', routerLink: ['/appointments'] },

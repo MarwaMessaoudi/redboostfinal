@@ -54,7 +54,7 @@ export class GestionReclamationComponent implements OnInit {
     }
 
     loadUserInfo() {
-        const token = localStorage.getItem('authToken');
+        const token = localStorage.getItem('accessToken');
         if (token) {
             try {
                 const decodedToken: any = jwtDecode(token);
@@ -90,7 +90,7 @@ export class GestionReclamationComponent implements OnInit {
     }
 
     get accessToken(): string | null {
-        return localStorage.getItem('authToken');
+        return localStorage.getItem('accessToken');
     }
 
     onFilesChange(event: Event): void {

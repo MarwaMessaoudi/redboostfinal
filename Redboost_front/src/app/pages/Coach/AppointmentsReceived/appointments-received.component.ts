@@ -8,6 +8,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { AppointmentService } from '../../appointments/appointment.service';
 import { RendezVous } from '../../appointments/models/rendez-vous.model';
 import { ToastrService } from 'ngx-toastr';
+import { AuthService } from '../../auth/auth.service'; // Ajuste le chemin si nécessaire
 
 interface Availability {
   date: string;
@@ -45,7 +46,9 @@ export class AppointmentsReceivedComponent implements OnInit {
   constructor(
     private appointmentService: AppointmentService,
     private fb: FormBuilder,
-    private toastr: ToastrService
+    private toastr: ToastrService,
+    private authService: AuthService // Injection correcte de AuthService// ✅ Injection correcte de ToastrService
+
   ) {
     this.availabilityForm = this.fb.group({
       startTime: ['', Validators.required],
@@ -66,21 +69,15 @@ export class AppointmentsReceivedComponent implements OnInit {
     }
   }
 
+  
   loadAppointments(): void {
-    this.appointmentService.getAllAppointments().subscribe({
-      next: (data) => {
-        console.log('Données brutes reçues du backend :', data);
-        this.appointments = data.filter(appointment => appointment.coachId === this.coachId);
-        console.log('Appointments après filtre par coachId :', this.appointments);
-        console.log('Structure détaillée des appointments :', JSON.stringify(this.appointments, null, 2));
-        this.updateCalendarEvents();
+    this.appointmentService.getAppointmentsByCoach().subscribe({
+      next: (appointments) => {
+        this.appointments = appointments; // Assigner les données à this.appointments
       },
-      error: (error) => {
-        console.log('Erreur lors du chargement des rendez-vous :', error);
-        this.toastr.error('Erreur lors du chargement des rendez-vous', 'Erreur');
-      },
-    });
+    })
   }
+
 
   updateCalendarEvents(): void {
     const events: EventInput[] = this.appointments

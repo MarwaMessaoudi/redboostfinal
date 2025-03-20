@@ -75,8 +75,6 @@ public class RendezVous {
     }
 
 
-
-
     public Long getId() {
         return id;
     }

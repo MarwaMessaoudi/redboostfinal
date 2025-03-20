@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class CoachService {
-  private apiUrl = 'http://localhost:8085/api/v1/coachlist'; // URL de ton backend
+  private apiUrl = 'http://localhost:8085/api/coachlist'; // URL de ton backend
 
   constructor(private http: HttpClient) { }
 

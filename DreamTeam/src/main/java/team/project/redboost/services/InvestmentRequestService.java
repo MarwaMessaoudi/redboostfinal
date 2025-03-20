@@ -32,9 +32,9 @@ public class InvestmentRequestService {
         return investmentRequestRepository.findByInvestorId(investorId);
     }
 
-    // Get investment requests for a specific startup
-    public List<InvestmentRequest> getRequestsByStartup(Long startupId) {
-        return investmentRequestRepository.findByStartupId(startupId);
+    // Get investment requests for a specific projet
+    public List<InvestmentRequest> getRequestsByProjet(Long projetId) {  // Changed from getRequestsByStartup
+        return investmentRequestRepository.findByProjetId(projetId);    // Changed from findByStartupId
     }
 
     public boolean deleteRequest(Long requestId) {

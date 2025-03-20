@@ -1,16 +1,16 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { AppointmentService } from '../appointment.service';
 import { RendezVous } from '../models/rendez-vous.model';
-import { Observable, catchError, of } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
 
 @Component({
   selector: 'app-create-appointment-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule], // Importe les modules nécessaires pour *ngIf et formGroup
+  imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="modal-container">
       <div class="modal-content">
@@ -29,7 +29,7 @@ import { ToastrService } from 'ngx-toastr';
               <label for="heure">Heure</label>
             </div>
             <div class="input-group">
-              <input id="date" type="text" class="form-control" [value]="selectedDate" readonly>
+              <input id="date" type="date" class="form-control" formControlName="date" required>
               <label for="date">Date</label>
             </div>
             <div class="input-group">
@@ -45,7 +45,7 @@ import { ToastrService } from 'ngx-toastr';
             </div>
             <div class="modal-footer">
               <button type="button" class="btn-cancel" (click)="activeModal.dismiss('Cancel')">Annuler</button>
-              <button type="submit" class="btn-submit" [disabled]="createForm.invalid || isHourUnavailable">
+              <button type="submit" class="btn-submit" [disabled]="createForm.invalid || isHourUnavailable || isSubmitting">
                 Créer
               </button>
             </div>
@@ -65,8 +65,8 @@ import { ToastrService } from 'ngx-toastr';
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7); /* Fond plus sombre et opaque pour un effet dramatique */
-      backdrop-filter: blur(8px); /* Plus de flou pour un effet moderne */
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
       z-index: 1050 !important;
       animation: fadeInBackground 0.3s ease-in-out;
     }
@@ -77,14 +77,14 @@ import { ToastrService } from 'ngx-toastr';
     }
 
     .modal-content {
-      width: 400px; /* Augmenté pour un design plus spacieux et moderne */
+      width: 400px;
       padding: 24px;
       border-radius: 16px;
-      background: linear-gradient(135deg, #1e1e2f, #2d2d44); /* Dégradé sombre avec des tons profonds */
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(74, 144, 226, 0.2); /* Ombre plus prononcée avec un halo bleu */
+      background: linear-gradient(135deg, #1e1e2f, #2d2d44);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(74, 144, 226, 0.2);
       animation: slideIn 0.3s ease-in-out;
       z-index: 1060 !important;
-      color: #ffffff; /* Texte blanc pour contraste */
+      color: #ffffff;
     }
 
     @keyframes slideIn {
@@ -96,7 +96,7 @@ import { ToastrService } from 'ngx-toastr';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Ligne fine et discrète */
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 16px;
       margin-bottom: 16px;
     }
@@ -105,21 +105,21 @@ import { ToastrService } from 'ngx-toastr';
       font-size: 1.8rem;
       font-weight: 600;
       color: #ffffff;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); /* Ombre légère pour le texte */
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
     .btn-close {
       background: none;
       border: none;
       font-size: 1.5rem;
-      color: #ff6b6b; /* Rouge clair pour un contraste attractif */
+      color: #ff6b6b;
       cursor: pointer;
       transition: color 0.3s ease, transform 0.3s ease;
     }
 
     .btn-close:hover {
-      color: #ff4040; /* Rouge plus foncé au hover */
-      transform: scale(1.1); /* Effet d’agrandissement */
+      color: #ff4040;
+      transform: scale(1.1);
     }
 
     .input-group {
@@ -127,26 +127,26 @@ import { ToastrService } from 'ngx-toastr';
       margin-bottom: 20px;
     }
 
-    .input-group input, 
+    .input-group input,
     .input-group textarea {
       width: 100%;
       padding: 14px 12px;
       font-size: 1rem;
       border: none;
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.1); /* Fond semi-transparent blanc */
+      background: rgba(255, 255, 255, 0.1);
       color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.2); /* Bordure légère */
+      border: 1px solid rgba(255, 255, 255, 0.2);
       transition: all 0.3s ease;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1); /* Ombre intérieure légère */
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    .input-group input:focus, 
+    .input-group input:focus,
     .input-group textarea:focus {
       outline: none;
-      border-color: #4a90e2; /* Bleu vif pour le focus */
-      box-shadow: 0 0 8px rgba(74, 144, 226, 0.5); /* Halo bleu au focus */
-      background: rgba(255, 255, 255, 0.15); /* Fond légèrement plus clair au focus */
+      border-color: #4a90e2;
+      box-shadow: 0 0 8px rgba(74, 144, 226, 0.5);
+      background: rgba(255, 255, 255, 0.15);
     }
 
     .input-group label {
@@ -166,7 +166,7 @@ import { ToastrService } from 'ngx-toastr';
     .input-group textarea:not(:placeholder-shown) + label {
       top: 5px;
       font-size: 0.8rem;
-      color: #4a90e2; /* Bleu vif pour les labels au focus */
+      color: #4a90e2;
     }
 
     .input-group textarea {
@@ -191,23 +191,23 @@ import { ToastrService } from 'ngx-toastr';
     }
 
     .btn-cancel {
-      background: #ff6b6b; /* Rouge clair pour Annuler */
+      background: #ff6b6b;
       color: #ffffff;
     }
 
     .btn-cancel:hover {
-      background: #ff4040; /* Rouge plus foncé au hover */
-      transform: translateY(-2px); /* Effet de levée */
-      box-shadow: 0 4px 12px rgba(255, 64, 64, 0.3); /* Ombre au hover */
+      background: #ff4040;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 64, 64, 0.3);
     }
 
     .btn-submit {
-      background: linear-gradient(45deg, #4a90e2, #50e3c2); /* Dégradé bleu-vert attractif */
+      background: linear-gradient(45deg, #4a90e2, #50e3c2);
       color: #ffffff;
     }
 
     .btn-submit:hover {
-      background: linear-gradient(45deg, #357abd, #38d9b2); /* Dégradé légèrement plus foncé au hover */
+      background: linear-gradient(45deg, #357abd, #38d9b2);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
     }
@@ -228,83 +228,94 @@ import { ToastrService } from 'ngx-toastr';
     }
   `]
 })
-export class CreateAppointmentModalComponent {
-  @Input() selectedDate: string = ''; // Date non modifiable passée en entrée
-  @Input() coachId: number = 1; // Coach par défaut
-  createForm: FormGroup;
+export class CreateAppointmentModalComponent implements OnInit {
+  @Input() coachId?: number; // Conservé pour passer l'ID du coach
+  // @Input() selectedDate: string = ''; // Commenté : Supprimé car la date est gérée par le formulaire
+  createForm!: FormGroup;
   isHourUnavailable: boolean = false;
   acceptedAppointments: RendezVous[] = [];
+  isSubmitting: boolean = false;
 
   constructor(
     public activeModal: NgbActiveModal,
     private fb: FormBuilder,
     private appointmentService: AppointmentService,
     private toastr: ToastrService
-  ) {
+  ) {}
+
+  ngOnInit() {
     this.createForm = this.fb.group({
       title: ['', Validators.required],
-      date: [{ value: this.selectedDate, disabled: true }], // Date non modifiable
+      date: ['', Validators.required], // La date est choisie dans le formulaire
       heure: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       description: [''],
-      coachId: [this.coachId],
-      status: ['PENDING'] // Statut par défaut
+      status: ['PENDING'],
     });
   }
 
   checkAvailability(): void {
-    const date = this.selectedDate; // Utilise la date passée en entrée
+    const date = this.createForm.get('date')?.value;
     const heure = this.createForm.get('heure')?.value;
 
     if (date && heure) {
       const fullDateTime = new Date(`${date}T${heure}:00`);
       this.appointmentService.getAcceptedAppointmentsByDate(date).subscribe({
         next: (appointments) => {
-          this.acceptedAppointments = appointments;
-          this.isHourUnavailable = this.isHourConflict(fullDateTime, appointments);
+          this.acceptedAppointments = appointments || [];
+          this.isHourUnavailable = this.isHourConflict(fullDateTime, this.acceptedAppointments);
         },
         error: (error) => {
-          console.error('Erreur lors de la vérification des disponibilités :', error);
           this.toastr.error('Impossible de vérifier les disponibilités. Veuillez réessayer.', 'Erreur');
-          this.isHourUnavailable = true; // Bloquer par défaut en cas d'erreur
-        }
+          this.isHourUnavailable = true;
+          this.acceptedAppointments = [];
+        },
       });
     }
   }
 
   isHourConflict(newAppointmentTime: Date, existingAppointments: RendezVous[]): boolean {
-    const bufferMinutes = 45; // Plage de 45 minutes avant et après chaque rendez-vous approuvé
+    if (!Array.isArray(existingAppointments)) {
+      return false;
+    }
+    const bufferMinutes = 45;
     return existingAppointments.some(appointment => {
+      if (!appointment.date || !appointment.heure) return false;
       const existingTime = new Date(`${appointment.date}T${appointment.heure}:00`);
-      const timeDiff = Math.abs(newAppointmentTime.getTime() - existingTime.getTime()) / 60000; // Différence en minutes
-      return timeDiff < bufferMinutes || timeDiff === 0; // Conflit si même heure ou dans une plage de 45 minutes
+      const timeDiff = Math.abs(newAppointmentTime.getTime() - existingTime.getTime()) / 60000;
+      return timeDiff < bufferMinutes || timeDiff === 0;
     });
   }
 
   onSubmit(): void {
-    if (this.createForm.valid && !this.isHourUnavailable) {
+    if (this.createForm.valid && !this.isHourUnavailable && !this.isSubmitting) {
+      this.isSubmitting = true;
       const newAppointment: RendezVous = {
         ...this.createForm.value,
-        date: this.selectedDate // Utilise la date passée en entrée
       };
-      this.appointmentService.createAppointment(newAppointment).pipe(
+      if (!this.coachId) {
+        this.toastr.error('Aucun coach sélectionné.', 'Erreur');
+        this.isSubmitting = false;
+        return;
+      }
+      this.appointmentService.createAppointment(newAppointment, this.coachId).pipe(
         catchError((error) => {
           if (error.status === 400) {
             this.toastr.error('Cette heure n’est pas disponible ou trop proche d’un rendez-vous existant.', 'Erreur');
           } else {
-            this.toastr.error('Échec de la création du rendez-vous', 'Erreur');
+            this.toastr.error('Échec de la création du rendez-vous : ' + (error.message || 'Erreur inconnue'), 'Erreur');
           }
-          return of(null); // Gérer l'erreur sans casser l'application
+          this.isSubmitting = false;
+          return of(null);
         })
       ).subscribe({
         next: (response) => {
           if (response) {
-            console.log('Rendez-vous créé avec succès :', response);
             this.activeModal.close(response);
             this.toastr.success('Rendez-vous créé avec succès !', 'Succès');
           }
+          this.isSubmitting = false;
         },
-        error: (error) => console.error('Erreur inattendue lors de la création :', error)
       });
     }
   }

@@ -3,10 +3,8 @@
     <h1>Mes Rendez-vous Reçus</h1>
     <p class="subtitle">Gérez vos rendez-vous en toute simplicité et efficacité.</p>
   </div>
-
   <div class="appointments-grid">
     <div class="appointments-list">
-      <h3>Rendez-vous en attente d’approbation</h3>
       <div class="appointment-card" *ngFor="let appointment of appointments" 
            [ngClass]="{'PENDING': appointment.status === 'PENDING', 'ACCEPTED': appointment.status === 'ACCEPTED', 'REJECTED': appointment.status === 'REJECTED'}">
         <div class="appointment-content">
@@ -19,14 +17,15 @@
             </div>
             <div class="appointment-details">
               <span class="date">
-                <i class="fas fa-calendar"></i>
-                {{ appointment.date | date:'dd MMMM yyyy' }}
+                <p>
+                  <i class="bi bi-calendar"></i>
+                  {{ appointment.date | date:'dd MMMM yyyy' }}
+                </p>
               </span>
               <span class="heure" *ngIf="appointment.heure">
-                <i class="fas fa-clock"></i>
+                <i class="bi bi-stopwatch"></i>
                 {{ (appointment.heure) }}
               </span>
-              
             </div>
           </div>
           <div class="appointment-actions" *ngIf="appointment.status === 'PENDING'">
@@ -45,11 +44,11 @@
         <p>Vos rendez-vous apparaîtront ici une fois programmés.</p>
       </div>
     </div>
-
+    <!--
     <div class="calendar-section">
       <div class="calendar-wrapper">
-        <full-calendar #calendar [options]="calendarOptions"></full-calendar> <!-- Ajoutez #calendar ici -->
+        <full-calendar #calendar [options]="calendarOptions"></full-calendar> Ajoutez #calendar ici 
       </div>
-    </div>
+    </div> --> 
   </div>
 </div>

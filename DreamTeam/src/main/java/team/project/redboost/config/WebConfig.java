@@ -11,7 +11,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:C:/Users/bayla/Documents/GitHub/redboostfinal/DreamTeam/uploads/")
+                .addResourceLocations("file:C:/redboost_merge/DreamTeam/uploads")
                 .setCachePeriod(0);
     }
 }

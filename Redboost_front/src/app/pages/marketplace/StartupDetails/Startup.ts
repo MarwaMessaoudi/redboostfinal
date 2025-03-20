@@ -1,121 +1,192 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule, NgIf } from '@angular/common';
-import { Chart, ChartConfiguration, ChartData, ChartOptions, LineController, LineElement, BarController, BarElement, PointElement, LinearScale, Title, CategoryScale } from 'chart.js';
-
-// ✅ Register required Chart.js controllers
-Chart.register(LineController, LineElement, BarController, BarElement, PointElement, LinearScale, CategoryScale, Title);
+import { CommonModule } from '@angular/common';
+import { Chart } from 'chart.js/auto';
+import axios from 'axios';
 
 @Component({
   selector: 'app-startup-details',
   standalone: true,
-  imports: [CommonModule, NgIf], // ✅ Fixed imports
+  imports: [CommonModule],
   template: `
-    <div class="container mx-auto p-6 max-w-3xl">
-      <button (click)="goBack()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 mb-4">
-        ← Back to Marketplace
-      </button>
+    <div class="bg-gradient-to-r from-[#EA7988] to-[#FF8B79] min-h-screen text-white">
+      <!-- Header Section -->
+      <header class="py-12 text-center">
+        <h1 class="text-5xl font-extrabold">{{ projet?.name || 'Project Details' }}</h1>
+        <p class="mt-4 text-xl max-w-lg mx-auto">{{ projet?.description || 'An innovative project aimed to revolutionize the industry.' }}</p>
+        <button (click)="goBack()" class="mt-8 px-6 py-3 bg-[#0A4955] text-lg font-semibold rounded-lg shadow-lg hover:bg-[#245C67]">
+          ← Back to Investments
+        </button>
+      </header>
 
-      <div *ngIf="startup" class="p-6 border rounded-lg shadow-lg bg-white">
-        <h1 class="text-3xl font-bold text-gray-800">{{ startup.name }}</h1>
-        <p class="text-gray-500">{{ startup.category }}</p>
-        <p class="mt-4 text-gray-700">{{ startup.description }}</p>
-
-        <div class="mt-6">
-          <h3 class="text-lg font-semibold">Funding Progress</h3>
-          <div class="w-full bg-gray-300 rounded-full h-6 mt-2">
-            <div class="h-6 bg-blue-500 text-white text-center rounded-full" [style.width.%]="fundingPercentage">
-              {{ fundingPercentage }}%
+      <!-- Main Content Section -->
+      <main class="container mx-auto px-6 py-12 max-w-5xl space-y-12">
+        <!-- Project Overview -->
+        <div class="text-center bg-white p-8 rounded-lg shadow-lg">
+          <h2 class="text-3xl font-semibold text-[#245C67]">Project Overview</h2>
+          <p class="text-[#568086] text-lg mt-4">{{ projet?.name }}</p>
+          <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-8 text-[#568086]">
+            <div>
+              <strong>Sector:</strong> {{ projet?.sector }}
+            </div>
+            <div>
+              <strong>Location:</strong> {{ projet?.location }}
+            </div>
+            <div>
+              <strong>Founded:</strong> {{ projet?.creationDate | date:'yyyy' }}
+            </div>
+            <div>
+              <strong>Team Size:</strong> {{ projet?.numberOfEmployees }}
             </div>
           </div>
-          <p class="text-sm mt-2">
-            Raised: <strong>{{ startup.fundsRaised | currency }}</strong> /
-            Goal: <strong>{{ startup.fundingGoal | currency }}</strong>
-          </p>
         </div>
 
-        
+        <!-- Financial Overview -->
+        <div class="text-center bg-white p-8 rounded-lg shadow-lg">
+          <h3 class="text-2xl font-semibold text-[#245C67] mb-4">Financial Overview</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="p-6 bg-[#A0CED9] rounded-lg">
+              <h4 class="text-lg text-[#245C67]">Revenue</h4>
+              <p class="text-xl font-bold">{{ projet?.revenue | currency }}</p>
+            </div>
+            <div class="p-6 bg-[#568086] rounded-lg">
+              <h4 class="text-lg text-[#EA7988]">Funding Goal</h4>
+              <p class="text-xl font-bold">{{ projet?.fundingGoal | currency }}</p>
+            </div>
+          </div>
+        </div>
 
-        <button (click)="sendProposal()" class="w-full mt-6 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
-          Send Proposal
-        </button>
-      </div>
+        <!-- Investor Information -->
+        <div class="text-center bg-white p-8 rounded-lg shadow-lg">
+          <h3 class="text-2xl font-semibold text-[#245C67] mb-4">Your Investment</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div class="p-6 bg-[#A0CED9] rounded-lg">
+              <h4 class="text-lg text-[#245C67]">Invested Amount</h4>
+              <p class="text-xl font-bold">{{ investment?.proposedAmount | currency }}</p>
+            </div>
+            <div class="p-6 bg-[#568086] rounded-lg">
+              <h4 class="text-lg text-[#E44D62]">Equity Stake</h4>
+              <p class="text-xl font-bold">{{ investment?.equityPercentage }}%</p>
+            </div>
+            <div class="p-6 bg-[#E88D9A] rounded-lg">
+              <h4 class="text-lg text-[#DB1E37]">Current ROI</h4>
+              <p class="text-xl font-bold">{{ calculateROI() | percent:'1.2-2' }}</p>
+            </div>
+          </div>
+        </div>
 
-      <div *ngIf="loading" class="text-center text-gray-500 mt-4">Loading startup details...</div>
-      <div *ngIf="errorMessage" class="text-center text-red-500 mt-4">{{ errorMessage }}</div>
+        <!-- Charts Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div class="bg-white p-8 rounded-lg shadow-lg">
+            <h4 class="text-xl font-semibold text-[#245C67] mb-6">Revenue</h4>
+            <canvas id="revenueChart" class="w-full h-48"></canvas>
+          </div>
+          <div class="bg-white p-8 rounded-lg shadow-lg">
+            <h4 class="text-xl font-semibold text-[#245C67] mb-6">Funding Progress</h4>
+            <canvas id="fundingChart" class="w-full h-48"></canvas>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer Section -->
+      <footer class="bg-[#0A4955] text-center py-8 text-white">
+        <p>&copy; 2025 {{ projet?.name }}. All Rights Reserved.</p>
+      </footer>
     </div>
   `,
+  styles: [`
+    canvas {
+      max-height: 200px;
+    }
+  `]
 })
 export class StartupDetailsComponent implements OnInit {
-  startup: any;
-  fundingPercentage: number = 0;
+  projet: any = null;
+  investment: any = null;
+  investorId: number = 1; // Replace with actual investor ID from auth service
   loading: boolean = false;
   errorMessage: string = '';
-
-  // ✅ Revenue Growth Line Chart Data
-  revenueChartData: ChartData<'line'> = {
-    labels: ['2020', '2021', '2022', '2023', '2024'],
-    datasets: [
-      {
-        label: 'Revenue Growth ($)',
-        data: [50000, 75000, 100000, 150000, 200000],
-        borderColor: 'blue',
-        backgroundColor: 'rgba(0, 0, 255, 0.2)',
-        fill: true,
-      },
-    ],
-  };
-
-  // ✅ Startup Growth Bar Chart Data
-  growthChartData: ChartData<'bar'> = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-    datasets: [
-      {
-        label: 'User Growth',
-        data: [200, 400, 600, 800, 1000],
-        backgroundColor: 'green',
-      },
-    ],
-  };
-
-  // ✅ Chart Options
-  chartOptions: ChartOptions = {
-    responsive: true,
-    plugins: {
-      title: {
-        display: true,
-        text: 'Growth Analytics',
-      },
-    },
-  };
 
   constructor(private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit() {
-    this.loadDummyData();
+    const projetId = +this.route.snapshot.paramMap.get('id')!;
+    if (projetId) {
+      this.fetchProjetDetails(projetId);
+    } else {
+      this.errorMessage = 'No project ID provided';
+    }
   }
 
-  loadDummyData() {
+  async fetchProjetDetails(projetId: number) {
     this.loading = true;
+    this.errorMessage = '';
 
-    setTimeout(() => {
-      this.startup = {
-        name: 'EcoTech Solutions',
-        category: 'Green Energy',
-        description: 'A startup focused on developing sustainable and renewable energy solutions.',
-        fundsRaised: 50000,
-        fundingGoal: 100000,
-      };
-      this.fundingPercentage = Math.round((this.startup.fundsRaised / this.startup.fundingGoal) * 100);
+    try {
+      // Fetch project details
+      const projetResponse = await axios.get(`http://localhost:8085/api/projets/GetProjet/${projetId}`);
+      this.projet = projetResponse.data;
+
+      // Fetch investment details for this investor and project
+      const investmentResponse = await axios.get(`http://localhost:8085/api/investment-requests/investor/${this.investorId}`);
+      const investments = investmentResponse.data;
+      this.investment = investments.find((inv: any) => inv.projet?.id === projetId && inv.status === 'ACCEPTED');
+
+      if (!this.investment) {
+        this.errorMessage = 'No accepted investment found for this project.';
+      }
+
+      setTimeout(() => this.renderCharts(), 0); // Ensure DOM is updated before rendering charts
+    } catch (error) {
+      console.error('Error fetching project or investment details:', error);
+      this.errorMessage = 'Failed to load project details. Please try again later.';
+    } finally {
       this.loading = false;
-    }, 1000);
+    }
   }
 
-  sendProposal() {
-    this.router.navigate(['/marketplace']);
+  calculateROI(): number {
+    if (!this.projet || !this.investment) return 0;
+    const currentValue = this.projet.revenue * 0.1; // Simplified ROI calculation
+    return (currentValue - this.investment.proposedAmount) / this.investment.proposedAmount;
+  }
+
+  renderCharts() {
+    if (!this.projet) return;
+
+    // Revenue Chart (single value bar chart as revenue history isn't provided)
+    new Chart(document.getElementById('revenueChart') as HTMLCanvasElement, {
+      type: 'bar',
+      data: {
+        labels: ['Current Revenue'],
+        datasets: [{
+          label: 'Revenue ($)',
+          data: [this.projet.revenue || 0],
+          backgroundColor: '#0A4955',
+          borderWidth: 1,
+          borderColor: '#fff'
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+    });
+
+    // Funding Progress
+    new Chart(document.getElementById('fundingChart') as HTMLCanvasElement, {
+      type: 'doughnut',
+      data: {
+        labels: ['Raised', 'Remaining'],
+        datasets: [{
+          data: [this.projet.investmentRequests?.reduce((sum: number, inv: any) => sum + (inv.status === 'ACCEPTED' ? inv.proposedAmount : 0), 0) || 0, this.projet.fundingGoal - (this.projet.investmentRequests?.reduce((sum: number, inv: any) => sum + (inv.status === 'ACCEPTED' ? inv.proposedAmount : 0), 0) || 0)],
+          backgroundColor: ['#E44D62', '#EA7988'],
+          borderWidth: 1,
+          borderColor: '#fff'
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, tooltip: { callbacks: { label: (context) => `${context.label}: $${context.raw}` } } } }
+    });
   }
 
   goBack() {
-    this.router.navigate(['/marketplace']);
+    this.router.navigate(['/investor-startups']);
   }
 }

@@ -12,4 +12,7 @@ import java.util.List;
 public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
     List<RendezVous> findByCoach(Coach coach); // Query by the Coach entity
     List<RendezVous> findByDateAndStatus(LocalDate date, RendezVous.Status status);
+    List<RendezVous> findByCoachId(Long coachId);
+    List<RendezVous> findByEntrepreneurId(Long entrepreneurId);
+
 }

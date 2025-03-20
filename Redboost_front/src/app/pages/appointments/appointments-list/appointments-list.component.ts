@@ -8,6 +8,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { EditAppointmentModalComponent } from '../Formulaire/EditAppointmentComponent';
 import { DeleteAppointmentModalComponent } from '../Formulaire/delete-appointment';
 import { ToastrService } from 'ngx-toastr'; // ✅ Import du service Toastr
+import { AuthService } from '../../auth/auth.service'; // Ajuste le chemin si nécessaire
 
 @Component({
   selector: 'app-appointments-list',
@@ -24,7 +25,8 @@ export class AppointmentsListComponent implements OnInit {
     private appointmentService: AppointmentService,
     private modalService: NgbModal,
     private fb: FormBuilder,
-    private toastr: ToastrService // ✅ Injection correcte de ToastrService
+    private toastr: ToastrService ,
+    private authService: AuthService // Injection correcte de AuthService// ✅ Injection correcte de ToastrService
 
   ) {
     this.editForm = this.fb.group({
@@ -34,37 +36,29 @@ export class AppointmentsListComponent implements OnInit {
       heure: ['', Validators.required],
       email: ['', Validators.required],
       description: [''],
-      coachId: [1] ,
-      status:''// Fixé à 1, non modifiable
+      status:'PENDING'// Fixé à 1, non modifiable
     });
   }
 
   ngOnInit(): void {
-
     this.loadAppointments();
   }
-
+  
   loadAppointments(): void {
-
-    this.appointmentService.getAllAppointments().subscribe({
-
-      next: (data) => {
-
-
-        this.appointments = data;
-        console.log(data);
-
-
+    const userId = this.authService.getUserId();
+  
+    this.appointmentService.getRendezVousByEntrepreneurId(Number(userId)).subscribe({
+      next: (appointments) => {
+        this.appointments = appointments; // Assigner les données à this.appointments
       },
-      error: (error) => console.error('Erreur lors du chargement des rendez-vous :', error)
-    });
-  }
+    })}
+  
 
   openEditModal(appointment: RendezVous) {
     this.editForm.patchValue({
       id: appointment.id,
       title: appointment.title,
-      date: appointment.date, // Date fixe, non modifiable
+      date: appointment.date, 
       heure: appointment.heure,
       email: appointment.email || '',
       description: appointment.description || ''
@@ -89,7 +83,6 @@ export class AppointmentsListComponent implements OnInit {
             heure: result.heure,
             email: result.email,
             description: result.description,
-            coachId: 1, // Fixé à 1, non modifiable
             status: result.status
           };
           this.updateAppointment(updatedAppointment);
@@ -98,28 +91,19 @@ export class AppointmentsListComponent implements OnInit {
       () => {}
     );
   }
-
   updateAppointment(appointment: RendezVous) {
-    const backendData = {
-      ...appointment,
-      heure: appointment.heure // Mapper heure vers heure pour le backend
-    };
-
-    this.appointmentService.updateAppointment(appointment.id!, backendData).subscribe({
+    this.appointmentService.updateAppointment(appointment.id!, appointment).subscribe({
       next: (response) => {
         console.log('Rendez-vous modifié avec succès :', response);
-        this.toastr.success('Le Rendez Vous a ete Modifier Avec Succes  ', 'Succès'); 
-
+        this.toastr.success('Le rendez-vous a été modifié avec succès', 'Succès');
         this.loadAppointments();
       },
       error: (err) => {
         console.error('Erreur lors de la modification du rendez-vous :', err);
-        this.toastr.error('Échec de Modification', 'Erreur'); // ✅ Toast d'erreur
-
-      }
+        this.toastr.error('Échec de la modification', 'Erreur');
+      },
     });
   }
-
   openDeleteModal(appointmentId: number) {
     const modalRef = this.modalService.open(DeleteAppointmentModalComponent, {
       centered: true,

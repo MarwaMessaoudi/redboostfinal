@@ -53,7 +53,7 @@ export class ReclamationService {
 
   // Get token from local storage
   private getAccessToken(): string | null {
-    return localStorage.getItem('authToken');
+    return localStorage.getItem('accessToken');
   }
 
   // Add Authorization header to the request

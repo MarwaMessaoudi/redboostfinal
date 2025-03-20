@@ -1,12 +1,14 @@
-interface Coach {
-    id: number;
-    firstName: string;
-    lastName: string;
-    speciality: string; // Correspond à "speciality" dans le backend
-    email: string;
-    phoneNumber: string;
-    experience: string;
-    isAvailable: boolean;
-    avatar?: string; // Optionnel, car pas dans le backend
-    availability?: string; // Optionnel, à calculer si besoin
-  }
+// models/coach.ts
+export interface Coach {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  specialization: string;
+  experience: string;
+  isAvailable: boolean;
+  avatar?: string;
+  availability?: string;
+  
+}

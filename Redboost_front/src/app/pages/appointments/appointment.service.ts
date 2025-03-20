@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { RendezVous } from './models/rendez-vous.model'; // Adjust path as needed
+import { Observable, throwError } from 'rxjs';
+import { RendezVous } from './models/rendez-vous.model'; // Ajuste le chemin si nécessaire
+import { AuthService } from '../auth/auth.service'; // Ajuste le chemin si nécessaire
 
 @Injectable({
   providedIn: 'root',
@@ -9,33 +10,78 @@ import { RendezVous } from './models/rendez-vous.model'; // Adjust path as neede
 export class AppointmentService {
   private apiUrl = 'http://localhost:8085/api/rendezvous';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
   getAllAppointments(): Observable<RendezVous[]> {
     return this.http.get<RendezVous[]>(`${this.apiUrl}/all`);
   }
 
-  getAppointmentById(id: number): Observable<RendezVous> {
-    return this.http.get<RendezVous>(`${this.apiUrl}/${id}`);
+  getAppointmentById(ID?: number): Observable<RendezVous> {
+    const userId = ID ?? this.authService.getUserId(); // Utilise l'ID fourni ou récupère celui de l'utilisateur connecté
+    return this.http.get<RendezVous>(`${this.apiUrl}/${userId}`);
+}
+
+
+getRendezVousByEntrepreneurId(id?: number): Observable<RendezVous[]> {
+  if (!id) {
+    return throwError(() => new Error('ID de l\'entrepreneur est requis'));
   }
 
-  createAppointment(appointment: RendezVous): Observable<RendezVous> {
+  return this.http.get<RendezVous[]>(`${this.apiUrl}/entrepreneur/${id}`)
+
+}
+
+getAppointmentsByCoach(): Observable<RendezVous[]> {
+  const CoachId = this.authService.getUserId();
+  return this.http.get<RendezVous[]>(`${this.apiUrl}/coach/${CoachId}`);
+}
+
+
+  createAppointment(appointment: RendezVous, coachId?: number): Observable<RendezVous> {
+    const entrepreneurId = this.authService.getUserId();
+    if (!entrepreneurId) {
+      return throwError(() => new Error('Utilisateur non connecté ou entrepreneurId non disponible'));
+    }
+
+    if (!coachId) {
+      console.error('AppointmentService - Erreur: coachId non défini', appointment);
+      return throwError(() => new Error('CoachId non disponible dans les données de rendez-vous'));
+    }
+
     const backendData = {
-      ...appointment,
+      title: appointment.title,
       heure: appointment.heure,
-      status: appointment.status || 'PENDING', // Default to "PENDING"
+      email: appointment.email,
+      description: appointment.description,
+      date: appointment.date,
+      status: appointment.status || 'PENDING',
     };
-    return this.http.post<RendezVous>(`${this.apiUrl}/add`, backendData);
+
+    console.log('AppointmentService - Coach ID utilisé :', coachId);
+    console.log('Creating appointment with URL:', `${this.apiUrl}/add?coachId=${coachId}&entrepreneurId=${entrepreneurId}`);
+    console.log('Appointment data:', backendData);
+
+    return this.http.post<RendezVous>(
+      `${this.apiUrl}/add?coachId=${coachId}&entrepreneurId=${entrepreneurId}`,
+      backendData
+    );
   }
 
+  // Commenté : Méthode pour ajouter à Google Calendar (non utilisée actuellement)
+  /*
   addToGoogleCalendar(appointment: RendezVous): Observable<any> {
     return this.http.post(`${this.apiUrl}/add-to-google-calendar`, appointment);
   }
+  */
 
   updateAppointment(id: number, appointment: RendezVous): Observable<RendezVous> {
     const backendData = {
       ...appointment,
-      heure: appointment.heure,
+      coach: appointment.coach, // Valeur par défaut ou existante
+      entrepreneur: appointment.entrepreneur , // Valeur par défaut ou existante
     };
     return this.http.put<RendezVous>(`${this.apiUrl}/update/${id}`, backendData);
   }
@@ -44,9 +90,7 @@ export class AppointmentService {
     return this.http.delete<void>(`${this.apiUrl}/delete/${id}`);
   }
 
-  getAppointmentsByCoach(coachId: number): Observable<RendezVous[]> {
-    return this.http.get<RendezVous[]>(`${this.apiUrl}/coach/${coachId}`);
-  }
+
 
   updateAppointmentStatus(
     id: number,
@@ -55,7 +99,7 @@ export class AppointmentService {
   ): Observable<{ message: string; success: boolean }> {
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     });
     return this.http.patch<{ message: string; success: boolean }>(
       `${this.apiUrl}/update-status/${id}`,

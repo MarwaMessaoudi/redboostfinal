@@ -4,14 +4,22 @@
       <div class="coaches-section">
         <div class="section-header">
           <h2>Nos Coachs</h2>
-          <div class="view-toggle">
-            <button class="toggle-btn active">Tous les Coach</button>
-            <div class="notification-badge">0</div>
-          </div>
+          <div class="view-toggle"></div>
         </div>
-          
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+          <input
+            type="text"
+            placeholder="Rechercher un coach par nom..."
+            [(ngModel)]="searchTerm"
+            (input)="filterCoaches()"
+            class="search-input"
+          />
+        </div>
+        <!-- Original: <i class="fas fa-calendar"></i> Test Icon -->
         <div class="coach-list">
-          <div class="coach-card" *ngFor="let coach of coaches">
+          <div class="coach-card" *ngFor="let coach of filteredCoaches">
             <div class="coach-info">
               <div class="avatar-container">
                 <img [src]="coach.avatar" [alt]="'Photo de ' + coach.name" class="coach-avatar">
@@ -20,10 +28,12 @@
               
               <div class="coach-details">
                 <h3>{{coach.name}}</h3>
-                <p class="specialty">{{coach.specialty}}</p>
+                <p class="specialty" ><i class="bi bi-telephone"></i>
+                  +216 {{coach.phoneNumber}}</p>
                 <div class="availability">
-                  <i class="fas fa-clock"></i>
-                  {{coach.availability}}
+                  <!-- Original: <i class="fas fa-clock"></i> -->
+                  <i class="bi bi-envelope"></i>
+                                    {{coach.email}}
                 </div>
               </div>
             </div>
@@ -40,16 +50,18 @@
         </div>
       </div>
 
+      <!-- Commented out calendar section as per your request -->
+      <!--
       <div class="calendar-section">
         <div class="section-header">
           <h3>Calendrier des Coachs</h3>
           <div class="calendar-controls">
             <button class="month-nav prev">
-              <i class="fas fa-chevron-left"></i>
+              <i class="bi bi-chevron-left"></i>
             </button>
             <span class="current-month">Janvier 2024</span>
             <button class="month-nav next">
-              <i class="fas fa-chevron-right"></i>
+              <i class="bi bi-chevron-right"></i>
             </button>
           </div>
         </div>
@@ -58,8 +70,10 @@
           <full-calendar [options]="coachCalendarOptions"></full-calendar>
         </div>
       </div>
-    </div>
-
-    <app-appointments-list></app-appointments-list>
-  </div>
+      -->
+    
+    <div class="appointments-section">
+      <app-appointments-list></app-appointments-list>
+    </div> 
+   </div>
 </div>

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { StartupDetailsComponent } from '../DetailsInvestment/details';
+import { StartupDetailsComponent } from './details';
 
 export default [
     { path: '', component: StartupDetailsComponent }, 

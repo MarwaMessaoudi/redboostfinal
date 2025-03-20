@@ -5,6 +5,7 @@ import { MessageService } from 'primeng/api';
 import { catchError, Observable, tap, throwError } from 'rxjs';
 import { environment } from '../../../environment';
 import { Auth, signInWithPopup, GoogleAuthProvider } from '@angular/fire/auth'; // Import Auth from AngularFire
+import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
   providedIn: 'root',
@@ -97,6 +98,23 @@ refreshToken(): Observable<any> {
   });
 }
 
+getToken(): string | null {
+  return localStorage.getItem('accessToken'); // Retrieve token from localStorage
+}
+getUserId(): string | null {
+  const token = this.getToken();
+  if (!token) {
+    return null;
+  }
+  try {
+    const decodedToken: any = jwtDecode(token);
+    return decodedToken.userId; // Matches "userId" claim from JwtUtil
+  } catch (error) {
+    console.error('Erreur lors du dÃ©codage du token:', error);
+    return null;
+  }
+}
+
   /* linkedInLogin(): Observable<any> {
     // Redirect to backend LinkedIn OAuth2 endpoint
     window.location.href = `${this.API_URL}/oauth/login`;
@@ -128,6 +146,5 @@ logout(): Observable<any> {
       })
     );
 }
-
 
 }

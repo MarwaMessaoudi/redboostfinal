@@ -20,7 +20,6 @@ public class InvestmentRequestController {
         return investmentRequestService.createRequest(request);
     }
 
-
     @GetMapping
     public List<InvestmentRequest> getAllRequests() {
         List<InvestmentRequest> requests = investmentRequestService.getAllRequests();
@@ -28,14 +27,14 @@ public class InvestmentRequestController {
         return requests;
     }
 
-
     @GetMapping("/investor/{investorId}")
     public List<InvestmentRequest> getRequestsByInvestor(@PathVariable Long investorId) {
         return investmentRequestService.getRequestsByInvestor(investorId);
     }
 
-    @GetMapping("/startup/{startupId}")
-    public List<InvestmentRequest> getRequestsByStartup(@PathVariable Long startupId) {return investmentRequestService.getRequestsByStartup(startupId);
+    @GetMapping("/projet/{projetId}")  // Changed from /startup/{startupId}
+    public List<InvestmentRequest> getRequestsByProjet(@PathVariable Long projetId) {  // Changed from getRequestsByStartup
+        return investmentRequestService.getRequestsByProjet(projetId);  // Changed from getRequestsByStartup
     }
 
     @PutMapping("/{requestId}/status")

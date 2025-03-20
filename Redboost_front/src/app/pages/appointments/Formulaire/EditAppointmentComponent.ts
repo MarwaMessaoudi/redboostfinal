@@ -21,8 +21,8 @@ import { ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
               <input id="title" formControlName="title" type="text" required>
             </div>
             <div class="input-group">
-              <label for="time">Heure</label>
-              <input id="time" formControlName="time" type="time" required>
+              <label for="heure">Heure</label>
+              <input id="heure" formControlName="heure" type="time" required>
             </div>
             <div class="input-group">
               <label for="description">Description</label>
@@ -32,6 +32,7 @@ import { ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
               <label for="email">Email</label>
               <input id="email" formControlName="email" type="email" required>
             </div>
+            
             <div class="modal-footer">
               <button type="button" class="btn-cancel" (click)="activeModal.dismiss()">Annuler</button>
               <button type="submit" class="btn-save" [disabled]="form.invalid">Enregistrer</button>
@@ -109,7 +110,8 @@ import { ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
     }
 
     .input-group input,
-    .input-group textarea {
+    .input-group textarea,
+    .input-group select {
       width: 100%;
       padding: 10px;
       font-size: 1rem;
@@ -122,7 +124,8 @@ import { ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
     }
 
     .input-group input:focus,
-    .input-group textarea:focus {
+    .input-group textarea:focus,
+    .input-group select:focus {
       outline: none;
       border-color: #4a90e2;
       box-shadow: 0 0 8px rgba(74, 144, 226, 0.5);
@@ -185,28 +188,16 @@ import { ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
       from { transform: translateY(-20px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-  `]
+  `],
 })
 export class EditAppointmentModalComponent {
   @Input() form: FormGroup = new FormGroup({});
 
-  constructor(public activeModal: NgbActiveModal, private fb: FormBuilder) {
-    // Initialisation du formulaire avec les champs modifiables et coachId fixe à 1
-    this.form = this.fb.group({
-      title: [''],
-      time: [''],
-      description: [''],
-      email: ['']
-    });
-  }
+  constructor(public activeModal: NgbActiveModal, private fb: FormBuilder) {}
 
   onSave() {
     if (this.form.valid) {
-      const updatedAppointment = {
-        ...this.form.value,
-        date: '', // La date sera fixée dans AppointmentsListComponent
-        coachId: 1 // CoachId fixe et non visible
-      };
+      const updatedAppointment = this.form.value;
       this.activeModal.close(updatedAppointment);
     }
   }

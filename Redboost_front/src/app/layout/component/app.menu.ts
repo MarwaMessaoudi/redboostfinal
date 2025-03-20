@@ -123,10 +123,17 @@ export class AppMenu implements OnInit {
           { label: 'Projets', icon: 'pi pi-fw pi-home', routerLink: ['/GetProjet'] },
         ],
       },
+      
       {
         label: 'Accompagnement',
         items: [
           { label: 'Accompagnement', icon: 'pi pi-fw pi-home', routerLink: ['/phases'] },
+        ],
+      },
+      {
+        label: 'Documents',
+        items: [
+          { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
         ],
       },
       {

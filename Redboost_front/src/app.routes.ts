@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
 import { Dashboard } from './app/pages/dashboard/dashboard';
-import { Documentation } from './app/pages/documentation/documentation';
 import { Landing } from './app/pages/landing/landing';
 import { GestionDocsComponent } from './app/pages/gestion-docs/gestion-docs.component';
 import { UserLibraryComponent } from './app/pages/gestion-docs/gestion-folder/folder-details/user-library/user-library.component'; 
@@ -25,6 +24,9 @@ import { Crud } from './app/pages/crud/crud';
 import { Empty } from './app/pages/empty/empty';
 import { SubFolderComponent } from './app/pages/gestion-docs/gestion-folder/sub-folder/sub-folder.component';  // Import SubFolderComponent
 import {UserProfileComponent} from './app/pages/profile/profile.component'; // Import UserProfileComponent
+import { DocumentsComponent } from './app/pages/documents/documents.component'; // Import DocumentsComponent
+
+
 export const pagesRoutes: Routes = [
     { path: 'addprojet', component: AddProjetComponent },
     { path: 'GetProjet', component: AfficheProjetComponent },
@@ -37,6 +39,7 @@ export const pagesRoutes: Routes = [
     { path: 'meetinglist', component: MeetingListComponent },
     { path: 'appointments/received', component: AppointmentsReceivedComponent },
     {path: 'profile', component: UserProfileComponent}, // Add route for UserProfileComponent
+    {path: 'documents', component: DocumentsComponent} // Add route for DocumentsComponent
 
 ]; 
 
@@ -63,7 +66,6 @@ export const appRoutes: Routes = [
         children: [
             { path: '', redirectTo: 'dashboard', pathMatch: 'full' }, // Default route
             { path: 'dashboard', component: Dashboard },
-            { path: 'documentation', component: Documentation },
             { path: 'gestion-docs', component: GestionDocsComponent },
             {path: 'profile', component: UserProfileComponent}, // Add route for UserProfileComponent
             { path: 'sub-folder/:folderName/:folderMetadataId/:categoryName/:subFolderName', component: SubFolderComponent },  // Updated route

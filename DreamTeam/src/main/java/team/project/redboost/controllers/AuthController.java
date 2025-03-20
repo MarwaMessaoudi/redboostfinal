@@ -20,12 +20,10 @@ import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import team.project.redboost.authentif.JwtUtil;
-import team.project.redboost.entities.Coach;
-import team.project.redboost.entities.Entrepreneur;
-import team.project.redboost.entities.Role;
-import team.project.redboost.entities.User;
+import team.project.redboost.entities.*;
 import team.project.redboost.repositories.CoachRepository;
 import team.project.redboost.repositories.EntrepreneurRepository;
+import team.project.redboost.repositories.InvestorRepository;
 import team.project.redboost.services.CustomUserDetailsService;
 import team.project.redboost.services.EmailService;
 import team.project.redboost.services.FirebaseService;
@@ -68,6 +66,8 @@ public class AuthController {
     @Autowired
     private EntrepreneurRepository entrepreneurRepository;
 
+    @Autowired
+    private InvestorRepository investorRepository;
 
 
 
@@ -102,7 +102,10 @@ public class AuthController {
                     user = new Coach(); // Create a Coach entity
                 } else if (role.equals(Role.ENTREPRENEUR.name())) {
                     user = new Entrepreneur(); // Create an Entrepreneur entity
-                } else {
+                }
+                else if (role.equals(Role.INVESTOR.name())) {
+                    user = new Investor(); // Create an Investor entity
+                }else {
                     user = new User(); // Create a regular User entity
                 }
 
@@ -127,7 +130,7 @@ public class AuthController {
 
             // Generate JWT tokens
             final String accessToken = jwtUtil.generateToken(user.getEmail(), String.valueOf(user.getId()), user.getAuthorities());
-            final String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), user.getAuthorities());
+            final String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), String.valueOf(user.getId()), user.getAuthorities());
 
 
             // Set tokens as HTTP-only cookies
@@ -189,7 +192,7 @@ public class AuthController {
             // Generate JWT token
 
             final String accessToken = jwtUtil.generateToken(userDetails.getUsername(), String.valueOf(user.getId()), userDetails.getAuthorities());
-            final String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername(), userDetails.getAuthorities());
+            final String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername(),  String.valueOf(user.getId()), userDetails.getAuthorities());
 
 
             // Set tokens as HTTP-only cookies
@@ -330,7 +333,11 @@ public class AuthController {
                 user = new Coach();
             } else if (role == Role.ENTREPRENEUR) {
                 user = new Entrepreneur();
-            } else {
+            }
+            else if (role == Role.INVESTOR) {
+                user = new Investor();
+            }
+            else {
                 user = new User();
             }
 
@@ -379,6 +386,22 @@ public class AuthController {
                 entrepreneur.setConfirm_code(savedUser.getConfirm_code()); // Copy confirm code here!
                 entrepreneur.setPassword(savedUser.getPassword());
                 entrepreneurRepository.save(entrepreneur);
+            }
+
+
+            if (role == Role.INVESTOR) {
+
+
+                Investor investor = new Investor();
+                investor.setId(savedUser.getId());
+                investor.setEmail(savedUser.getEmail());
+                investor.setFirstName(savedUser.getFirstName());
+                investor.setLastName(savedUser.getLastName());
+                investor.setPhoneNumber(savedUser.getPhoneNumber());
+                investor.setRole(savedUser.getRole());
+                investor.setConfirm_code(savedUser.getConfirm_code()); // Copy confirm code here!
+                investor.setPassword(savedUser.getPassword());
+                investorRepository.save(investor);
             }
 
             // Send confirmation email

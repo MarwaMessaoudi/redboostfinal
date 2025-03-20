@@ -65,9 +65,7 @@ public class JwtUtil {
     }
 
 
-    /**
-     * Generates a JWT token for OAuth2 users (with provider and providerId).
-     */
+
     public String generateToken(String email, String userId, String provider, String providerId, Collection<? extends GrantedAuthority> authorities) {
         // Extract the single role from authorities
         String role = authorities.stream()
@@ -99,7 +97,7 @@ public class JwtUtil {
     }
 
     // Generate a refresh token for the user
-    public String generateRefreshToken(String email, Collection<? extends GrantedAuthority> authorities) {
+    public String generateRefreshToken(String email, String userId, Collection<? extends GrantedAuthority> authorities) {
         // Extract the single role from authorities
         String role = authorities.stream()
                 .map(GrantedAuthority::getAuthority)
@@ -113,13 +111,12 @@ public class JwtUtil {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("role", role) // Store the role as a single string
+                .claim("userId", userId) // Add userId as a custom claim
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION)) // 7 days
                 .signWith(key) // Use the Key object directly
                 .compact();
     }
-
-
     public String extractUserId(String token) {
         return extractClaim(token, claims -> claims.get("userId", String.class));
     }

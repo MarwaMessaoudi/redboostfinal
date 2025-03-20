@@ -1,0 +1,23 @@
+<div>
+    <h2>Google Drive Integration</h2>
+  
+    <!-- Grant Access Button -->
+    <button (click)="authorize()">Grant Access to Google Drive</button>
+  
+    <!-- Create Folder Section -->
+    <div>
+      <h3>Create Folder</h3>
+      <input [(ngModel)]="folderName" placeholder="Folder Name" />
+      <button (click)="createFolder()">Create Folder</button>
+      <p *ngIf="folderId">Folder created with ID: {{ folderId }}</p>
+    </div>
+  
+    <!-- Upload File Section -->
+    <div>
+      <h3>Upload File</h3>
+      <input [(ngModel)]="uploadFolderId" placeholder="Folder ID" />
+      <input type="file" (change)="onFileSelected($event)" />
+      <button (click)="uploadFile()">Upload File</button>
+      <p *ngIf="fileId">File uploaded with ID: {{ fileId }}</p>
+    </div>
+  </div>

@@ -2,22 +2,21 @@ package team.project.redboost.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
 
 @Setter
 @Getter
+@Data
 @Entity
 @Table(name = "investor")
-public class Investor {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@PrimaryKeyJoinColumn(name = "user_id") // Maps to the primary key of the User table
+@EqualsAndHashCode(callSuper = true)  // Ensures superclass is included
+public class Investor extends User {
 
-    private String name; // Raison sociale (Company name)
-    private String email; // Adresse électronique (Email)
-    private String phoneNumber; // Tél (Telephone)
     private String legalRepresentative; // Le représentant légal (Legal representative)
     private String governorate; // Gouvernorat (Region/State)
     private String address; // Adresse (Physical address)
@@ -31,12 +30,10 @@ public class Investor {
 
     public Investor() {}
 
-    public Investor(String name, String email, String phoneNumber, String legalRepresentative,
+    public Investor( String legalRepresentative,
                     String governorate, String address, String uniqueIdentifier,
                     String legalForm, Double shareCapital) {
-        this.name = name;
-        this.email = email;
-        this.phoneNumber = phoneNumber;
+
         this.legalRepresentative = legalRepresentative;
         this.governorate = governorate;
         this.address = address;

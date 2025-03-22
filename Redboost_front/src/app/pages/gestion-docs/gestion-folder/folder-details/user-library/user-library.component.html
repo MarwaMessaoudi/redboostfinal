@@ -1,0 +1,114 @@
+<div *ngIf="isLoaded; else loading" class="container mx-auto p-4">
+    <div class="bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 shadow-md rounded-md p-6 mb-4">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-2">Gestion des Documents</h2>
+        <div class="text-sm text-gray-700 font-medium flex items-center">
+            <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
+                <a *ngIf="crumb.url; else noLink" [routerLink]="crumb.url" class="text-blue-600 hover:underline">
+                    {{ crumb.label }}
+                </a>
+                <ng-template #noLink>
+                    <span class="text-gray-800 font-semibold">{{ crumb.label }}</span>
+                </ng-template>
+                <span *ngIf="!last" class="mx-1">/</span>
+            </ng-container>
+        </div>
+        <div *ngIf="errorMessage" class="text-red-500 mt-2">
+            {{ errorMessage }}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4">
+        <!-- Folder Card -->
+        <div class="bg-white shadow-md rounded-md p-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-xl font-semibold text-gray-700">Dossiers</h3>
+                <button class="modern-button" (click)="onCreateFolder()">Créer un nouveau dossier</button>
+            </div>
+
+            <div class="folder-grid">
+                <div *ngFor="let subFolder of subFolders" class="folder-card">
+                    <div class="folder-card-body">
+                        <div class="folder-item">
+                            <img [src]="subFolder.folderPath | randomImage" alt="Folder Image"
+                                (click)="onFolderClick(subFolder)" class="folder-image">
+                            <span class="folder-name" (click)="onFolderClick(subFolder)">
+                                {{ subFolder.folderName }}
+                            </span>
+                        </div>
+                        <div class="folder-actions">
+                            <button class="update-button" (click)="startUpdate(subFolder)">
+                                <i class="bi bi-pencil"></i> Update
+                            </button>
+                            <button class="delete-button" (click)="deleteFolder(subFolder)">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <p *ngIf="subFolders.length === 0" class="text-gray-500 italic">No subfolders yet.</p>
+            </div>
+        </div>
+
+        <!-- Combined Upload and File List Card -->
+        <div class="bg-white shadow-md rounded-md p-6 mt-4">
+            <h3 class="text-xl font-semibold text-gray-700 mb-3">Files and Upload</h3>
+
+            <!-- Upload Section -->
+            <div class="mb-4">
+                <h4 class="text-lg font-semibold text-gray-700 mb-2">Upload Files</h4>
+
+                <label for="fileUpload" class="upload-button">
+                    Click Here
+                    <span class="arrow-icon">>></span>
+                </label>
+                <input type="file" id="fileUpload" class="file-input" multiple (change)="onFileSelected($event)">
+
+                <div *ngIf="uploadProgress > 0" class="mt-2 text-sm text-gray-600">
+                    Upload Progress: {{ uploadProgress }}%
+                </div>
+                <div *ngIf="uploadError" class="text-red-500 mt-2">
+                    {{ uploadError }}
+                </div>
+            </div>
+
+            <!-- File List Section -->
+            <div>
+                <h4 class="text-lg font-semibold text-gray-700 mb-2">Files in this folder</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div *ngFor="let file of fileList" class="p-4 border rounded-md">
+                        <h5 class="text-md font-semibold text-gray-800">{{ file.name }}</h5>
+                        <p class="text-sm text-gray-600">Size: {{ file.size }} bytes</p>
+                        <p class="text-sm text-gray-600">Type: {{ file.type }}</p>
+                    </div>
+                </div>
+                <p *ngIf="fileList.length === 0" class="text-gray-500 italic">No files uploaded yet.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ng-template #loading>
+    <div class="flex justify-center items-center h-screen">
+        <div class="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-blue-500"></div>
+    </div>
+</ng-template>
+
+<!-- Popup Form -->
+<div *ngIf="showForm" class="options-interface">
+    <div class="options-content">
+        <span class="close" (click)="onCancel()">×</span>
+        <h4>{{ updatingSubFolderId ? 'Update Folder' : 'Create New Folder' }}</h4>
+        <form [formGroup]="folderForm" (ngSubmit)="updatingSubFolderId ? performUpdate() : onSubmit()">
+            <div class="form-group">
+                <label for="folderName">Folder Name:</label>
+                <input type="text" id="folderName" formControlName="name" placeholder="Enter folder name">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="modern-button">
+                    {{ updatingSubFolderId ? 'Update' : 'Create' }}
+                </button>
+                <button type="button" class="modern-button" (click)="onCancel()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>

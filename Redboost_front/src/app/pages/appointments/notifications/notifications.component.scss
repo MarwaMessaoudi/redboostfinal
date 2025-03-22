@@ -1,0 +1,45 @@
+// src/app/views/appointments/notifications/notifications.component.scss
+:host {
+    display: block;
+    padding: 20px;
+  }
+  
+  .container {
+    background: #F5F7FA;
+    padding: 2rem;
+    min-height: calc(100vh - 60px); // Adjust for navbar height
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  h2 {
+    color: #2C3E50;
+    font-weight: 700;
+  }
+  
+  .notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .notification-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+  }
+  
+  .text-muted {
+    color: #7F8C8D !important;
+  }
+  
+  @media (max-width: 768px) {
+    .notification-card {
+      text-align: center;
+    }
+  }

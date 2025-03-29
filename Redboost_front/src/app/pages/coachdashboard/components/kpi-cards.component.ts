@@ -1,11 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
 @Component({
-  standalone: true, // Mark as standalone
+  standalone: true,
   selector: 'app-kpi-cards',
-  imports: [CommonModule], // Import CommonModule
+  imports: [CommonModule, HttpClientModule],
   template: `
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-8 bg-gray-50">
       <div *ngFor="let kpi of kpis; let i = index" class="card p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:scale-105" [@fadeIn]="getAnimationState(i)">
@@ -46,49 +47,51 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
   ]
 })
 export class KpiCardsComponent implements OnInit {
-  kpis = [
-    { title: 'Startups Actives', value: '12', description: 'Nombre total de startups actives', progress: 100 },
-    { title: 'Taux de Satisfaction', value: '85%', description: 'Taux de satisfaction des entrepreneurs', progress: 85 },
-    { title: 'Taux de Réussite', value: '72%', description: 'Taux de réussite des startups', progress: 72 }
-  ];
-
-  animatedValues: number[] = []; // Stores the animated KPI values
-  animatedOffsets: number[] = []; // Stores the animated stroke-dashoffset values for the progress circle
+  @Input() kpis: any[] = []; // Input property for receiving data from parent
+  animatedValues: number[] = [];
+  animatedOffsets: number[] = [];
 
   ngOnInit() {
-    this.animateValuesAndProgress();
+    // Only animate if we have data
+    if (this.kpis && this.kpis.length > 0) {
+      this.animateValuesAndProgress();
+    }
   }
 
-  // Function to animate both KPI values and progress circles
+  ngOnChanges() {
+    // Re-animate if input data changes
+    if (this.kpis && this.kpis.length > 0) {
+      this.animatedValues = [];
+      this.animatedOffsets = [];
+      this.animateValuesAndProgress();
+    }
+  }
+
   animateValuesAndProgress() {
     this.kpis.forEach((kpi, index) => {
-      const targetValue = parseFloat(kpi.value); // Numeric part of the KPI value
-      const targetProgress = kpi.progress; // Target progress (0-100)
-      const duration = 2000; // Animation duration in milliseconds
-      const incrementValue = targetValue / (duration / 16); // Increment for the KPI value
-      const incrementOffset = 100 / (duration / 16); // Increment for the stroke-dashoffset (starts at 100, goes to 100 - progress)
+      const targetValue = parseFloat(kpi.value);
+      const targetProgress = kpi.progress;
+      const duration = 2000;
+      const incrementValue = targetValue / (duration / 16);
+      const incrementOffset = 100 / (duration / 16);
 
       let currentValue = 0;
-      let currentOffset = 100; // Start fully offset (no progress visible)
+      let currentOffset = 100;
 
       const updateAnimation = () => {
-        // Animate KPI value
         currentValue += incrementValue;
         if (currentValue >= targetValue) {
           currentValue = targetValue;
         }
 
-        // Animate progress circle
         currentOffset -= incrementOffset;
         if (currentOffset <= (100 - targetProgress)) {
-          currentOffset = 100 - targetProgress; // Stop at the target progress
+          currentOffset = 100 - targetProgress;
         }
 
-        // Update arrays with current values
         this.animatedValues[index] = Math.round(currentValue);
         this.animatedOffsets[index] = currentOffset;
 
-        // Continue animation if not finished
         if (currentValue < targetValue || currentOffset > (100 - targetProgress)) {
           requestAnimationFrame(updateAnimation);
         }
@@ -98,9 +101,8 @@ export class KpiCardsComponent implements OnInit {
     });
   }
 
-  // Function to extract the unit (e.g., '%', 'h', '$')
   getUnit(value: string): string {
-    return value.replace(/[0-9.]/g, ''); // Remove numbers and keep the unit
+    return value.replace(/[0-9.]/g, '');
   }
 
   getAnimationState(index: number) {

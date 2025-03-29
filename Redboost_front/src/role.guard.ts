@@ -8,7 +8,7 @@ import {
 import { AuthService } from './app/pages/auth/auth.service';
 
 @Injectable({
-  providedIn: 'root', // Provided in the root injector
+  providedIn: 'root',
 })
 export class RoleGuard implements CanActivate {
   constructor(private authService: AuthService, private router: Router) {}
@@ -17,14 +17,19 @@ export class RoleGuard implements CanActivate {
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): boolean {
-    const expectedRole = route.data['expectedRole']; // Get the expected role from the route data
-    const userRole = this.authService.getUserRole(); // Get the user's role from AuthService
+    const expectedRole = route.data['expectedRole'];
+    const userRole = this.authService.getUserRole();
+
+    // For the DashboardRedirectComponent, no expectedRole is needed
+    if (!expectedRole) {
+      return true;
+    }
 
     if (userRole === expectedRole) {
-      return true; // Allow access if the roles match
+      return true;
     } else {
-      this.router.navigate(['/notfound']); // Redirect to a fallback route (e.g., notfound)
-      return false; // Deny access
+      this.router.navigate(['/notfound']);
+      return false;
     }
   }
 }

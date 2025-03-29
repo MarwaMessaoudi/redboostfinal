@@ -27,7 +27,8 @@ import { Crud } from './app/pages/crud/crud';
 import { Empty } from './app/pages/empty/empty';
 import { SubFolderComponent } from './app/pages/gestion-docs/gestion-folder/sub-folder/sub-folder.component';
 import { UserProfileComponent } from './app/pages/profile/profile.component';
-import { RoleGuard } from './role.guard'; // Import RoleGuard
+import { RoleGuard } from './role.guard';
+import { DashboardRedirectComponent } from './app/pages/dashboard-redirect/dashboard-redirect.component';
 
 export const pagesRoutes: Routes = [
   { path: 'addprojet', component: AddProjetComponent },
@@ -40,7 +41,7 @@ export const pagesRoutes: Routes = [
   { path: 'meeting', component: MeetingComponent },
   { path: 'meetinglist', component: MeetingListComponent },
   { path: 'appointments/received', component: AppointmentsReceivedComponent },
-  { path: 'profile', component: UserProfileComponent }, // Add route for UserProfileComponent
+  { path: 'profile', component: UserProfileComponent },
 ];
 
 export const appRoutes: Routes = [
@@ -52,23 +53,28 @@ export const appRoutes: Routes = [
     path: '',
     component: AppLayout,
     children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }, // Default route
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       {
         path: 'dashboard',
-        canActivate: [RoleGuard], // Use RoleGuard here
-        data: { expectedRole: 'COACH' }, // Expected role for coach dashboard
+        canActivate: [RoleGuard],
+        component: DashboardRedirectComponent
+      },
+      {
+        path: 'coach-dashboard',
+        canActivate: [RoleGuard],
+        data: { expectedRole: 'COACH' },
         component: CoachDashboardComponent,
       },
       {
-        path: 'dashboard',
-        canActivate: [RoleGuard], // Use RoleGuard here
-        data: { expectedRole: 'ENTREPRENEUR' }, // Expected role for entrepreneur dashboard
+        path: 'entrepreneur-dashboard',
+        canActivate: [RoleGuard],
+        data: { expectedRole: 'ENTREPRENEUR' },
         component: Dashboard,
       },
       {
-        path: 'dashboard',
-        canActivate: [RoleGuard], // Use RoleGuard here
-        data: { expectedRole: 'INVESTOR' }, // Expected role for investor dashboard
+        path: 'investor-dashboard',
+        canActivate: [RoleGuard],
+        data: { expectedRole: 'INVESTOR' },
         component: InvestorDashboardComponent,
       },
       { path: 'documentation', component: Documentation },

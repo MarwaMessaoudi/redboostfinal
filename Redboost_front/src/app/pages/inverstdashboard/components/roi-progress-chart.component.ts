@@ -1,29 +1,107 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ChartModule } from 'primeng/chart';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { catchError, of } from 'rxjs';
+
+interface MonthlyData {
+  month: string;
+  roi: number;
+  investments: number;
+}
 
 @Component({
   selector: 'app-roi-progress-chart',
   standalone: true,
-  imports: [ChartModule],
+  imports: [ChartModule, HttpClientModule],
   template: `
     <div class="p-6 bg-white rounded-2xl shadow-lg">
       <div class="text-[#0A4955] text-xl font-bold mb-6">Progrès du ROI et Investissements Mensuels</div>
-      <p-chart type="bar" [data]="chartData" [options]="chartOptions" class="h-80" />
+      
+      <div *ngIf="isLoading" class="loading-indicator">
+        <div class="spinner"></div>
+        <span>Chargement des données...</span>
+      </div>
+      
+      <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+      
+      <p-chart *ngIf="!isLoading && !errorMessage" 
+               type="bar" 
+               [data]="chartData" 
+               [options]="chartOptions" 
+               class="h-80" />
     </div>
   `,
+  styles: [`
+    .loading-indicator {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      color: #0A4955;
+    }
+    
+    .spinner {
+      border: 4px solid rgba(10, 73, 85, 0.2);
+      border-radius: 50%;
+      border-top: 4px solid #0A4955;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-message {
+      padding: 1rem;
+      background-color: #FFF5F6;
+      border: 1px solid #DB1E37;
+      color: #DB1E37;
+      border-radius: 0.5rem;
+      text-align: center;
+      margin-top: 1rem;
+    }
+  `]
 })
-export class RoiProgressChartComponent {
+export class RoiProgressChartComponent implements OnInit {
   chartData: any;
   chartOptions: any;
+  isLoading: boolean = true;
+  errorMessage: string = '';
+
+  constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.initChart();
+    this.fetchChartData();
+    this.initChartOptions();
   }
 
-  initChart() {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const roiData = [5, 7, 10, 12, 15, 18, 20, 22, 18, 15, 12, 10]; // Example ROI data (%)
-    const investmentData = [50000, 75000, 100000, 120000, 150000, 180000, 200000, 220000, 180000, 150000, 120000, 100000]; // Example investment data (€)
+  fetchChartData() {
+    this.http.get<MonthlyData[]>('http://localhost:8080/api/investments/monthly')
+      .pipe(
+        catchError(error => {
+          console.error('Error fetching chart data:', error);
+          this.errorMessage = 'Erreur lors du chargement des données du graphique.';
+          // Return sample data if API fails (optional)
+          return of(this.getSampleData());
+        })
+      )
+      .subscribe(data => {
+        this.prepareChartData(data);
+        this.isLoading = false;
+      });
+  }
+
+  prepareChartData(apiData: MonthlyData[]) {
+    const months = apiData.map(item => item.month);
+    const roiData = apiData.map(item => item.roi);
+    const investmentData = apiData.map(item => item.investments);
 
     this.chartData = {
       labels: months,
@@ -31,32 +109,34 @@ export class RoiProgressChartComponent {
         {
           label: 'ROI (%)',
           data: roiData,
-          backgroundColor: 'rgba(219, 30, 55, 0.8)', // Red with transparency
+          backgroundColor: 'rgba(219, 30, 55, 0.8)',
           borderColor: '#DB1E37',
           borderWidth: 1,
-          borderRadius: 10, // Rounded bars
-          hoverBackgroundColor: 'rgba(219, 30, 55, 1)', // Solid red on hover
+          borderRadius: 10,
+          hoverBackgroundColor: 'rgba(219, 30, 55, 1)',
           yAxisID: 'y',
         },
         {
           label: 'Investissements (€)',
           data: investmentData,
-          backgroundColor: 'rgba(10, 73, 85, 0.8)', // Blue with transparency
+          backgroundColor: 'rgba(10, 73, 85, 0.8)',
           borderColor: '#0A4955',
           borderWidth: 1,
-          borderRadius: 10, // Rounded bars
-          hoverBackgroundColor: 'rgba(10, 73, 85, 1)', // Solid blue on hover
+          borderRadius: 10,
+          hoverBackgroundColor: 'rgba(10, 73, 85, 1)',
           yAxisID: 'y1',
         },
       ],
     };
+  }
 
+  initChartOptions() {
     this.chartOptions = {
       responsive: true,
       maintainAspectRatio: false,
       animation: {
-        duration: 1500, // Animation duration in milliseconds
-        easing: 'easeInOutQuad', // Smooth easing function
+        duration: 1500,
+        easing: 'easeInOutQuad',
       },
       interaction: {
         mode: 'index',
@@ -64,7 +144,7 @@ export class RoiProgressChartComponent {
       },
       scales: {
         x: {
-          stacked: false, // Bars are not stacked
+          stacked: false,
           grid: {
             display: false,
           },
@@ -85,7 +165,7 @@ export class RoiProgressChartComponent {
             color: '#DB1E37',
           },
           grid: {
-            color: '#DB1E3720', // Light red grid lines
+            color: '#DB1E3720',
           },
         },
         y1: {
@@ -99,9 +179,14 @@ export class RoiProgressChartComponent {
           },
           ticks: {
             color: '#0A4955',
+            callback: (value: number) => {
+              if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
+              if (value >= 1000) return `€${(value / 1000).toFixed(0)}K`;
+              return `€${value}`;
+            }
           },
           grid: {
-            drawOnChartArea: false, // No grid lines for the right axis
+            drawOnChartArea: false,
           },
         },
       },
@@ -109,7 +194,7 @@ export class RoiProgressChartComponent {
         legend: {
           labels: {
             color: '#0A4955',
-            usePointStyle: true, // Use point style for legend
+            usePointStyle: true,
           },
         },
         tooltip: {
@@ -127,7 +212,9 @@ export class RoiProgressChartComponent {
                 label += ': ';
               }
               if (context.parsed.y !== null) {
-                label += context.dataset.label === 'ROI (%)' ? `${context.parsed.y}%` : `€${context.parsed.y.toLocaleString()}`;
+                label += context.dataset.label === 'ROI (%)' 
+                  ? `${context.parsed.y}%` 
+                  : `€${context.parsed.y.toLocaleString('fr-FR')}`;
               }
               return label;
             },
@@ -135,5 +222,23 @@ export class RoiProgressChartComponent {
         },
       },
     };
+  }
+
+  // Fallback sample data if API fails
+  private getSampleData(): MonthlyData[] {
+    return [
+      { month: 'Jan', roi: 5, investments: 50000 },
+      { month: 'Feb', roi: 7, investments: 75000 },
+      { month: 'Mar', roi: 10, investments: 100000 },
+      { month: 'Apr', roi: 12, investments: 120000 },
+      { month: 'May', roi: 15, investments: 150000 },
+      { month: 'Jun', roi: 18, investments: 180000 },
+      { month: 'Jul', roi: 20, investments: 200000 },
+      { month: 'Aug', roi: 22, investments: 220000 },
+      { month: 'Sep', roi: 18, investments: 180000 },
+      { month: 'Oct', roi: 15, investments: 150000 },
+      { month: 'Nov', roi: 12, investments: 120000 },
+      { month: 'Dec', roi: 10, investments: 100000 }
+    ];
   }
 }

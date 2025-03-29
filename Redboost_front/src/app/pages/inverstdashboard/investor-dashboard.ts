@@ -2,11 +2,17 @@ import { Component } from '@angular/core';
 import { InvestorKpisComponent } from './components/investor-kpis.component';
 import { InvestmentsTableComponent } from './components/investments-table.component';
 import { RoiProgressChartComponent } from './components/roi-progress-chart.component';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-investor-dashboard',
   standalone: true,
-  imports: [InvestorKpisComponent, InvestmentsTableComponent, RoiProgressChartComponent],
+  imports: [
+    CommonModule,
+    InvestorKpisComponent,
+    InvestmentsTableComponent,
+    RoiProgressChartComponent
+  ],
   template: `
     <div class="grid grid-cols-12 gap-8 p-8 bg-gray-50 font-poppins">
       <!-- KPIs and Chart on the same line -->

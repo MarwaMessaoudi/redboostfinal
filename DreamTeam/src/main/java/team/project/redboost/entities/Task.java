@@ -26,9 +26,6 @@ public class Task {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(columnDefinition = "TEXT")
-    private String comments;
-
     @Column(name = "assignee_id")
     private Long assigneeId;
 
@@ -70,6 +67,10 @@ public class Task {
     @JsonManagedReference("taskSubTasks")
     private List<SubTask> subTasks = new ArrayList<>();
 
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference("taskComments")
+    private List<Comment> comments = new ArrayList<>();
+
     public enum Priority {
         LOW, MEDIUM, HIGH
     }
@@ -102,5 +103,11 @@ public class Task {
     public void addSubTask(SubTask subTask) {
         subTasks.add(subTask);
         subTask.setTask(this);
+    }
+
+    // Helper method to add a comment
+    public void addComment(Comment comment) {
+        comments.add(comment);
+        comment.setTask(this);
     }
 }

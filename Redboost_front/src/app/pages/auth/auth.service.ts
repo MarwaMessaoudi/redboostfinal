@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { catchError, Observable, tap, throwError } from 'rxjs';
+import { catchError, Observable, of, tap, throwError } from 'rxjs';
 import { environment } from '../../../environment';
 import { Auth, signInWithPopup, GoogleAuthProvider } from '@angular/fire/auth'; // Import Auth from AngularFire
 import { jwtDecode } from 'jwt-decode';
@@ -101,6 +101,7 @@ refreshToken(): Observable<any> {
 getToken(): string | null {
   return localStorage.getItem('accessToken'); // Retrieve token from localStorage
 }
+
 getUserId(): string | null {
   const token = this.getToken();
   if (!token) {
@@ -146,6 +147,36 @@ logout(): Observable<any> {
       })
     );
 }
+
+// Nouvelle méthode pour récupérer l'ID et le rôle de l'utilisateur connecté
+getCurrentUser(): Observable<{ id: number; role: string } | null> {
+  const token = this.getToken();
+  console.log('Token récupéré:', token);
+  if (!token) {
+      console.log('Aucun token trouvé dans localStorage');
+      return of(null);
+  }
+
+  try {
+      const decodedToken: any = jwtDecode(token);
+      console.log('Token décodé:', decodedToken);
+      const userId = decodedToken.userId;
+      const role = decodedToken.role;
+
+      if (!userId || !role) {
+          console.log('userId ou role manquant dans le token');
+          return of(null);
+      }
+
+      return of({ id: parseInt(userId, 10), role });
+  } catch (error) {
+      console.error('Erreur lors du décodage du token:', error);
+      return of(null);
+  }
+}
+
+
+
 
 
 }

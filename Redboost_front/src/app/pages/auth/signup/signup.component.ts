@@ -7,7 +7,7 @@ import { AuthService } from '../auth.service';
 import { MessageService } from 'primeng/api';
 import { FormsModule } from '@angular/forms'; // Add this import
 import { environment } from '../../../../environment';
-
+import { DialogModule } from 'primeng/dialog';
 @Component({
   selector: 'app-signup',
   standalone: true,
@@ -16,6 +16,8 @@ import { environment } from '../../../../environment';
     ReactiveFormsModule,
     HttpClientModule,
     FormsModule, // Add FormsModule here
+    DialogModule,
+
   ],
   templateUrl: './signup.component.html',
   styleUrls: ['./signup.component.scss'],
@@ -25,7 +27,7 @@ export class SignUpComponent {
   submitted = signal(false);
   errorMessage = signal('');
   selectedRole: string = ''; // Declare the selectedRole property
-
+  displayDialog: boolean = false;  
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
@@ -93,4 +95,9 @@ async onGoogleLogin() {
     },
   });
 }
+
+showDialog() { // Define showDialog method
+  this.displayDialog = true;
+}
+
 }

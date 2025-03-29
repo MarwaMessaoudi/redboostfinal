@@ -2,14 +2,17 @@ package team.project.redboost.services;
 
 import team.project.redboost.entities.InvestmentRequest;
 import team.project.redboost.entities.InvestmentStatus;
+import team.project.redboost.entities.Projet;
 import team.project.redboost.repositories.InvestmentRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class InvestmentRequestService {
@@ -17,24 +20,40 @@ public class InvestmentRequestService {
     @Autowired
     private InvestmentRequestRepository investmentRequestRepository;
 
-    // Create a new investment request
     public InvestmentRequest createRequest(InvestmentRequest request) {
         return investmentRequestRepository.save(request);
     }
 
-    // Get all investment requests
     public List<InvestmentRequest> getAllRequests() {
         return investmentRequestRepository.findAll();
     }
 
-    // Get investment requests for a specific investor
     public List<InvestmentRequest> getRequestsByInvestor(Long investorId) {
         return investmentRequestRepository.findByInvestorId(investorId);
     }
 
-    // Get investment requests for a specific projet
-    public List<InvestmentRequest> getRequestsByProjet(Long projetId) {  // Changed from getRequestsByStartup
-        return investmentRequestRepository.findByProjetId(projetId);    // Changed from findByStartupId
+    public List<InvestmentRequest> getRequestsByProjet(Long projetId) {
+        return investmentRequestRepository.findByProjetId(projetId);
+    }
+
+    public List<InvestmentRequest> getRequestsForUserStartups(String username) {
+        // Fetch all investment requests where the projet's entrepreneurs include the user with the given username (email)
+        List<InvestmentRequest> allRequests = investmentRequestRepository.findAll();
+
+        // Filter requests where the projet has the user as an entrepreneur
+        List<InvestmentRequest> userRequests = allRequests.stream()
+                .filter(request -> {
+                    Projet projet = request.getProjet();
+                    if (projet == null || projet.getEntrepreneurs() == null) {
+                        return false;
+                    }
+                    return projet.getEntrepreneurs().stream()
+                            .anyMatch(entrepreneur -> entrepreneur.getEmail().equals(username));
+                })
+                .collect(Collectors.toList());
+
+        // If no matching requests are found, return an empty list
+        return userRequests.isEmpty() ? List.of() : userRequests;
     }
 
     public boolean deleteRequest(Long requestId) {
@@ -45,7 +64,6 @@ public class InvestmentRequestService {
         return false;
     }
 
-    // Update the status of an investment request
     public InvestmentRequest updateRequestStatus(Long requestId, String status) {
         Optional<InvestmentRequest> request = investmentRequestRepository.findById(requestId);
         if (request.isPresent()) {

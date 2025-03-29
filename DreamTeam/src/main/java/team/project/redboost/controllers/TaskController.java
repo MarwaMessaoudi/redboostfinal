@@ -1,6 +1,7 @@
 package team.project.redboost.controllers;
 
 import team.project.redboost.entities.Task;
+import team.project.redboost.entities.Comment;
 import team.project.redboost.services.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
@@ -16,67 +17,57 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
-@CrossOrigin(origins = "http://localhost:4200") // Angular
+@CrossOrigin(origins = "http://localhost:4200")
 public class TaskController {
     @Autowired
     private TaskService taskService;
 
-    // Create a new task
     @PostMapping
     public Task createTask(@RequestBody Task task) {
         return taskService.createTask(task);
     }
 
-    // Get all tasks
     @GetMapping
     public List<Task> getAllTasks() {
         return taskService.getAllTasks();
     }
 
-    // Get a task by ID
     @GetMapping("/{taskId}")
     public Task getTaskById(@PathVariable Long taskId) {
         return taskService.getTaskById(taskId);
     }
 
-    // Update a task
     @PutMapping("/{taskId}")
     public Task updateTask(@PathVariable Long taskId, @RequestBody Task updatedTask) {
         return taskService.updateTask(taskId, updatedTask);
     }
 
-    // Delete a task
     @DeleteMapping("/{taskId}")
     public void deleteTask(@PathVariable Long taskId) {
         taskService.deleteTask(taskId);
     }
 
-    // Get tasks by phase ID
     @GetMapping("/phase/{phaseId}")
     public List<Task> getTasksByPhaseId(@PathVariable Long phaseId) {
         return taskService.getTasksByPhaseId(phaseId);
     }
 
-    // Get tasks by category ID
     @GetMapping("/category/{categoryId}")
     public List<Task> getTasksByCategoryId(@PathVariable Long categoryId) {
         return taskService.getTasksByCategoryId(categoryId);
     }
 
-    // Download an attachment
     @GetMapping("/{taskId}/attachments/{fileName}")
     public ResponseEntity<Resource> downloadAttachment(
             @PathVariable Long taskId,
             @PathVariable String fileName) {
         try {
-            // Verify the task exists and has the attachment
             Task task = taskService.getTaskById(taskId);
             if (task.getAttachments() == null || !task.getAttachments().contains(fileName)) {
                 return ResponseEntity.notFound().build();
             }
 
-            // Define the storage location (adjust this path as needed)
-            String uploadDir = "uploads/"; // Directory where files are stored
+            String uploadDir = "uploads/";
             Path filePath = Paths.get(uploadDir).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
 
@@ -84,7 +75,6 @@ public class TaskController {
                 return ResponseEntity.notFound().build();
             }
 
-            // Set headers for file download
             HttpHeaders headers = new HttpHeaders();
             headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"");
 
@@ -95,5 +85,10 @@ public class TaskController {
         } catch (Exception e) {
             return ResponseEntity.status(500).build();
         }
+    }
+
+    @PostMapping("/{taskId}/comments")
+    public Task addCommentToTask(@PathVariable Long taskId, @RequestBody Comment comment) {
+        return taskService.addCommentToTask(taskId, comment);
     }
 }

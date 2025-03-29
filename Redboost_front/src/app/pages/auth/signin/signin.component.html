@@ -1,58 +1,77 @@
 <div class="login-container">
-  <div class="login-card">
-    <h2>Welcome Back</h2>
-    <p>Please log in to your account</p>
+  <div class="login-wrapper">
+    <!-- Left Section: Login Form (Updated with Back Arrow) -->
+    <div class="login-card">
+      <!-- Back Arrow -->
+      <div class="back-arrow">
+        <a routerLink="/landing">
+          <span class="pi pi-arrow-left"></span>
+        </a>
+      </div>
+      <h2>Welcome Back</h2>
+      <p>Please log in to your account</p>
 
-    <form (ngSubmit)="onLogin()">
-      <div class="input-group">
-        <label for="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          [(ngModel)]="email"
-          name="email"
-          placeholder="Enter your email"
-          required
-        />
+      <form (ngSubmit)="onLogin()">
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            [(ngModel)]="email"
+            name="email"
+            placeholder="Enter your email"
+            required
+          />
+        </div>
+
+        <div class="input-group">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            [(ngModel)]="password"
+            name="password"
+            placeholder="Enter your password"
+            required
+          />
+        </div>
+
+        <button type="submit" class="login-button">Log In</button>
+      </form>
+
+      <div class="divider">
+        <span>OR</span>
       </div>
 
-      <div class="input-group">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          type="password"
-          [(ngModel)]="password"
-          name="password"
-          placeholder="Enter your password"
-          required
-        />
-      </div>
+      <button class="google-login-button" (click)="onGoogleLogin()">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo" />
+        Continue with Google
+      </button>
 
-      <button type="submit" class="login-button">Log In</button>
-    </form>
-
-    <div class="divider">
-      <span>Ou</span>
+      <p class="signup-link">
+        Don't have an account? <a routerLink="/signup">Sign Up</a>
+      </p>
     </div>
 
-    <div class="role-selection">
-      <label for="role">Vous êtes:</label>
-      <select id="role" [(ngModel)]="selectedRole" required>
-        <option value="" disabled selected>Entrepreneur</option> <!-- Default display -->
-        <option value="ENTREPRENEUR" >Entrepreneur</option>
-
-        <option value="COACH">Coach</option>
-        <option value="INVESTOR">Investisseur</option>
-      </select>
+    <!-- Right Section: Updated Content for Sign-In Interface -->
+    <div class="contact-info">
+      <h2>Access To Your Account</h2>
+      <p>
+        <span class="pi pi-lock"></span>
+        Securely log in to manage your profile and settings.
+      </p>
+      <p>
+        <span class="pi pi-star"></span>
+        Unlock exclusive features and personalized content.
+      </p>
+      <p>
+        <span class="pi pi-users"></span>
+        Join our community and connect with others.
+      </p>
+      <p class="signup-prompt">
+        <span class="pi pi-sign-in"></span>
+        New here? <a routerLink="/signup">Create an account today!</a>
+      </p>
     </div>
-
-    <button class="google-login-button" (click)="onGoogleLogin()">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="Google Logo" />
-      Continue with Google
-    </button>
-
-    <p class="signup-link">
-      Don't have an account? <a routerLink="/signup">Sign Up</a>
-    </p>
   </div>
 </div>

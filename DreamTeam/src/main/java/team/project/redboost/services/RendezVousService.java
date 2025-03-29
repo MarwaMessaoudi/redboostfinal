@@ -5,12 +5,16 @@ import org.springframework.stereotype.Service;
 import team.project.redboost.entities.Entrepreneur;
 import team.project.redboost.entities.RendezVous;
 import team.project.redboost.entities.Coach;
+import team.project.redboost.entities.RendezVousDTO;
 import team.project.redboost.repositories.CoachRepository;
 import team.project.redboost.repositories.EntrepreneurRepository;
 
 import team.project.redboost.repositories.RendezVousRepository;
 
+import java.net.http.HttpHeaders;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,6 +28,10 @@ public class RendezVousService {
     private CoachRepository coachRepository;
     @Autowired
     private EntrepreneurRepository entrepreneurRepository;
+    @Autowired
+    private GoogleCalendarService googleCalendarService;
+
+
 
     public Optional<RendezVous> getRendezVousById(Long id) {
         return rendezVousRepository.findById(id);
@@ -119,11 +127,25 @@ public class RendezVousService {
     }
 
     // Mettre à jour uniquement le statut d’un rendez-vous
-    public RendezVous updateRendezVousStatus(Long id, RendezVous.Status status) {
+    /*public RendezVous updateRendezVousStatus(Long id, RendezVous.Status status) {
         return rendezVousRepository.findById(id)
                 .map(existingRdv -> {
                     existingRdv.setStatus(status);
                     return rendezVousRepository.save(existingRdv);
+                })
+                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé avec l'id: " + id));
+    }*/
+    public RendezVous updateRendezVousStatus(Long id, RendezVous.Status status) {
+        return rendezVousRepository.findById(id)
+                .map(existingRdv -> {
+                    existingRdv.setStatus(status);
+
+                    // Si le statut est ACCEPTED, générer un lien Google Meet
+                    if (status == RendezVous.Status.ACCEPTED) {
+                        googleCalendarService.ajouterRendezVous(existingRdv);
+                    }
+
+                    return rendezVousRepository.save(existingRdv); // Sauvegarde l'objet modifié
                 })
                 .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé avec l'id: " + id));
     }
@@ -133,5 +155,80 @@ public class RendezVousService {
             throw new RuntimeException("Rendez-vous non trouvé avec l'id: " + id);
         }
         rendezVousRepository.deleteById(id);
+    }
+
+
+    /*ezkbfjze*/
+
+
+
+    // Méthode pour vérifier si un rendez-vous est joignable
+    private boolean canJoinNow(RendezVous rendezVous) {
+        if (!rendezVous.getStatus().equals(RendezVous.Status.ACCEPTED)) {
+            return false;
+        }
+
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            LocalTime heureDebut = LocalTime.parse(rendezVous.getHeure());
+            LocalDateTime rendezVousStart = LocalDateTime.of(rendezVous.getDate(), heureDebut);
+            LocalDateTime joinWindowStart = rendezVousStart.minusMinutes(5);
+            LocalDateTime joinWindowEnd = rendezVousStart.plusMinutes(5);    // 5 minutes after the meeting
+
+            return now.isAfter(joinWindowStart) && now.isBefore(joinWindowEnd);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // Convertir un RendezVous en RendezVousDTO
+    private RendezVousDTO toDTO(RendezVous rendezVous) {
+        return new RendezVousDTO(
+                rendezVous.getId(),
+                rendezVous.getTitle(),
+                rendezVous.getEmail(),
+                rendezVous.getDate(),
+                rendezVous.getHeure(),
+                rendezVous.getDescription(),
+                rendezVous.getMeetingLink(),
+                rendezVous.getStatus().name(),
+                rendezVous.getCoach() != null ? rendezVous.getCoach().getId() : null,
+                rendezVous.getEntrepreneur() != null ? rendezVous.getEntrepreneur().getId() : null,
+                canJoinNow(rendezVous)
+        );
+    }
+
+
+
+    // Récupérer un rendez-vous joignable pour un entrepreneur
+    public Optional<RendezVousDTO> getJoinableRendezVousForEntrepreneur(Long entrepreneurId) {
+        if (entrepreneurId == null) {
+            throw new IllegalArgumentException("L'ID de l'entrepreneur ne peut pas être null");
+        }
+        Optional<Entrepreneur> entrepreneur = entrepreneurRepository.findById(entrepreneurId);
+        if (entrepreneur.isEmpty()) {
+            throw new RuntimeException("Entrepreneur non trouvé avec l'id: " + entrepreneurId);
+        }
+        return rendezVousRepository.findByEntrepreneur(entrepreneur.get())
+                .stream()
+                .filter(this::canJoinNow)
+                .findFirst()
+                .map(this::toDTO);
+    }
+
+    // Récupérer un rendez-vous joignable pour un coach
+    public Optional<RendezVousDTO> getJoinableRendezVousForCoach(Long coachId) {
+        if (coachId == null) {
+            throw new IllegalArgumentException("L'ID du coach ne peut pas être null");
+        }
+        Optional<Coach> coach = coachRepository.findById(coachId);
+        if (coach.isEmpty()) {
+            throw new RuntimeException("Coach non trouvé avec l'id: " + coachId);
+        }
+        return rendezVousRepository.findByCoach(coach.get())
+                .stream()
+                .filter(this::canJoinNow)
+                .findFirst()
+                .map(this::toDTO);
     }
 }

@@ -1,0 +1,146 @@
+<div class="container">
+    <header class="page-header">
+      <h1>Product Manager</h1>
+      <button class="add-btn" (click)="openAddModal()">
+        <span class="material-icons">add</span> Add Product
+      </button>
+    </header>
+  
+    <!-- Produit List -->
+    <section class="product-section">
+      <h2>All Products</h2>
+      <div class="product-grid">
+        <div *ngFor="let produit of produits" class="product-card">
+          <div *ngIf="editingProduit?.id !== produit.id; else editForm">
+            <!-- Product Image -->
+            <div class="product-image">
+              <img [src]="produit.image || 'https://via.placeholder.com/200x200?text=No+Image'" [alt]="produit.name" />
+            </div>
+            <!-- Product Info -->
+            <div class="product-info">
+              <h3 class="product-name">{{ produit.name }}</h3>
+              <p class="product-price">${{ produit.price.toFixed(2) }}</p>
+              <p class="product-description">{{ produit.description || 'No description available' }}</p>
+              <div class="product-meta">
+                <span><strong>Stock:</strong> {{ produit.stock }}</span>
+                <span><strong>Category:</strong> {{ produit.categorie }}</span>
+                <span><strong>Expires:</strong> {{ produit.dateExpiration }}</span>
+              </div>
+            </div>
+            <!-- Actions -->
+            <div class="product-actions">
+              <button class="edit-btn" (click)="editProduit(produit)">
+                <span class="material-icons">edit</span> Edit
+              </button>
+              <button class="delete-btn" (click)="deleteProduit(produit.id!)">
+                <span class="material-icons">delete</span> Delete
+              </button>
+            </div>
+          </div>
+          <ng-template #editForm>
+            <div *ngIf="editingProduit" class="edit-form-container">
+              <form (ngSubmit)="updateProduit()" class="edit-form">
+                <div class="form-group">
+                  <label for="editName">Name</label>
+                  <input type="text" id="editName" [(ngModel)]="editingProduit.name" name="editName" placeholder="Product Name" required>
+                </div>
+                <div class="form-group">
+                  <label for="editDescription">Description</label>
+                  <textarea id="editDescription" [(ngModel)]="editingProduit.description" name="editDescription" placeholder="Description"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="editPrice">Price</label>
+                  <input type="number" id="editPrice" [(ngModel)]="editingProduit.price" name="editPrice" placeholder="Price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                  <label for="editStock">Stock</label>
+                  <input type="number" id="editStock" [(ngModel)]="editingProduit.stock" name="editStock" placeholder="Stock" required>
+                </div>
+                <div class="form-group">
+                  <label for="editVentes">Ventes</label>
+                  <input type="number" id="editVentes" [(ngModel)]="editingProduit.ventes" name="editVentes" placeholder="Ventes">
+                </div>
+                <div class="form-group">
+                  <label for="editPoids">Poids (kg)</label>
+                  <input type="number" id="editPoids" [(ngModel)]="editingProduit.poids" name="editPoids" placeholder="Poids (kg)" step="0.1" required>
+                </div>
+                <div class="form-group">
+                  <label for="editCategorie">Category</label>
+                  <input type="text" id="editCategorie" [(ngModel)]="editingProduit.categorie" name="editCategorie" placeholder="Category" required>
+                </div>
+                <div class="form-group">
+                  <label for="editDateExpiration">Expiration Date</label>
+                  <input type="date" id="editDateExpiration" [(ngModel)]="editingProduit.dateExpiration" name="editDateExpiration" required>
+                </div>
+                <div class="form-group">
+                  <label for="editImage">Image URL</label>
+                  <input type="url" id="editImage" [(ngModel)]="editingProduit.image" name="editImage" placeholder="Image URL">
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="save-btn">Save</button>
+                  <button type="button" class="cancel-btn" (click)="editingProduit = null">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+      <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    </section>
+  
+    <!-- Add Produit Modal -->
+    <div class="modal" *ngIf="showAddModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add New Product</h2>
+          <span class="material-icons close-btn" (click)="closeAddModal()">close</span>
+        </div>
+        <form (ngSubmit)="createProduit()" class="add-form">
+          <div class="form-group">
+            <label for="projetId">Projet ID</label>
+            <input type="number" id="projetId" [(ngModel)]="projetId" name="projetId" placeholder="Projet ID" required>
+          </div>
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input type="text" id="name" [(ngModel)]="newProduit.name" name="name" placeholder="Product Name" required>
+          </div>
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" [(ngModel)]="newProduit.description" name="description" placeholder="Description"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="price">Price</label>
+            <input type="number" id="price" [(ngModel)]="newProduit.price" name="price" placeholder="Price" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label for="stock">Stock</label>
+            <input type="number" id="stock" [(ngModel)]="newProduit.stock" name="stock" placeholder="Stock" required>
+          </div>
+          <div class="form-group">
+            <label for="ventes">Ventes</label>
+            <input type="number" id="ventes" [(ngModel)]="newProduit.ventes" name="ventes" placeholder="Ventes" value="0">
+          </div>
+          <div class="form-group">
+            <label for="poids">Poids (kg)</label>
+            <input type="number" id="poids" [(ngModel)]="newProduit.poids" name="poids" placeholder="Poids (kg)" step="0.1" required>
+          </div>
+          <div class="form-group">
+            <label for="categorie">Category</label>
+            <input type="text" id="categorie" [(ngModel)]="newProduit.categorie" name="categorie" placeholder="Category" required>
+          </div>
+          <div class="form-group">
+            <label for="dateExpiration">Expiration Date</label>
+            <input type="date" id="dateExpiration" [(ngModel)]="newProduit.dateExpiration" name="dateExpiration" required>
+          </div>
+          <div class="form-group">
+            <label for="image">Image URL</label>
+            <input type="url" id="image" [(ngModel)]="newProduit.image" name="image" placeholder="Image URL">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="save-btn">Add Product</button>
+            <button type="button" class="cancel-btn" (click)="closeAddModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>

@@ -1,6 +1,3 @@
-// src/app/models/projet.ts
-import { User } from "firebase/auth";  // Import Firebase User type
-
 export enum Objectives {
   COURT_TERME = 'COURT_TERME',
   MOYEN_TERME = 'MOYEN_TERME',
@@ -13,7 +10,7 @@ export enum Statut {
   EN_RECHERCHE_FINANCEMENT = 'EN_RECHERCHE_FINANCEMENT',
   TERMINE = 'TERMINE',
 }
-
+import { Produit } from "./Produit";
 export class Projet {
   id?: number;
   name: string;
@@ -35,15 +32,15 @@ export class Projet {
   technologiesUsed: string;
   fundingGoal: number;
   lastEvaluationDate: string;
-  produits: any[];
+  produits: Produit[];
   services: any[];
   folders: any[];
   phases: any[];
-  founder: User | null;
-  entrepreneurs: User[];
-  coaches: User[];
-  investors: User[];
-  pendingCollaborator: User | null;
+  founder: number | null; // Changed from User to number
+  entrepreneurs: number[]; // Changed from User[] to number[]
+  coaches: number[]; // Changed from User[] to number[]
+  investors: number[]; // Changed from User[] to number[]
+  pendingCollaborator: number | null; // Changed from User to number
 
   constructor(
     name: string,
@@ -65,15 +62,15 @@ export class Projet {
     technologiesUsed: string = '',
     fundingGoal: number = 0,
     lastEvaluationDate: string = '',
-    produits: any[] = [],
+    produits: Produit[] = [],
     services: any[] = [],
     folders: any[] = [],
     phases: any[] = [],
-    founder: User | null = null,
-    entrepreneurs: User[] = [],
-    coaches: User[] = [],
-    investors: User[] = [],
-    pendingCollaborator: User | null = null
+    founder: number | null = null, // Changed from User to number
+    entrepreneurs: number[] = [], // Changed from User[] to number[]
+    coaches: number[] = [], // Changed from User[] to number[]
+    investors: number[] = [], // Changed from User[] to number[]
+    pendingCollaborator: number | null = null // Changed from User to number
   ) {
     this.id = undefined;
     this.name = name;

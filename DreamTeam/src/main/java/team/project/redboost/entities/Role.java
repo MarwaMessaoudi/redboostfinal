@@ -6,6 +6,7 @@ public enum Role {
     ENTREPRENEUR,
     COACH,
     VISITOR,
-    INVESTOR
-
+    INVESTOR,
+    ADMIN,
+    SUPERADMIN,
 }

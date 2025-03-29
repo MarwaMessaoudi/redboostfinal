@@ -79,6 +79,7 @@ public class Projet {
             joinColumns = @JoinColumn(name = "projet_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
+
     @JsonIgnoreProperties("projets")
     private List<User> entrepreneurs = new ArrayList<>();
 

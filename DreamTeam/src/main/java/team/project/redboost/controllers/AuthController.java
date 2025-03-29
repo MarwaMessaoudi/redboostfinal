@@ -498,6 +498,7 @@ public class AuthController {
         accessTokenCookie.setHttpOnly(true);
         accessTokenCookie.setSecure(true); // Use HTTPS
         accessTokenCookie.setPath("/");
+        accessTokenCookie.setDomain("localhost");
         accessTokenCookie.setMaxAge(0); // Set expiration to 0 to delete the cookie
         response.addCookie(accessTokenCookie);
 
@@ -506,6 +507,7 @@ public class AuthController {
         refreshTokenCookie.setHttpOnly(true);
         refreshTokenCookie.setSecure(true); // Use HTTPS
         refreshTokenCookie.setPath("/");
+        accessTokenCookie.setDomain("localhost");
         refreshTokenCookie.setMaxAge(0); // Set expiration to 0 to delete the cookie
         response.addCookie(refreshTokenCookie);
 

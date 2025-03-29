@@ -8,11 +8,10 @@ import { ReactiveFormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="modal-overlay">
-      <div class="modal-box">
+    <div class="modal-container">
+      <div class="modal-content">
         <div class="modal-header">
           <h4 class="modal-title">Confirmer la suppression</h4>
-          <button class="btn-close" (click)="activeModal.dismiss()">✖</button>
         </div>
         <div class="modal-body">
           <p>Êtes-vous sûr de vouloir supprimer ce rendez-vous ?</p>
@@ -25,7 +24,7 @@ import { ReactiveFormsModule } from '@angular/forms';
     </div>
   `,
   styles: [`
-    .modal-overlay {
+    .modal-container {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -34,92 +33,73 @@ import { ReactiveFormsModule } from '@angular/forms';
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(10px);
-      z-index: 1050;
-      animation: fadeIn 0.3s ease-in-out;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 1050 !important;
     }
 
-    .modal-box {
-      background: #22243D;
-      color: #fff;
-      width: 420px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      padding: 24px;
-      animation: slideIn 0.3s ease-in-out;
+    .modal-content {
+      width: 600px;
+      background: #f5f7fa;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 1060 !important;
+      color: #333;
     }
 
     .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding: 20px 30px;
+      border-bottom: none;
+    }
+
+    .modal-title {
       font-size: 1.5rem;
       font-weight: 600;
-    }
-
-    .btn-close {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      color: #FF5252;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-
-    .btn-close:hover {
-      transform: scale(1.2);
+      color: #1a3c34;
+      margin: 0;
     }
 
     .modal-body {
+      padding: 20px 30px;
       text-align: center;
       font-size: 1.1rem;
-      margin: 20px 0;
+      color: #666;
     }
 
     .modal-footer {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 20px 30px;
+      border-top: none;
     }
 
-    .btn-cancel, .btn-delete {
-      padding: 12px 20px;
+    .btn-cancel,
+    .btn-delete {
+      padding: 10px 20px;
       font-size: 1rem;
-      border-radius: 8px;
+      border-radius: 5px;
       border: none;
       cursor: pointer;
-      transition: all 0.3s ease;
-      font-weight: 500;
+      transition: background-color 0.3s ease;
     }
 
     .btn-cancel {
-      background: #6c757d;
-      color: #fff;
+      background: transparent;
+      color: #666;
+      border: 1px solid #e0e0e0;
     }
 
     .btn-cancel:hover {
-      background: #5a6268;
+      background: #e0e0e0;
     }
 
     .btn-delete {
-      background: linear-gradient(45deg, #FF5252, #D32F2F);
+      background: #ff5252;
       color: #fff;
     }
 
     .btn-delete:hover {
-      background: linear-gradient(45deg, #D32F2F, #B71C1C);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 10px rgba(255, 82, 82, 0.4);
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes slideIn {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+      background: #d32f2f;
     }
   `]
 })

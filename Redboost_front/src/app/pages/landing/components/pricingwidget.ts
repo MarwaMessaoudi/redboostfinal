@@ -1,95 +1,263 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild, HostListener } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
-import { DividerModule } from 'primeng/divider';
-import { RippleModule } from 'primeng/ripple';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { faCode, faPalette, faMobileAlt, faRocket } from '@fortawesome/free-solid-svg-icons';
+import { trigger, state, style, transition, animate, keyframes } from '@angular/animations';
 
 @Component({
-    selector: 'pricing-widget',
-    standalone: true,
-    imports: [DividerModule, ButtonModule, RippleModule],
-    template: `
-        <div id="pricing" class="py-6 px-6 lg:px-20 my-2 md:my-6">
-            <div class="text-center">
-                <div class="text-0A4955 font-bold mb-4 text-5xl animate-fade-in">Services Que Nous Offrons</div>
-                <span class="text-DB1E37 text-2xl font-light animate-fade-in">Plus Qu'une Simple Plateforme</span>
-            </div>
-
-            <div class="flex flex-col items-center">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-6xl mt-8">
-                    <!-- Web Development Card -->
-                    <div class="pricing-card p-6 flex flex-col items-center border-2 border-[#0A4955] dark:border-[#DB1E37]
-                              cursor-pointer hover:shadow-lg transition-all duration-300 rounded-xl
-                              h-full bg-white dark:bg-gray-800">
-                        <div class="icon-container mb-6">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-[#0A4955] dark:text-[#DB1E37]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                            </svg>
-                        </div>
-                        <h3 class="text-[#0A4955] dark:text-[#DB1E37] text-center text-2xl font-semibold mb-4">
-                            Services de Développement Web
-                        </h3>
-                        <p class="text-gray-600 dark:text-gray-300 text-center mb-6">
-                            Des sites web personnalisés et évolutifs conçus pour grandir avec vous.
-                        </p>
-                        <p-divider class="w-full bg-surface-200"></p-divider>
-                    </div>
-
-                    <!-- Communication and Design Card -->
-                    <div class="pricing-card p-6 flex flex-col items-center border-2 border-[#0A4955] dark:border-[#DB1E37]
-                              cursor-pointer hover:shadow-lg transition-all duration-300 rounded-xl
-                              h-full bg-white dark:bg-gray-800">
-                        <div class="icon-container mb-6">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-[#0A4955] dark:text-[#DB1E37]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-[#0A4955] dark:text-[#DB1E37] text-center text-2xl font-semibold mb-4">
-                            Solutions de Communication et Design
-                        </h3>
-                        <p class="text-gray-600 dark:text-gray-300 text-center mb-6">
-                            Un contenu et des visuels captivants qui amplifient votre marque.
-                        </p>
-                        <p-divider class="w-full bg-surface-200"></p-divider>
-                    </div>
-                </div>
-
-                <!-- Call to Action Button -->
-                <div class="mt-12">
-                    <button pButton pRipple label="Commencer"
-                        class="p-button-rounded border-0 font-light leading-tight text-xl py-4 px-8 hover:scale-105 transition-transform duration-300"
-                        style="background-color: #DB1E37; color: #FFFFFF; font-size: 1.5rem;">
-                    </button>
-                </div>
-            </div>
+  selector: 'pricing-widget',
+  standalone: true,
+  imports: [CommonModule, ButtonModule, FontAwesomeModule],
+  template: `
+    <section class="services-section" #servicesSection  id="servicesSection">
+      <div class="services-container">
+        <div class="services-header">
+          <span class="section-subtitle">Services We Offer</span>
+          <h2 class="section-title">More Than Just a Platform</h2>
+          <p class="section-description">
+            Comprehensive solutions to help your business thrive in the digital age
+          </p>
         </div>
-    `,
-    styles: [`
-        .pricing-card {
-            transition: all 0.3s ease;
-            min-height: 300px;
-        }
 
-        .pricing-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
+        <div class="services-grid">
+          <div *ngFor="let service of services; let i = index" 
+               class="service-card" 
+               [@cardAnimation]="cardStates[i]"
+               [@hoverAnimation]="hoverStates[i]"
+               (mouseenter)="onMouseEnter(i)"
+               (mouseleave)="onMouseLeave(i)">
+            <div class="xy" style="display: flex; justify-content: center; align-items: center;">
+              <div class="service-icon">
+                <fa-icon [icon]="service.icon" size="2x"></fa-icon>
+              </div>
+            </div>
+            <h3 class="service-title">{{ service.title }}</h3>
+            <p class="service-description">{{ service.description }}</p>
+          </div>
+        </div>
 
-        .icon-container {
-            transition: transform 0.3s ease;
-        }
+        <div class="button-container">
+          <button pButton class="discover-button">
+            Discover Our Services
+            <span class="button-arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  `,
+  styles: [`
+    .services-section {
+      position: relative;
+      padding: 80px 0;
+      background: #f5f7fa;
+      overflow: hidden;
+    }
 
-        .pricing-card:hover .icon-container {
-            transform: scale(1.1);
-        }
+    .services-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      position: relative;
+      z-index: 1;
+    }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    .services-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
 
-        .animate-fade-in {
-            animation: fadeIn 1s ease-out;
-        }
-    `]
+    .section-subtitle {
+      display: inline-block;
+      padding: 0.5rem 1.5rem;
+      background: rgba(0, 77, 77, 0.1);
+      color: #004D4D;
+      border-radius: 20px;
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 4vw, 3rem);
+      color: #004D4D;
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    .section-description {
+      font-size: 1.1rem;
+      color: #666;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 30px;
+      margin-bottom: 60px;
+    }
+
+    .service-card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease; /* Retained for non-animated hover effects */
+    }
+
+    .service-icon {
+      margin-bottom: 1.5rem;
+      color: #C8223A;
+    }
+
+    .service-title {
+      font-size: 1.5rem;
+      color: #004D4D;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    .service-description {
+      font-size: 1rem;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .discover-button {
+      padding: 1rem 2rem;
+      background: linear-gradient(to right, #034A55, #C8223A);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 10px 20px rgba(0, 77, 77, 0.15);
+    }
+
+    .discover-button:hover {
+      background: linear-gradient(to left, #034A55, #C8223A);
+      transform: translateY(-2px);
+      box-shadow: 0 15px 25px rgba(0, 77, 77, 0.2);
+    }
+
+    .button-arrow {
+      transition: transform 0.3s ease;
+    }
+
+    .discover-button:hover .button-arrow {
+      transform: translateX(4px);
+    }
+
+    @media (max-width: 768px) {
+      .services-section {
+        padding: 60px 0;
+      }
+
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .service-title {
+        font-size: 1.3rem;
+      }
+    }
+  `],
+  animations: [
+    // Entrance animation (on scroll)
+    trigger('cardAnimation', [
+      state('hidden', style({ opacity: 0, transform: 'translateY(30px)' })),
+      state('visible', style({ opacity: 1, transform: 'translateY(0)' })),
+      transition('hidden => visible', [
+        animate('0.6s ease-out', keyframes([
+          style({ opacity: 0, transform: 'translateY(30px)', offset: 0 }),
+          style({ opacity: 0.7, transform: 'translateY(10px)', offset: 0.7 }),
+          style({ opacity: 1, transform: 'translateY(0)', offset: 1 })
+        ]))
+      ])
+    ]),
+    // Hover animation
+    trigger('hoverAnimation', [
+      state('default', style({ transform: 'scale(1)', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)' })),
+      state('hovered', style({ transform: 'scale(1.05)', boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)' })),
+      transition('default => hovered', animate('0.3s ease-in')),
+      transition('hovered => default', animate('0.3s ease-out'))
+    ])
+  ]
 })
-export class PricingWidget {}
+export class PricingWidget implements OnInit {
+  @ViewChild('servicesSection', { static: true }) servicesSection!: ElementRef;
+
+  faCode = faCode;
+  faPalette = faPalette;
+  faMobileAlt = faMobileAlt;
+  faRocket = faRocket;
+
+  services = [
+    {
+      icon: this.faCode,
+      title: "Web Development Services",
+      description: "Custom, scalable websites built to grow with you"
+    },
+    {
+      icon: this.faPalette,
+      title: "Communication and Design Solutions",
+      description: "Engaging content and visuals that amplify your brand"
+    },
+    {
+      icon: this.faMobileAlt,
+      title: "Mobile App Development",
+      description: "Native and cross-platform mobile applications"
+    },
+    {
+      icon: this.faRocket,
+      title: "Digital Marketing",
+      description: "Strategic marketing solutions for business growth"
+    }
+  ];
+
+  cardStates: string[] = [];
+  hoverStates: string[] = [];
+
+  ngOnInit() {
+    this.cardStates = this.services.map(() => 'hidden');
+    this.hoverStates = this.services.map(() => 'default');
+    this.checkVisibility();
+  }
+
+  @HostListener('window:scroll', [])
+  onScroll(): void {
+    this.checkVisibility();
+  }
+
+  private checkVisibility(): void {
+    const rect = this.servicesSection.nativeElement.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+
+    if (rect.top <= windowHeight * 0.25 && rect.bottom >= 0) {
+      this.cardStates = this.services.map(() => 'visible');
+    }
+  }
+
+  onMouseEnter(index: number): void {
+    this.hoverStates[index] = 'hovered';
+  }
+
+  onMouseLeave(index: number): void {
+    this.hoverStates[index] = 'default';
+  }
+}

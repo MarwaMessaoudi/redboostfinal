@@ -19,26 +19,19 @@ public class ReponseReclamation {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "idReclamation",nullable = false)
+    @JoinColumn(name = "idReclamation", nullable = false)
     private Reclamation reclamation;
 
-
-    @ManyToOne // Add this relationship
-    @JoinColumn(name = "user_id") // Specify the foreign key column
-    @JsonBackReference //add this
-    private User user;  // Reference the User entity
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    @JsonBackReference
+    private User user;  // Référence à l'utilisateur
 
     @Column(columnDefinition = "TEXT")
     private String contenu;
 
-    @Enumerated(EnumType.STRING)
-    private SenderType sender;
+    @Enumerated(EnumType.STRING) // Stocker le rôle de l'envoyeur
+    private Role roleEnvoyeur;
 
     private LocalDateTime dateCreation = LocalDateTime.now();
-
-    // Enum pour le type d'expéditeur
-    public enum SenderType {
-        USER,
-        ADMIN
-    }
 }

@@ -1,6 +1,6 @@
 <div class="kanban-board relative">
     <div class="header">
-        <h1>Tableau Kanban</h1>
+        <h1>{{ phaseName }} - Tableau Kanban</h1>
         <div class="actions-container">
             <button mat-fab color="accent" (click)="openCreateTaskCategoryDialog()" matTooltip="Créer une catégorie">
                 <mat-icon>category</mat-icon>
@@ -53,17 +53,41 @@
         <div class="board-columns-wrapper flex-grow">
             <div class="kanban-column" cdkDropList id="todo" [cdkDropListConnectedTo]="['inprogress', 'done']" [cdkDropListData]="todo" (cdkDropListDropped)="drop($event)">
                 <h2>À FAIRE ({{ todo.length }}) - XP: {{ calculateTotalXp(todo) }}</h2>
-                <app-task-card *ngFor="let task of todo" [task]="task" [openEditTaskDialog]="openEditTaskDialog.bind(this)"></app-task-card>
+                <app-task-card
+                    *ngFor="let task of todo"
+                    [task]="task"
+                    [phaseName]="phaseName"
+                    [assigneeAvatarUrl]="getAssigneeAvatarUrl(task.assigneeId)"
+                    [assigneeInitials]="getAssigneeInitials(task.assigneeId)"
+                    [openEditTaskDialog]="openEditTaskDialog.bind(this)"
+                >
+                </app-task-card>
             </div>
 
             <div class="kanban-column" cdkDropList id="inprogress" [cdkDropListConnectedTo]="['todo', 'done']" [cdkDropListData]="inprogress" (cdkDropListDropped)="drop($event)">
                 <h2>EN COURS ({{ inprogress.length }}) - XP: {{ calculateTotalXp(inprogress) }}</h2>
-                <app-task-card *ngFor="let task of inprogress" [task]="task" [openEditTaskDialog]="openEditTaskDialog.bind(this)"></app-task-card>
+                <app-task-card
+                    *ngFor="let task of inprogress"
+                    [task]="task"
+                    [phaseName]="phaseName"
+                    [assigneeAvatarUrl]="getAssigneeAvatarUrl(task.assigneeId)"
+                    [assigneeInitials]="getAssigneeInitials(task.assigneeId)"
+                    [openEditTaskDialog]="openEditTaskDialog.bind(this)"
+                >
+                </app-task-card>
             </div>
 
             <div class="kanban-column" cdkDropList id="done" [cdkDropListConnectedTo]="['todo', 'inprogress']" [cdkDropListData]="completed" (cdkDropListDropped)="drop($event)">
                 <h2>TERMINÉ ({{ completed.length }}) - XP: {{ calculateTotalXp(completed) }}</h2>
-                <app-task-card *ngFor="let task of completed" [task]="task" [openEditTaskDialog]="openEditTaskDialog.bind(this)"></app-task-card>
+                <app-task-card
+                    *ngFor="let task of completed"
+                    [task]="task"
+                    [phaseName]="phaseName"
+                    [assigneeAvatarUrl]="getAssigneeAvatarUrl(task.assigneeId)"
+                    [assigneeInitials]="getAssigneeInitials(task.assigneeId)"
+                    [openEditTaskDialog]="openEditTaskDialog.bind(this)"
+                >
+                </app-task-card>
             </div>
         </div>
         <app-task-update [task]="selectedTask" [isOpen]="isPanelOpen" (closeEvent)="closePanel()"></app-task-update>

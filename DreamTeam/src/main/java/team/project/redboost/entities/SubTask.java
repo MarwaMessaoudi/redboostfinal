@@ -22,4 +22,14 @@ public class SubTask {
     @JoinColumn(name = "task_id", nullable = false)
     @JsonBackReference("taskSubTasks")
     private Task task;
+
+    // Custom toString to avoid circular reference with Task
+    @Override
+    public String toString() {
+        return "SubTask{" +
+                "subTaskId=" + subTaskId +
+                ", title='" + title + '\'' +
+                ", description='" + description + '\'' +
+                '}';
+    }
 }

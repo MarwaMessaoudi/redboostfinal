@@ -1,30 +1,30 @@
 <!-- Main Content -->
 <main class="main-content" *ngIf="projet; else noProject">
   <!-- Hero Section -->
-  <section class="hero-section" [ngStyle]="{'background-image': 'url(' + sanitizedImageUrl(projet.logoUrl) + ')'}">
-    <div class="hero-overlay">
-      <div class="hero-content container">
-        <div class="hero-text">
-          <span class="pre-title">Featured Project</span>
-          <h1>{{ projet.name || 'Nom non disponible' }}</h1>
-          <p class="subtitle">{{ projet.description || 'Aucune description' }}</p>
-          <div class="hero-cta">
-            <a [href]="projet.websiteUrl || '#'" target="_blank" class="cta-button primary" aria-label="Explore Project">
-              <span>Explore Project</span>
-              <span class="material-icons">arrow_forward</span>
-            </a>
-            <a href="#products-services" class="cta-button secondary" aria-label="Learn More">Learn More</a>
-          </div>
+  <section class="hero-section">
+    <div class="hero-overlay"></div>
+    <div class="hero-content container">
+      <div class="hero-text">
+        <span class="pre-title">Featured Project</span>
+        <h1>{{ projet.name || 'Nom non disponible' }}</h1>
+        <p class="subtitle">{{ projet.description || 'Aucune description' }}</p>
+        <div class="hero-cta">
+          <a [href]="projet.websiteUrl || '#'" target="_blank" class="cta-button primary" aria-label="Explore Project">
+            <span>Explore Project</span>
+            <span class="material-icons">east</span>
+          </a>
+          <a href="#products-services" class="cta-button secondary" aria-label="Learn More">Learn More</a>
         </div>
-        <div class="hero-image">
-          <div class="image-wrapper">
-            <img [src]="sanitizedImageUrl(projet.logoUrl)" alt="Project Logo" (error)="onImageError($event)">
-          </div>
-          <div class="shape shape-1"></div>
-          <div class="shape shape-2"></div>
+      </div>
+      <div class="hero-image">
+        <div class="image-wrapper">
+          <img [src]="sanitizedImageUrl(projet.logoUrl)" alt="Project Logo" (error)="onImageError($event)">
         </div>
       </div>
     </div>
+    <div class="hero-decor decor-top-right"></div>
+    <div class="hero-decor decor-bottom-left"></div>
+    <div class="hero-decor decor-middle-right"></div>
   </section>
 
   <!-- Edit Controls -->
@@ -42,91 +42,149 @@
   <section class="products-services-section" id="products-services">
     <div class="container">
       <div class="section-header">
-        <span class="section-subtitle">What We Offer</span>
+        <span class="section-subtitle">Discover Our Offerings</span>
         <h2>Products & Services</h2>
-        <div class="title-separator"></div>
-      </div>
-      <div class="products-services-grid">
-        <div class="product-service-card" 
-             *ngFor="let item of productServices"
-             (mouseenter)="hoveredItem = item.id"
-             (mouseleave)="hoveredItem = null"
-             [ngClass]="{'hovered': hoveredItem === item.id}"
-             [attr.aria-label]="item.title">
-          <div class="card-icon" [ngStyle]="{'background-color': item.color + '20', 'color': item.color}">
-            <span class="material-icons">{{ item.icon }}</span>
-          </div>
-          <h3>{{ item.title }}</h3>
-          <p>{{ item.description }}</p>
-          <div class="card-hover-effect" [ngStyle]="{'background-color': item.color}"></div>
+        <div class="header-decor">
+          <span class="decor-line"></span>
+          <span class="decor-dot"></span>
+          <span class="decor-line"></span>
         </div>
       </div>
+      <div class="products-services-grid">
+        <a href="ShowProd" class="product-service-card" 
+           (mouseenter)="hoveredItem = 1" 
+           (mouseleave)="hoveredItem = null" 
+           [ngClass]="{'hovered': hoveredItem === 1}" 
+           aria-label="Explore Products">
+          <div class="card-icon">
+            <span class="material-icons">shopping_cart</span>
+          </div>
+          <h3>Products</h3>
+          <p>Explore our curated marketplace of innovative products.</p>
+          <div class="card-cta">
+            <span>Shop Now</span>
+            <span class="material-icons">arrow_forward</span>
+          </div>
+        </a>
+        <a href="#marketplace-services" class="product-service-card" 
+           (mouseenter)="hoveredItem = 2" 
+           (mouseleave)="hoveredItem = null" 
+           [ngClass]="{'hovered': hoveredItem === 2}" 
+           aria-label="Explore Services">
+          <div class="card-icon">
+            <span class="material-icons">build</span>
+          </div>
+          <h3>Services</h3>
+          <p>Find expert services tailored to your needs.</p>
+          <div class="card-cta">
+            <span>Learn More</span>
+            <span class="material-icons">arrow_forward</span>
+          </div>
+        </a>
+      </div>
     </div>
+    <div class="section-decor decor-top-left"></div>
+    <div class="section-decor decor-bottom-right"></div>
+    <div class="section-decor decor-middle-center"></div>
   </section>
 
   <!-- Project Highlights (Features Section) -->
-  <section class="features-section">
+  <section class="products-services-section features-section">
     <div class="container">
       <div class="section-header">
         <span class="section-subtitle">Project Details</span>
         <h2>Project Highlights</h2>
-        <div class="title-separator"></div>
+        <div class="header-decor">
+          <span class="decor-line"></span>
+          <span class="decor-dot"></span>
+          <span class="decor-line"></span>
+        </div>
       </div>
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">
+      <div class="products-services-grid">
+        <div class="product-service-card" 
+             (mouseenter)="hoveredFeature = 1" 
+             (mouseleave)="hoveredFeature = null" 
+             [ngClass]="{'hovered': hoveredFeature === 1}">
+          <div class="card-icon">
             <span class="material-icons">flag</span>
           </div>
           <h3>Objectives</h3>
           <p *ngIf="!isEditing">{{ projet?.objectives || 'Non spécifiés' }}</p>
           <input *ngIf="isEditing" [(ngModel)]="projet!.objectives" name="objectives" required aria-label="Project Objectives">
+          <div class="card-cta" *ngIf="isEditing">
+            <span>Edit</span>
+            <span class="material-icons">edit</span>
+          </div>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">
+        <div class="product-service-card" 
+             (mouseenter)="hoveredFeature = 2" 
+             (mouseleave)="hoveredFeature = null" 
+             [ngClass]="{'hovered': hoveredFeature === 2}">
+          <div class="card-icon">
             <span class="material-icons">trending_up</span>
           </div>
           <h3>Status</h3>
           <p *ngIf="!isEditing">{{ projet?.status || 'Non défini' }}</p>
           <input *ngIf="isEditing" [(ngModel)]="projet!.status" name="status" required aria-label="Project Status">
+          <div class="card-cta" *ngIf="isEditing">
+            <span>Edit</span>
+            <span class="material-icons">edit</span>
+          </div>
         </div>
-        <div class="feature-card">
-          <div class="feature-icon">
+        <div class="product-service-card" 
+             (mouseenter)="hoveredFeature = 3" 
+             (mouseleave)="hoveredFeature = null" 
+             [ngClass]="{'hovered': hoveredFeature === 3}">
+          <div class="card-icon">
             <span class="material-icons">score</span>
           </div>
           <h3>Global Score</h3>
           <p *ngIf="!isEditing">{{ projet?.globalScore || 'Non calculé' }}</p>
           <input *ngIf="isEditing" type="number" [(ngModel)]="projet!.globalScore" name="globalScore" aria-label="Project Global Score">
+          <div class="card-cta" *ngIf="isEditing">
+            <span>Edit</span>
+            <span class="material-icons">edit</span>
+          </div>
         </div>
       </div>
     </div>
+    <div class="section-decor decor-top-left"></div>
+    <div class="section-decor decor-bottom-right"></div>
+    <div class="section-decor decor-middle-center"></div>
   </section>
 
-  <!-- Static CTA Section 1 -->
-  <section class="cta-section">
+  <!-- Static CTA Section 1 (Get Started) -->
+  <section class="cta-section get-started">
     <div class="cta-overlay"></div>
     <div class="cta-content container">
-      <span class="cta-subtitle">Ready to Start?</span>
-      <h2>Get Started with Your Project</h2>
-      <p>Take the first step towards success with our expert guidance.</p>
-      <a href="#" class="cta-button primary" aria-label="Get Started">
-        <span>Get Started</span>
-        <span class="material-icons">arrow_forward</span>
+      <span class="cta-subtitle">Launch Your Journey</span>
+      <h2>Begin Your Project Today</h2>
+      <p>Start building your future with our comprehensive support and resources.</p>
+      <a href="#get-started" class="cta-button primary" aria-label="Start Now">
+        <span>Start Now</span>
+        <span class="material-icons">rocket_launch</span>
       </a>
     </div>
+    <div class="cta-decor decor-top-right"></div>
+    <div class="cta-decor decor-bottom-left"></div>
+    <div class="cta-decor decor-middle-right"></div>
   </section>
 
-  <!-- Static CTA Section 2 -->
-  <section class="cta-section alternate">
+  <!-- Static CTA Section 2 (Need Help) -->
+  <section class="cta-section need-help">
     <div class="cta-overlay"></div>
     <div class="cta-content container">
-      <span class="cta-subtitle">Need Help?</span>
-      <h2>Contact Us for Support</h2>
-      <p>Have questions? Our team is here to help you succeed.</p>
-      <a href="#" class="cta-button primary" aria-label="Contact Us">
-        <span>Contact Us</span>
-        <span class="material-icons">arrow_forward</span>
+      <span class="cta-subtitle">We’re Here for You</span>
+      <h2>Need Assistance?</h2>
+      <p>Reach out to our friendly team for personalized guidance.</p>
+      <a href="#contact-us" class="cta-button primary" aria-label="Get Help">
+        <span>Get Help</span>
+        <span class="material-icons">support_agent</span>
       </a>
     </div>
+    <div class="cta-decor decor-top-right"></div>
+    <div class="cta-decor decor-bottom-left"></div>
+    <div class="cta-decor decor-middle-right"></div>
   </section>
 </main>
 

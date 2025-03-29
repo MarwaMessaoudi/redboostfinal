@@ -63,19 +63,14 @@
             <label for="objectives">Objectives</label>
             <select class="form-control" id="objectives" formControlName="objectives">
               <option value="">Select Objective</option>
-              <option value="COURT_TERME">Court Terme</option>
-              <option value="MOYEN_TERME">Moyen Terme</option>
-              <option value="LONG_TERME">Long Terme</option>
+              <option *ngFor="let obj of objectives" [value]="obj">{{ obj }}</option>
             </select>
           </div>
           <div class="form-group">
             <label for="status">Status</label>
             <select class="form-control" id="status" formControlName="status">
               <option value="">Select Status</option>
-              <option value="EN_DEVELOPPEMENT">En Développement</option>
-              <option value="OPERATIONNELLE">Opérationnelle</option>
-              <option value="EN_RECHERCHE_FINANCEMENT">En Recherche de Financement</option>
-              <option value="TERMINE">Terminé</option>
+              <option *ngFor="let stat of statuses" [value]="stat">{{ stat }}</option>
             </select>
           </div>
           <div class="form-group">
@@ -118,7 +113,6 @@
             <label for="websiteUrl">Website URL</label>
             <input type="url" class="form-control" id="websiteUrl" formControlName="websiteUrl" placeholder="Website URL">
           </div>
-          
           <div class="form-group">
             <label for="associatedSectors">Associated Sectors</label>
             <input type="text" class="form-control" id="associatedSectors" formControlName="associatedSectors" placeholder="Associated Sectors (e.g., Tech, AI)">

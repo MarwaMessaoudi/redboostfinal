@@ -222,33 +222,37 @@ public class ProjetController {
 
     @GetMapping("/pending-invitations")
     @Transactional
-    public ResponseEntity<?> getPendingInvitations(@RequestParam("email") String email) {
+    public ResponseEntity<?> getPendingInvitations() {
         try {
-            // Fetch user by email directly
-            User currentUser = projetService.getUserByEmail(email);
+            User currentUser = projetService.getCurrentUser();
             if (currentUser == null) {
-                System.err.println("User not found for email: " + email);
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("User not found or invalid email");
+                        .body("No authenticated user found");
             }
+            System.out.println("Authenticated user ID: " + currentUser.getId());
 
-            System.out.println("Fetching pending invitations for user: " + currentUser.getEmail());
+            List<Projet> allProjects = projetService.getAllProjets();
+            System.out.println("Total projects: " + allProjects.size());
+            allProjects.forEach(projet -> {
+                System.out.println("Projet ID: " + projet.getId() + ", Pending Collaborator: " +
+                        (projet.getPendingCollaborator() != null ? projet.getPendingCollaborator().getId() : "null"));
+            });
 
-            List<Projet> projects = projetService.getAllProjets().stream()
-                    .filter(projet -> {
-                        try {
-                            return projet.getPendingCollaborator() != null &&
-                                    projet.getPendingCollaborator().getId().equals(currentUser.getId());
-                        } catch (Exception e) {
-                            System.err.println("Error processing projet: " + projet.getId() + " - " + e.getMessage());
-                            return false;
-                        }
+            List<Object> pendingInvitations = allProjects.stream()
+                    .filter(projet -> projet.getPendingCollaborator() != null &&
+                            projet.getPendingCollaborator().getId().equals(currentUser.getId()))
+                    .map(projet -> new Object() {
+                        public final Long projectId = projet.getId();
+                        public final String projectName = projet.getName();
+                        public final String invitorEmail = projet.getFounder().getEmail();
+                        public final String invitorName = projet.getFounder().getFirstName();
                     })
                     .collect(Collectors.toList());
 
-            return ResponseEntity.ok(projects);
+            System.out.println("Pending invitations count: " + pendingInvitations.size());
+            return ResponseEntity.ok(pendingInvitations);
         } catch (Exception e) {
-            System.err.println("Failed to fetch pending invitations: " + e.getMessage());
+            System.err.println("Error fetching pending invitations: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error fetching pending invitations: " + e.getMessage());
         }

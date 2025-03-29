@@ -1,4 +1,3 @@
-// src/app/pages/Projet/addprojet/addprojet.component.ts
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -6,8 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
 import { ProjetService } from '../projet-service.service';
-import { Objectives, Projet, Statut } from '../../../models/Projet';
-import { getAuth } from 'firebase/auth';
+import { Objectives, Projet, Statut } from '../../../models/Projet'; 
 import Swal from 'sweetalert2';
 
 @Component({
@@ -29,7 +27,6 @@ export class AddProjetComponent implements OnInit {
   isSaving: boolean = false;
   updateMessage: string = '';
   logoFile: File | null = null;
-  existingProjects: Projet[] = [];
   objectives = Object.values(Objectives);
   statuses = Object.values(Statut);
 
@@ -42,7 +39,6 @@ export class AddProjetComponent implements OnInit {
   ngOnInit(): void {
     this.initializeForm();
     this.checkAuthentication();
-    this.loadExistingProjects();
   }
 
   initializeForm(): void {
@@ -71,31 +67,16 @@ export class AddProjetComponent implements OnInit {
   }
 
   checkAuthentication(): void {
-    const auth = getAuth();
-    if (!auth.currentUser) {
-      console.warn('No user authenticated, redirecting to login');
-      this.router.navigate(['/login']);
-    } else {
-      // Ensure the access token is fresh
-      auth.currentUser.getIdToken().then(token => {
-        localStorage.setItem('accessToken', token);
-      }).catch(error => {
-        console.error('Error refreshing token:', error);
-        this.router.navigate(['/login']);
-      });
-    }
-  }
-
-  loadExistingProjects(): void {
-    this.projetService.getAllProjets().subscribe({
-      next: (projects) => {
-        this.existingProjects = projects;
-        console.log('Loaded existing projects:', this.existingProjects);
+    // Use getUserProjects instead of getAllProjets to check auth
+    this.projetService.getUserProjects().subscribe({
+      next: () => {
+        console.log('User is authenticated');
       },
       error: (error) => {
-        console.error('Error loading existing projects:', error);
-        this.updateMessage = 'Failed to load existing projects. Please try again.';
-        setTimeout(() => (this.updateMessage = ''), 3000);
+        if (error.status === 401) {
+          console.warn('User not authenticated, redirecting to login');
+          this.router.navigate(['/login']);
+        }
       },
     });
   }
@@ -126,7 +107,7 @@ export class AddProjetComponent implements OnInit {
       this.step++;
       this.updateMessage = '';
     } else {
-      this.updateMessage = 'Please fill all required fields in this step.';
+      this.updateMessage = 'Veuillez remplir tous les champs requis de cette étape.';
       setTimeout(() => (this.updateMessage = ''), 3000);
     }
   }
@@ -138,38 +119,22 @@ export class AddProjetComponent implements OnInit {
     }
   }
 
-  onFileChange(event: Event) {
+  onFileChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       this.logoFile = input.files[0];
-      console.log('Selected file:', this.logoFile?.name);
+      console.log('File selected:', this.logoFile); // Log the entire File object
+    } else {
+      console.warn('No file selected');
+      this.logoFile = null;
     }
   }
 
   onSubmit(): void {
     if (this.stepForm.valid) {
-      const projectName = this.stepForm.value.name.toLowerCase();
-
-      // Check if project name already exists locally
-      const nameExists = this.existingProjects.some(
-        (project) => project.name.toLowerCase() === projectName
-      );
-
-      if (nameExists) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error!',
-          text: 'A project with this name already exists. Check your projects.',
-          timer: 3000,
-          showConfirmButton: false,
-        });
-        return;
-      }
-
       this.isSaving = true;
       this.updateMessage = '';
 
-      // Create a new Projet instance with form values
       const projet = new Projet(
         this.stepForm.value.name,
         this.stepForm.value.sector,
@@ -194,46 +159,49 @@ export class AddProjetComponent implements OnInit {
 
       this.projetService.createProjet(projet, this.logoFile).subscribe({
         next: (response) => {
-          console.log('Projet created:', response);
+          console.log('Projet créé:', response);
           this.isSaving = false;
           Swal.fire({
             icon: 'success',
-            title: 'Success!',
-            text: 'Projet created successfully!',
+            title: 'Succès!',
+            text: 'Projet créé avec succès!',
             timer: 2000,
             showConfirmButton: false,
           }).then(() => {
             this.updateMessage = '';
-            this.router.navigate(['/GetProjet']);
+            this.router.navigate(['/GetProjet']); // Consistent route
           });
         },
         error: (error) => {
-          console.error('Error creating projet:', error);
+          console.error('Erreur lors de la création du projet:', error);
           this.isSaving = false;
-          let errorMessage = 'Unknown error. Check server logs.';
-          if (error.status === 400 && error.error.includes('A project with the name')) {
-            errorMessage = 'A project with this name already exists.';
+          let errorMessage = 'Erreur inconnue. Consultez les logs du serveur.';
+          if (error.status === 400 && error.error?.includes('A project with the name')) {
+            errorMessage = 'Un projet avec ce nom existe déjà.';
           } else if (error.error && error.error.message) {
             errorMessage = error.error.message;
           } else if (error.statusText) {
             errorMessage = error.statusText;
+          } else if (error.status === 401) {
+            errorMessage = 'Non autorisé. Veuillez vous connecter.';
+            this.router.navigate(['/login']);
           }
           Swal.fire({
             icon: 'error',
-            title: 'Error!',
-            text: `Error: ${errorMessage}`,
+            title: 'Erreur!',
+            text: `Erreur: ${errorMessage}`,
             timer: 3000,
             showConfirmButton: false,
           });
         },
       });
     } else {
-      this.updateMessage = 'Please fill all required fields.';
+      this.updateMessage = 'Veuillez remplir tous les champs requis.';
       setTimeout(() => (this.updateMessage = ''), 3000);
     }
   }
 
   cancel(): void {
-    this.router.navigate(['/GetProjet']);
+    this.router.navigate(['/GetProjet']); // Corrected route to match navigation
   }
 }

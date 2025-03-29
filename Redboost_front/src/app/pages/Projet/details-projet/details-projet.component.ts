@@ -47,35 +47,22 @@ export class DetailsProjetComponent implements OnInit {
   objectives = Object.values(Objectives);
   statuses = Object.values(Statut);
   hoveredItem: number | null = null;
+  hoveredFeature: number | null = null;
 
   productServices: ProductService[] = [
     {
       id: 1,
-      title: "Web Development",
-      description: "Custom websites optimized for performance, SEO, and user experience.",
-      icon: "code",
-      color: "#0A4955"
+      title: "Products",
+      description: "Explore our curated marketplace of innovative products.",
+      icon: "shopping_cart",
+      color: "#245C67"
     },
     {
       id: 2,
-      title: "Mobile Applications",
-      description: "Native and cross-platform mobile apps that deliver exceptional experiences.",
-      icon: "smartphone",
+      title: "Services",
+      description: "Find expert services tailored to your needs.",
+      icon: "build",
       color: "#DB1E37"
-    },
-    {
-      id: 3,
-      title: "UI/UX Design",
-      description: "Intuitive, user-centered designs that enhance user engagement.",
-      icon: "brush",
-      color: "#6E59A5"
-    },
-    {
-      id: 4,
-      title: "Cloud Solutions",
-      description: "Scalable cloud infrastructure optimized for reliability.",
-      icon: "cloud",
-      color: "#0EA5E9"
     }
   ];
 

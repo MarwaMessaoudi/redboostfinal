@@ -29,7 +29,7 @@ public class EmailService {
 
     private static final String CLIENT_ID = "717073407944-pmbmhmhpdg3jove9da1582o9ihl2itat.apps.googleusercontent.com";
     private static final String CLIENT_SECRET = "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";
-    private static final String REFRESH_TOKEN = "1//04bMtD5I1xkdYCgYIARAAGAQSNwF-L9IrBK-ntql493vkQtvQD0KfgiBwTVTPdBNc0VyWLTg-OhmpF-OKOqY3cj4aCTKwpj8XE5w";
+    private static final String REFRESH_TOKEN = "1//0413WLoW0WziWCgYIARAAGAQSNwF-L9IrSvAhdgsYS4hHIKio9yDA7cGAAfFA-76yj_w-wuI78tlMsVzg7P0I4AFCw404BjQDDCE";
 
     private static final String USER_EMAIL = "messaoudimarwa75@gmail.com";
     private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
@@ -126,4 +126,5 @@ public class EmailService {
         message.setRaw(encodedEmail);
         return message;
     }
+
 }

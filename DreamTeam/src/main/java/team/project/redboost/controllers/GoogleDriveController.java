@@ -4,6 +4,8 @@ import com.google.api.client.auth.oauth2.TokenResponse;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.drive.model.FileList;
+import com.google.api.services.drive.model.File;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +15,10 @@ import team.project.redboost.services.GoogleDriveService;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/drive")
@@ -83,4 +89,11 @@ public class GoogleDriveController {
     public String uploadFile(@RequestParam String folderId, @RequestParam String fileName, @RequestParam MultipartFile file, @RequestParam Long userId) throws IOException {
         return googleDriveService.uploadFile(folderId, fileName, file.getInputStream(), userId);
     }
+
+    // Step 5: Retrieve Folders
+    @GetMapping("/folders")
+    public List<Map<String, String>> getFolders(@RequestParam Long userId) throws IOException {
+        return googleDriveService.getFoldersList(userId);
+    }
+
 }

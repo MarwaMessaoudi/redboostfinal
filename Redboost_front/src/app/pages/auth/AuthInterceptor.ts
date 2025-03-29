@@ -51,16 +51,18 @@ export const AuthInterceptor: HttpInterceptorFn = (req: HttpRequest<any>, next: 
             console.error('Token refresh failed:', refreshError); // Debugging
             authService.isRefreshing = false;
 
-            // Logout and redirect to login if refresh fails
-            authService.logout();
-            router.navigate(['/signin']);
-            return throwError(refreshError);
-          })
-        );
-      }
+          // Logout and redirect to landing page if refresh fails
+          authService.logout().subscribe(() => {
+            router.navigate(['/landing']); // Redirect to landing page
+          });
 
-      // If not a 401 error, rethrow the error
-      return throwError(error);
-    })
-  );
+          return throwError(refreshError);
+        })
+      );
+    }
+
+    // If not a 401 error, rethrow the error
+    return throwError(error);
+  })
+);
 };

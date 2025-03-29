@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import team.project.redboost.entities.Coach;
 import team.project.redboost.entities.Entrepreneur;
 import team.project.redboost.entities.RendezVous;
+import team.project.redboost.entities.RendezVousDTO;
 import team.project.redboost.repositories.CoachRepository;
 import team.project.redboost.repositories.EntrepreneurRepository;
 import team.project.redboost.repositories.RendezVousRepository;
@@ -82,7 +83,7 @@ public class RendezVousController {
         }
 
     }*/
-    @PatchMapping("/update-status/{id}")
+    /*@PatchMapping("/update-status/{id}")
     public ResponseEntity<ResponseMessage> updateRendezVousStatus(@PathVariable Long id, @RequestBody RendezVous.Status status) {
         try {
             Optional<RendezVous> optionalRendezVous = rendezVousService.getRendezVousById(id);
@@ -101,6 +102,24 @@ public class RendezVousController {
                 // Désactiver temporairement pour tester sans Google Calendar
                 googleCalendarService.ajouterRendezVous(rendezVous);
                 message += " (ajout à Google Calendar désactivé)";
+            }
+
+            return ResponseEntity.ok(new ResponseMessage(message, success));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ResponseMessage("Erreur: " + e.getMessage(), false));
+        }
+    }*/
+    @PatchMapping("/update-status/{id}")
+    public ResponseEntity<ResponseMessage> updateRendezVousStatus(@PathVariable Long id, @RequestBody RendezVous.Status status) {
+        try {
+            // Appeler directement updateRendezVousStatus, qui gère tout (statut + Google Calendar + sauvegarde)
+            RendezVous updatedRendezVous = rendezVousService.updateRendezVousStatus(id, status);
+
+            String message = "Statut du rendez-vous mis à jour avec succès";
+            boolean success = true;
+
+            if (RendezVous.Status.ACCEPTED.equals(status)) {
+                message += " et ajouté à Google Calendar";
             }
 
             return ResponseEntity.ok(new ResponseMessage(message, success));
@@ -136,60 +155,99 @@ public class RendezVousController {
             @RequestParam Long entrepreneurId
     ) {
         try {
+            logger.info("Début de la création du rendez-vous avec coachId={}, entrepreneurId={}", coachId, entrepreneurId);
+            logger.debug("Données du rendez-vous reçu : {}", rendezVous);
+
             // Validate input
+            logger.info("Validation des champs du rendez-vous...");
             if (rendezVous.getTitle() == null || rendezVous.getTitle().trim().isEmpty()) {
+                logger.warn("Validation échouée : titre manquant ou vide");
                 return ResponseEntity.badRequest().body(new ErrorResponse("Title is required"));
             }
             if (rendezVous.getEmail() == null || rendezVous.getEmail().trim().isEmpty()) {
+                logger.warn("Validation échouée : email manquant ou vide");
                 return ResponseEntity.badRequest().body(new ErrorResponse("Email is required"));
             }
             if (rendezVous.getDate() == null) {
+                logger.warn("Validation échouée : date manquante");
                 return ResponseEntity.badRequest().body(new ErrorResponse("Date is required"));
             }
             if (rendezVous.getHeure() == null || rendezVous.getHeure().trim().isEmpty()) {
+                logger.warn("Validation échouée : heure manquante ou vide");
                 return ResponseEntity.badRequest().body(new ErrorResponse("Heure is required"));
             }
             if (rendezVous.getDescription() == null || rendezVous.getDescription().trim().isEmpty() || rendezVous.getDescription().length() > 500) {
+                logger.warn("Validation échouée : description manquante ou trop longue (> 500 caractères)");
                 return ResponseEntity.badRequest().body(new ErrorResponse("Description is required and must not exceed 500 characters"));
             }
             if (rendezVous.getStatus() == null) {
+                logger.info("Statut non fourni, définition par défaut à PENDING");
                 rendezVous.setStatus(RendezVous.Status.PENDING);
             } else if (!rendezVous.getStatus().name().equals("PENDING") &&
                     !rendezVous.getStatus().name().equals("ACCEPTED") &&
                     !rendezVous.getStatus().name().equals("REJECTED")) {
+                logger.warn("Validation échouée : statut invalide {}", rendezVous.getStatus());
                 return ResponseEntity.badRequest().body(new ErrorResponse("Invalid status value"));
             }
 
-            // Fetch the coach and entrepreneur from the database
-            Optional<Coach> coach = coachRepository.findById(coachId);
-            Optional<Entrepreneur> entrepreneur = entrepreneurRepository.findById(entrepreneurId);
+            // Validate heure format (HH:mm)
+            logger.info("Validation du format de l'heure...");
+            try {
+                java.time.LocalTime.parse(rendezVous.getHeure());
+                logger.debug("Format de l'heure validé avec succès : {}", rendezVous.getHeure());
+            } catch (java.time.format.DateTimeParseException e) {
+                logger.error("Format de l'heure invalide : {}. Format attendu : HH:mm", rendezVous.getHeure(), e);
+                return ResponseEntity.badRequest().body(new ErrorResponse("Invalid time format for heure. Expected format is HH:mm (e.g., 14:00)"));
+            }
 
+            // Fetch the coach and entrepreneur from the database
+            logger.info("Recherche du coach avec ID={}", coachId);
+            Optional<Coach> coach = coachRepository.findById(coachId);
             if (coach.isEmpty()) {
+                logger.warn("Coach non trouvé pour l'ID={}", coachId);
                 return ResponseEntity.badRequest().body(new ErrorResponse("Coach not found for id: " + coachId));
             }
+            logger.info("Coach trouvé : {}", coach.get());
+
+            logger.info("Recherche de l'entrepreneur avec ID={}", entrepreneurId);
+            Optional<Entrepreneur> entrepreneur = entrepreneurRepository.findById(entrepreneurId);
             if (entrepreneur.isEmpty()) {
+                logger.warn("Entrepreneur non trouvé pour l'ID={}", entrepreneurId);
                 return ResponseEntity.badRequest().body(new ErrorResponse("Entrepreneur not found for id: " + entrepreneurId));
             }
+            logger.info("Entrepreneur trouvé : {}", entrepreneur.get());
 
             // Set the coach and entrepreneur for the rendezvous
             rendezVous.setCoach(coach.get());
             rendezVous.setEntrepreneur(entrepreneur.get());
+            logger.debug("Coach et Entrepreneur définis dans le rendez-vous : coach={}, entrepreneur={}", coach.get(), entrepreneur.get());
 
             // Check for time conflicts
+            logger.info("Vérification des conflits de rendez-vous pour la date={} et statut=ACCEPTED", rendezVous.getDate());
             List<RendezVous> acceptedAppointments = rendezVousService.getRendezVousByDateAndStatus(rendezVous.getDate(), RendezVous.Status.ACCEPTED);
             java.time.LocalTime newTime = java.time.LocalTime.parse(rendezVous.getHeure());
             int bufferMinutes = 45;
 
             for (RendezVous existing : acceptedAppointments) {
-                java.time.LocalTime existingTime = java.time.LocalTime.parse(existing.getHeure());
-                long minutesDiff = java.time.Duration.between(existingTime, newTime).toMinutes();
-                if (Math.abs(minutesDiff) < bufferMinutes || minutesDiff == 0) {
-                    return ResponseEntity.badRequest().body(new ErrorResponse("Time conflict: Appointment too close to an existing accepted appointment at " + existing.getHeure()));
+                try {
+                    java.time.LocalTime existingTime = java.time.LocalTime.parse(existing.getHeure());
+                    long minutesDiff = java.time.Duration.between(existingTime, newTime).toMinutes();
+                    if (Math.abs(minutesDiff) < bufferMinutes || minutesDiff == 0) {
+                        logger.warn("Conflit de rendez-vous détecté : rendez-vous existant à {} trop proche", existing.getHeure());
+                        return ResponseEntity.badRequest().body(new ErrorResponse("Time conflict: Appointment too close to an existing accepted appointment at " + existing.getHeure()));
+                    }
+                } catch (java.time.format.DateTimeParseException e) {
+                    logger.error("Format de l'heure invalide pour un rendez-vous existant ID={} : {}. Format attendu : HH:mm", existing.getId(), existing.getHeure(), e);
+                    return ResponseEntity.status(500).body(new ErrorResponse("Invalid time format in existing appointment ID=" + existing.getId() + ". Expected format is HH:mm (e.g., 14:00)"));
                 }
             }
+            logger.info("Aucun conflit de rendez-vous détecté");
 
             // Save the appointment
+            logger.info("Enregistrement du rendez-vous dans la base de données...");
             RendezVous savedRendezVous = rendezVousService.createRendezVous(rendezVous);
+            logger.info("Rendez-vous créé avec succès : {}", savedRendezVous);
+
             return ResponseEntity.ok(savedRendezVous);
         } catch (Exception e) {
             logger.error("Erreur lors de la création du rendez-vous : {}", e.getMessage(), e);
@@ -335,5 +393,21 @@ public class RendezVousController {
         logger.info("Fetching rendezvous for coach ID: {}", coachId);
         List<RendezVous> rendezVous = rendezVousService.getRendezVousByCoachId(coachId);
         return ResponseEntity.ok(rendezVous);
+    }
+
+
+
+    @GetMapping("/joinable/entrepreneur/{entrepreneurId}")
+    public ResponseEntity<RendezVousDTO> getJoinableRendezVousForEntrepreneur(@PathVariable Long entrepreneurId) {
+        logger.info("Fetching joinable rendezvous for entrepreneur ID: {}", entrepreneurId);
+        Optional<RendezVousDTO> rendezVous = rendezVousService.getJoinableRendezVousForEntrepreneur(entrepreneurId);
+        return rendezVous.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping("/joinable/coach/{coachId}")
+    public ResponseEntity<RendezVousDTO> getJoinableRendezVousForCoach(@PathVariable Long coachId) {
+        logger.info("Fetching joinable rendezvous for coach ID: {}", coachId);
+        Optional<RendezVousDTO> rendezVous = rendezVousService.getJoinableRendezVousForCoach(coachId);
+        return rendezVous.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 }

@@ -5,8 +5,8 @@ import { Landing } from './app/pages/landing/landing';
 import { GestionDocsComponent } from './app/pages/gestion-docs/gestion-docs.component';
 import { UserLibraryComponent } from './app/pages/gestion-docs/gestion-folder/folder-details/user-library/user-library.component'; 
 import { Notfound } from './app/pages/notfound/notfound';
-import { GestionReclamationComponent } from './app/gestion-reclamation/gestion-reclamation.component';
-import { MessagerieReclamationComponent } from './app/messagerie-reclamation/messagerie-reclamation.component';
+import { GestionReclamationComponent } from './app/pages/gestion-reclamation/gestion-reclamation.component';
+import { MessagerieReclamationComponent } from './app/pages/messagerie-reclamation/messagerie-reclamation.component';
 import { PhaseListComponent } from './app/phases/phase-list/phase-list.component';
 import { KanbanBoardComponent } from './app/kanban-board/kanban-board.component';
 import { SigninComponent } from './app/pages/auth/signin/signin.component'; 
@@ -25,8 +25,12 @@ import { Empty } from './app/pages/empty/empty';
 import { SubFolderComponent } from './app/pages/gestion-docs/gestion-folder/sub-folder/sub-folder.component';  // Import SubFolderComponent
 import {UserProfileComponent} from './app/pages/profile/profile.component'; // Import UserProfileComponent
 import { DocumentsComponent } from './app/pages/documents/documents.component'; // Import DocumentsComponent
-
-
+import { ContactLandingComponent } from './app/pages/landing/components/contact-landing';
+import { MarketLandingComponent } from './app/pages/landing/components/market-landing';
+import { ShowProduitsComponent } from './app/pages/Projet/Produit/show-produits/show-produits.component';
+import { CoachRequestComponent } from './app/pages/landing/coachrequest';
+import { AllCoachRequestsComponent } from './app/pages/all-coach-requests.component';
+import { AllReclamationsComponent } from './app/pages/all-reclamations/all-reclamations.component';
 export const pagesRoutes: Routes = [
     { path: 'addprojet', component: AddProjetComponent },
     { path: 'GetProjet', component: AfficheProjetComponent },
@@ -39,25 +43,17 @@ export const pagesRoutes: Routes = [
     { path: 'meetinglist', component: MeetingListComponent },
     { path: 'appointments/received', component: AppointmentsReceivedComponent },
     {path: 'profile', component: UserProfileComponent}, // Add route for UserProfileComponent
-    {path: 'documents', component: DocumentsComponent} // Add route for DocumentsComponent
-
+    {path: 'documents', component: DocumentsComponent}, // Add route for DocumentsComponent
+    { path: 'marketlanding', component: MarketLandingComponent },
 ]; 
 
 export const appRoutes: Routes = [
     { path: '', component: Landing },
+
+    { path: 'coach-request', component: CoachRequestComponent }, // Updated route
     { path: 'signin', component: SigninComponent },
     { path: 'signup', component: SignUpComponent },
-    
-
-
-
-
-
-
-
-
-
-
+    { path: 'contactlanding', component: ContactLandingComponent },
 
     { path: 'confirm-email', component: ConfirmEmailComponent },
     {
@@ -71,6 +67,9 @@ export const appRoutes: Routes = [
             { path: 'sub-folder/:folderName/:folderMetadataId/:categoryName/:subFolderName', component: SubFolderComponent },  // Updated route
             { path: 'gestion-folder/folder-details/user-library/:folderName/:folderMetadataId', component: UserLibraryComponent }, // Corrected route
             { path: 'messagerie-reclamation', component: MessagerieReclamationComponent },
+            { path: 'ShowProd', component: ShowProduitsComponent },
+            { path: 'all-coach-requests', component: AllCoachRequestsComponent }, // New route
+            { path: 'all-reclamations', component: AllReclamationsComponent }, // New route
             {
                 path: 'phases',
                 children: [
@@ -88,6 +87,7 @@ export const appRoutes: Routes = [
                 path: 'appointments',
                 loadChildren: () => import('./app/pages/appointments/appointments.module').then(m => m.AppointmentsModule)
             },
+
             ...pagesRoutes
         ]
     },

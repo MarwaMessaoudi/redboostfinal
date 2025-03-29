@@ -40,7 +40,6 @@ public class ProjetService {
 
         User founder = userRepository.findById(creatorId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + creatorId));
-        System.out.println("Setting founder with ID: " + creatorId);
         if (founder.getRole() != Role.ENTREPRENEUR) {
             throw new IllegalArgumentException("User with ID " + creatorId + " is not an Entrepreneur");
         }
@@ -48,7 +47,6 @@ public class ProjetService {
         projet.getEntrepreneurs().add(founder);
 
         Projet savedProjet = projetRepository.save(projet);
-        System.out.println(" ditt project with ID: " + savedProjet.getId() + ", Founder ID: " + savedProjet.getFounder().getId());
         return savedProjet;
     }
 
@@ -74,7 +72,7 @@ public class ProjetService {
     }
 
     public List<Projet> getAllProjets() {
-        return projetRepository.findAll();
+        return projetRepository.findAllWithPendingCollaborator();
     }
 
     public Projet getProjetById(Long id) {
@@ -111,9 +109,7 @@ public class ProjetService {
         if (currentUser == null) {
             throw new IllegalArgumentException("Authenticated user not found with email: " + currentUserEmail);
         }
-        System.out.println("Authenticated user ID: " + currentUser.getId());
         User founder = projet.getFounder();
-        System.out.println("Founder ID: " + (founder != null ? founder.getId() : "null"));
         if (founder == null || !founder.getId().equals(currentUser.getId())) {
             throw new IllegalArgumentException("Only the project founder can invite a collaborator");
         }
@@ -128,20 +124,22 @@ public class ProjetService {
         return projetRepository.save(projet);
     }
 
+    // In ProjetService.java
     @Transactional
     public Projet acceptInvitation(Long projetId, Long userId) {
         Projet projet = projetRepository.findById(projetId)
                 .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
         User collaborator = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
-
-        if (projet.getPendingCollaborator() != null && projet.getPendingCollaborator().getId().equals(userId)) {
-            projet.getEntrepreneurs().add(collaborator);
-            projet.setPendingCollaborator(null);
-        } else {
+        User currentUser = getCurrentUser();
+        if (!currentUser.getId().equals(userId)) {
+            throw new IllegalArgumentException("You can only accept invitations for yourself");
+        }
+        if (projet.getPendingCollaborator() == null || !projet.getPendingCollaborator().getId().equals(userId)) {
             throw new IllegalArgumentException("No pending invitation for this user");
         }
-
+        projet.getEntrepreneurs().add(collaborator);
+        projet.setPendingCollaborator(null);
         return projetRepository.save(projet);
     }
 
@@ -149,13 +147,15 @@ public class ProjetService {
     public Projet declineInvitation(Long projetId, Long userId) {
         Projet projet = projetRepository.findById(projetId)
                 .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
-
+        User currentUser = getCurrentUser();
+        if (!currentUser.getId().equals(userId)) {
+            throw new IllegalArgumentException("You can only decline invitations for yourself");
+        }
         if (projet.getPendingCollaborator() != null && projet.getPendingCollaborator().getId().equals(userId)) {
             projet.setPendingCollaborator(null);
         } else {
             throw new IllegalArgumentException("No pending invitation for this user");
         }
-
         return projetRepository.save(projet);
     }
 
@@ -194,8 +194,8 @@ public class ProjetService {
         if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
             return null;
         }
-        String email = auth.getName(); // Email from JWT subject
-        return userRepository.findByEmail(email); // Direct return, no Optional
+        String email = auth.getName();
+        return userRepository.findByEmail(email);
     }
 
     public Projet findProjetEntityById(Long id) {
@@ -206,6 +206,7 @@ public class ProjetService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+
     public User getUserByEmail(String email) {
         User user = userRepository.findByEmail(email);
         if (user == null) {

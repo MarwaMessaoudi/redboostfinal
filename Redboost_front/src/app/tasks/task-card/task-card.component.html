@@ -3,18 +3,19 @@
         <div class="task-header">
             <div class="task-title">{{ task.title }}</div>
         </div>
-        <div class="task-description" *ngIf="task.description">
-            {{ task.description }}
+        <div class="task-category" *ngIf="task.taskCategory || task.taskCategoryId">
+            <span class="category-badge">{{ categoryName }}</span>
         </div>
         <div class="task-footer">
-            <!-- Avatar Removed -->
-            <span class="task-id">{{ 'Tâche' }}-{{ task.taskId }}</span>
-            <!-- Safe navigation operator -->
-            <div class="task-icons">
-                <span class="priority-icon" [ngClass]="getPriorityClass(task.priority)">
-                    <i class="material-icons" *ngIf="task.priority === TaskPriority.HIGH">arrow_upward</i>
-                    <i class="material-icons" *ngIf="task.priority === TaskPriority.LOW">arrow_downward</i>
-                </span>
+            <div class="task-info">
+                <span class="phase-name">{{ phaseName }}</span>
+            </div>
+            <span class="task-points" *ngIf="task.xpPoint">{{ task.xpPoint }}</span>
+            <div class="task-assignee">
+                <div class="assignee-avatar">
+                    <img *ngIf="assigneeAvatarUrl" [src]="assigneeAvatarUrl" alt="Assignee Avatar" class="avatar-image" />
+                    <span *ngIf="!assigneeAvatarUrl && assigneeInitials" class="default-avatar">{{ assigneeInitials }}</span>
+                </div>
             </div>
         </div>
     </div>

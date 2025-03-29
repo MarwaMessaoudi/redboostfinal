@@ -5,8 +5,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray, For
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TaskService } from '../../services/task.service';
 import { PhaseService } from '../../services/phase.service';
-import { TaskCategoryService } from '../../services/taskCategory.service'; // Import TaskCategoryService
-import { Task, Priority, Status, TaskCategory } from '../../models/task'; // Import TaskCategory
+import { TaskCategoryService } from '../../services/taskCategory.service';
+import { Task, Priority, Status, TaskCategory } from '../../models/task';
 import { Phase } from '../../models/phase';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -26,10 +26,11 @@ import { User } from '../../models/user';
 
 interface DialogData {
     phaseId: number;
-    taskId: number;
-    task: Task;
+    taskId?: number; // Optional for create mode
+    task?: Task; // Optional for edit mode
     isEdit: boolean;
     entrepreneurs: User[];
+    phase?: Phase; // Add phase to pass startDate and endDate
 }
 
 @Component({
@@ -72,33 +73,18 @@ export class TaskFormComponent implements OnInit {
     priorityOptions = Object.values(Priority);
     statusOptions = Object.values(Status);
     phases: Phase[] = [];
-    taskCategories: TaskCategory[] = []; // Added to store task categories
+    taskCategories: TaskCategory[] = [];
     phaseId: number | null = null;
     @ViewChild('fileInput') fileInput!: ElementRef;
 
     // Minimum date (today)
     minStartDate: Date = new Date();
 
-    // Date filters for the datepickers
-    startDateFilter = (date: Date | null): boolean => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return date ? date >= today : true;
-    };
-
-    endDateFilter = (date: Date | null): boolean => {
-        const startDate = this.taskForm.get('startDate')?.value;
-        if (!startDate || !date) return true;
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        return date >= start;
-    };
-
     constructor(
         private fb: FormBuilder,
         private taskService: TaskService,
         private phaseService: PhaseService,
-        private taskCategoryService: TaskCategoryService, // Inject TaskCategoryService
+        private taskCategoryService: TaskCategoryService,
         private route: ActivatedRoute,
         private router: Router,
         private snackBar: MatSnackBar,
@@ -109,11 +95,11 @@ export class TaskFormComponent implements OnInit {
     ngOnInit(): void {
         this.initForm();
         this.loadPhases();
-        this.loadTaskCategories(); // Load task categories
+        this.loadTaskCategories();
 
         this.isEditMode = this.data.isEdit;
         this.phaseId = this.data.phaseId;
-        this.taskId = this.data.taskId;
+        this.taskId = this.data.taskId ?? null;
 
         if (this.isEditMode && this.taskId) {
             this.loadTask(this.taskId);
@@ -136,7 +122,7 @@ export class TaskFormComponent implements OnInit {
             startDate: ['', [Validators.required]],
             endDate: ['', [Validators.required]],
             priority: [Priority.MEDIUM, [Validators.required]],
-            taskCategory: [null, [Validators.required]], // Added taskCategory field
+            taskCategory: [null, [Validators.required]],
             status: [Status.TO_DO],
             phase: this.fb.group({
                 phaseId: [null, [Validators.required]]
@@ -144,6 +130,30 @@ export class TaskFormComponent implements OnInit {
             attachments: this.fb.array([])
         });
     }
+
+    // Date filters with phase constraints
+    startDateFilter = (date: Date | null): boolean => {
+        if (!date) return true;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const phaseStart = this.data.phase?.startDate ? new Date(this.data.phase.startDate) : null;
+        const phaseEnd = this.data.phase?.endDate ? new Date(this.data.phase.endDate) : null;
+        if (phaseStart) phaseStart.setHours(0, 0, 0, 0);
+        if (phaseEnd) phaseEnd.setHours(23, 59, 59, 999); // End of the day
+        const earliestAllowed = phaseStart && phaseStart > today ? phaseStart : today;
+        return date >= earliestAllowed && (!phaseEnd || date <= phaseEnd);
+    };
+
+    endDateFilter = (date: Date | null): boolean => {
+        if (!date) return true;
+        const startDate = this.taskForm.get('startDate')?.value;
+        const phaseEnd = this.data.phase?.endDate ? new Date(this.data.phase.endDate) : null;
+        if (phaseEnd) phaseEnd.setHours(23, 59, 59, 999); // End of the day
+        const start = startDate ? new Date(startDate) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        const earliestAllowed = start || new Date();
+        return date >= earliestAllowed && (!phaseEnd || date <= phaseEnd);
+    };
 
     loadPhases(): void {
         this.phaseService.getAllPhases().subscribe({
@@ -194,7 +204,7 @@ export class TaskFormComponent implements OnInit {
             startDate: task.startDate ? new Date(task.startDate) : null,
             endDate: task.endDate ? new Date(task.endDate) : null,
             priority: task.priority,
-            taskCategory: task.taskCategory?.id || null, // Patch taskCategory ID
+            taskCategory: task.taskCategory?.id || null,
             status: task.status,
             phase: {
                 phaseId: task.phase.phaseId
@@ -265,7 +275,7 @@ export class TaskFormComponent implements OnInit {
             startDate: normalizedStartDate,
             endDate: normalizedEndDate,
             priority: formValues.priority,
-            taskCategory: { id: formValues.taskCategory }, // Include taskCategory as an object with ID
+            taskCategory: { id: formValues.taskCategory },
             status: Status.TO_DO,
             phase: {
                 phaseId: formValues.phase.phaseId

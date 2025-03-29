@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Entity
 @Data
@@ -33,9 +32,14 @@ public class RendezVous {
     private String description;
 
 
+    private String meetingLink; // Nouveau champ pour le lien Google Meet
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.PENDING; // Valeur par défaut "PENDING"
+
+    public RendezVous(Long id, String title, String description, String date, String heure, String email, Coach coach, Entrepreneur entrepreneur) {
+    }
 
     public void setCoach(Coach coach) {
         this.coach = coach;
@@ -123,5 +127,11 @@ public class RendezVous {
         this.description = description;
     }
 
+    public String getMeetingLink() {
+        return meetingLink;
+    }
 
+    public void setMeetingLink(String meetingLink) {
+        this.meetingLink = meetingLink;
+    }
 }

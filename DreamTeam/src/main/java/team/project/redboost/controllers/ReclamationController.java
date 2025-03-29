@@ -12,7 +12,7 @@ import team.project.redboost.authentif.JwtUtil;
 import team.project.redboost.dto.ReclamationDTO;
 import team.project.redboost.entities.Reclamation;
 import team.project.redboost.entities.User;
-import team.project.redboost.entities.StatutReclamation; // Import the enum!
+import team.project.redboost.entities.StatutReclamation;
 import team.project.redboost.repositories.UserRepository;
 import team.project.redboost.services.ReclamationService;
 import org.slf4j.Logger;
@@ -34,9 +34,10 @@ public class ReclamationController {
     private UserRepository userRepository;
 
     @Autowired
-    JwtUtil jwtUtil;
+    private JwtUtil jwtUtil;
+
     // Create a new reclamation
-    @PostMapping
+    @PostMapping("/add")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Reclamation> createReclamation(@RequestBody ReclamationDTO reclamationDTO, HttpServletRequest request) {
         try {
@@ -83,9 +84,9 @@ public class ReclamationController {
         }
     }
 
-    // Get all reclamations for the authenticated user
-    @GetMapping
-    @PreAuthorize("isAuthenticated()")
+    // Get all reclamations (only for ADMIN)
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Reclamation>> getAllReclamations(@AuthenticationPrincipal UserDetails userDetails) {
         // Fetch the User entity from the database using the email from UserDetails
         String email = userDetails.getUsername();
@@ -94,13 +95,13 @@ public class ReclamationController {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED); // User not found
         }
 
-        // Fetch reclamations for the authenticated user
-        List<Reclamation> reclamations = reclamationService.getAllReclamationsByUser(user);
+        // Fetch all reclamations (only accessible to ADMIN)
+        List<Reclamation> reclamations = reclamationService.getAllReclamations();
         return new ResponseEntity<>(reclamations, HttpStatus.OK);
     }
 
-    // Get a reclamation by ID
-    @GetMapping("/{id}")
+    // Get a reclamation by ID (only for the authenticated user)
+    @GetMapping()
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Reclamation> getReclamationById(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
         // Fetch the User entity from the database using the email from UserDetails
@@ -119,7 +120,37 @@ public class ReclamationController {
         }
     }
 
-    // Update a reclamation
+    // Get reclamations by user ID (for the authenticated user)
+    @GetMapping("/user")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<Reclamation>> getReclamationsByUserId(
+            @RequestParam(required = false) Long userId,  // Make userId optional
+            @AuthenticationPrincipal UserDetails userDetails) { // Keep AuthenticationPrincipal
+        try {
+            List<Reclamation> reclamations;
+            if (userId != null) {
+                // Fetch reclamations by user ID if provided
+                reclamations = reclamationService.getReclamationsByUserId(userId);
+            } else {
+                // If no userId is provided, get the user from the authentication
+                String email = userDetails.getUsername();
+                User user = userRepository.findByEmail(email);
+
+                if (user == null) {
+                    return new ResponseEntity<>(HttpStatus.UNAUTHORIZED); // User not found
+                }
+                reclamations = reclamationService.getReclamationsByUser(user);
+
+            }
+
+            return new ResponseEntity<>(reclamations, HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error fetching reclamations by user ID", e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // Update a reclamation (only for the authenticated user)
     @PutMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Reclamation> updateReclamation(@PathVariable Long id, @RequestBody Reclamation reclamationDetails, @AuthenticationPrincipal UserDetails userDetails) {
@@ -139,9 +170,9 @@ public class ReclamationController {
         }
     }
 
-    // Delete a reclamation
+    // Delete a reclamation (only for ADMIN)
     @DeleteMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteReclamation(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
         // Fetch the User entity from the database using the email from UserDetails
         String email = userDetails.getUsername();
@@ -159,11 +190,12 @@ public class ReclamationController {
         }
     }
 
-    @PatchMapping("/{id}/statut")  // Use PATCH for partial updates
-    @PreAuthorize("hasRole('ADMIN')") // Only allow admins to change the status
+    // Update reclamation status (only for ADMIN)
+    @PatchMapping("/{id}/statut")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Reclamation> updateReclamationStatus(
             @PathVariable Long id,
-            @RequestBody StatutUpdateRequest request) { // Or @RequestBody if passing a JSON object
+            @RequestBody StatutUpdateRequest request) {
 
         try {
             StatutReclamation nouveauStatut = request.getStatut(); // Get the statut from the request object
@@ -181,6 +213,7 @@ public class ReclamationController {
     }
 }
 
+// Inner class for status update request
 class StatutUpdateRequest {
     private StatutReclamation statut;
 

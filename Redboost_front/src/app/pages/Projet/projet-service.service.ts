@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, of } from 'rxjs';
-import { catchError, tap, switchMap } from 'rxjs/operators';
-import { Projet } from '../../models/Projet';
+import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
+import { catchError, tap, map, switchMap } from 'rxjs/operators';
+import { Projet, Objectives, Statut } from '../../models/Projet'; 
 
 interface User {
   id: number;
@@ -12,79 +12,141 @@ interface User {
   lastName?: string;
 }
 
+interface PendingInvitation {
+  projectId: number;
+  projectName: string;
+  invitorEmail: string;
+  invitorName: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class ProjetService {
   private apiUrl = 'http://localhost:8085/api/projets';
-  private authUrl = 'http://localhost:8085/Auth';
+  private currentUserIdSubject = new BehaviorSubject<number | null>(null);
+  currentUserId$ = this.currentUserIdSubject.asObservable();
 
   constructor(private http: HttpClient) {}
 
   private getHeaders(includeContentType: boolean = true): HttpHeaders {
-    const token = localStorage.getItem('accessToken');
     let headers = new HttpHeaders();
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    }
     if (includeContentType) {
       headers = headers.set('Content-Type', 'application/json');
+    }
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
     }
     return headers;
   }
 
-  // Authentication Methods
-  login(credentials: { email: string; password: string }): Observable<any> {
-    const url = `${this.authUrl}/login`;
-    return this.http.post<any>(url, credentials, { headers: this.getHeaders(false) }).pipe(
-      tap(response => {
-        console.log('Login response:', response);
-        if (response.accessToken) {
-          localStorage.setItem('accessToken', response.accessToken);
+  fetchCurrentUserId(): Observable<number> {
+    return new Observable<number>(observer => {
+      const tokenKey = 'accessToken'; // Align with SigninComponent and AuthInterceptor
+      const checkToken = () => {
+        const token = localStorage.getItem(tokenKey);
+        console.log('fetchCurrentUserId - Token:', token); // Debug log
+        if (!token) {
+          console.warn('Token not found yet');
+          return false;
         }
-        if (response.refreshToken) {
-          localStorage.setItem('refreshToken', response.refreshToken);
+        const decodedToken = this.decodeToken(token);
+        console.log('fetchCurrentUserId - Decoded:', decodedToken); // Debug log
+        if (!decodedToken) {
+          observer.error(new Error('Failed to decode token.'));
+          return true;
         }
-      }),
-      catchError(this.handleError)
-    );
+        const userId = decodedToken.userId || decodedToken.id || decodedToken.sub;
+        if (!userId) {
+          observer.error(new Error('User ID not found in token (tried userId, id, sub).'));
+          return true;
+        }
+        const parsedUserId = parseInt(userId, 10);
+        if (isNaN(parsedUserId)) {
+          observer.error(new Error('Invalid user ID in token: ' + userId));
+          return true;
+        }
+        this.currentUserIdSubject.next(parsedUserId);
+        observer.next(parsedUserId);
+        observer.complete();
+        return true;
+      };
+  
+      // Try immediately
+      if (checkToken()) return;
+  
+      // Poll with a timeout
+      let attempts = 0;
+      const maxAttempts = 50; // 5 seconds (increased from 3s for safety)
+      const interval = setInterval(() => {
+        attempts++;
+        console.log('Polling attempt:', attempts, 'Token:', localStorage.getItem(tokenKey)); // Debug log
+        if (checkToken() || attempts >= maxAttempts) {
+          clearInterval(interval);
+          if (attempts >= maxAttempts) {
+            observer.error(new Error('Token not found after timeout. Please log in.'));
+          }
+        }
+      }, 100);
+  
+      return () => clearInterval(interval); // Cleanup on unsubscribe
+    });
   }
 
-  refreshToken(): Observable<any> {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      console.error('No refresh token available');
-      return throwError(() => new Error('Refresh token is missing!'));
+  private decodeToken(token: string): any {
+    try {
+      const payload = token.split('.')[1];
+      return JSON.parse(atob(payload));
+    } catch (e) {
+      console.error('Error decoding token:', e);
+      return null;
     }
-    const body = { refreshToken };
-    return this.http.post<any>(`${this.authUrl}/refresh`, body, { headers: this.getHeaders() }).pipe(
-      tap(response => {
-        console.log('Refresh token response:', response);
-        if (response.accessToken) {
-          localStorage.setItem('accessToken', response.accessToken);
-        }
-        if (response.refreshToken) {
-          localStorage.setItem('refreshToken', response.refreshToken);
-        }
+  }
+  getUserProjects(): Observable<Projet[]> {
+    return this.currentUserId$.pipe(
+      tap(userId => {
+        if (!userId) throw new Error('User ID not set');
       }),
-      catchError(error => {
-        console.error('Token refresh failed:', error);
-        this.logout(); // Clear tokens on refresh failure
-        return throwError(() => new Error('Failed to refresh token. Please log in again.'));
-      })
+      switchMap(userId =>
+        this.http.get<any[]>(`${this.apiUrl}/Getcardfounder/${userId}`, { headers: this.getHeaders() }).pipe(
+          map(projectCards => projectCards.map(card => ({
+            id: card[7], // id is 8th field (index 7)
+            name: card[0],
+            logoUrl: card[1],
+            sector: card[2],
+            location: card[3],
+            creationDate: card[4],
+            websiteUrl: card[5],
+            globalScore: card[6],
+            type: '',
+            description: '',
+            objectives: Objectives.COURT_TERME,
+            status: Statut.EN_DEVELOPPEMENT,
+            revenue: 0,
+            numberOfEmployees: 0,
+            nbFemaleEmployees: 0,
+            lastUpdated: '',
+            associatedSectors: '',
+            technologiesUsed: '',
+            fundingGoal: 0,
+            lastEvaluationDate: '',
+            produits: [],
+            services: [],
+            folders: [],
+            phases: [],
+            founder: null,
+            entrepreneurs: [],
+            coaches: [],
+            investors: [],
+            pendingCollaborator: null
+          } as Projet))),
+          catchError(this.handleError)
+        )
+      )
     );
   }
 
-  isAuthenticated(): boolean {
-    return !!localStorage.getItem('accessToken');
-  }
-
-  logout(): void {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-  }
-
-  // CRUD Operations
   createProjet(projet: Projet, logoFile: File | null): Observable<Projet> {
     const url = `${this.apiUrl}/AddProjet`;
     const formData = new FormData();
@@ -92,15 +154,18 @@ export class ProjetService {
     formData.append('projet', JSON.stringify(projetToSend));
     if (logoFile) {
       formData.append('logourl', logoFile);
+      console.log('FormData with file:', {
+        projet: JSON.stringify(projetToSend),
+        logourl: logoFile
+      });
+    } else {
+      console.log('FormData without file:', {
+        projet: JSON.stringify(projetToSend)
+      });
     }
+  
     return this.http.post<Projet>(url, formData, { headers: this.getHeaders(false) }).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  getAllProjets(): Observable<Projet[]> {
-    const url = `${this.apiUrl}/GetAll`;
-    return this.http.get<Projet[]>(url, { headers: this.getHeaders() }).pipe(
+      tap(response => console.log('Backend response:', response)),
       catchError(this.handleError)
     );
   }
@@ -132,45 +197,12 @@ export class ProjetService {
     );
   }
 
-  getProjetCardByFounderId(founderId: string): Observable<Projet[]> {
-    const url = `${this.apiUrl}/Getcardfounder/${founderId}`;
-    return this.http.get<Projet[]>(url, { headers: this.getHeaders() }).pipe(
-      catchError(this.handleError)
-    );
-  }
-
-  // Invitation-Related Methods
-  getPendingInvitations(): Observable<Projet[]> {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      console.error('No access token available');
-      return throwError(() => new Error('User not authenticated'));
-    }
-
-    // Decode token to get email
-    const decodedToken = this.decodeToken(token);
-    const email = decodedToken?.sub;
-    if (!email) {
-      console.error('No email found in token');
-      return throwError(() => new Error('Invalid token: email not found'));
-    }
-
-    const url = `${this.apiUrl}/pending-invitations?email=${encodeURIComponent(email)}`;
-    return this.http.get<Projet[]>(url, { headers: this.getHeaders() }).pipe(
+  getPendingInvitations(): Observable<PendingInvitation[]> {
+    const url = `${this.apiUrl}/pending-invitations`;
+    return this.http.get<PendingInvitation[]>(url, { headers: this.getHeaders() }).pipe(
       tap(response => console.log('Pending invitations response:', response)),
       catchError(this.handleError)
     );
-  }
-
-  // Helper method to decode JWT
-  private decodeToken(token: string): any {
-    try {
-      const payload = token.split('.')[1];
-      return JSON.parse(atob(payload));
-    } catch (e) {
-      console.error('Failed to decode token:', e);
-      return null;
-    }
   }
 
   inviteCollaborator(projetId: number, userId: number): Observable<Projet> {
@@ -197,24 +229,11 @@ export class ProjetService {
   getEligibleCollaborators(projetId: number): Observable<User[]> {
     const url = `${this.apiUrl}/${projetId}/eligible-collaborators`;
     return this.http.get<User[]>(url, { headers: this.getHeaders() }).pipe(
-      catchError(error => {
-        if (error.status === 401) {
-          return this.refreshToken().pipe(
-            switchMap(() => this.http.get<User[]>(url, { headers: this.getHeaders() })),
-            catchError(refreshError => {
-              console.error('Refresh token failed in getEligibleCollaborators:', refreshError);
-              return throwError(() => new Error('Session expired. Please log in again.'));
-            })
-          );
-        }
-        return this.handleError(error);
-      })
+      catchError(this.handleError)
     );
   }
 
-  // Error Handling
   private handleError(error: HttpErrorResponse): Observable<never> {
-    console.error(`Erreur HTTP: ${error.status} - ${error.statusText}`, error);
     let errorMessage = 'Une erreur est survenue. Veuillez réessayer plus tard.';
     if (error.status === 401) {
       errorMessage = 'Session expirée. Veuillez vous reconnecter.';
@@ -227,6 +246,6 @@ export class ProjetService {
     } else if (error.status === 500) {
       errorMessage = 'Erreur serveur interne.';
     }
-    return throwError(() => new Error(errorMessage));
+    return throwError(() => new Error(errorMessage)); // Line ~203
   }
 }

@@ -14,4 +14,6 @@ public interface ProjetRepository extends JpaRepository<Projet, Long> {
             "FROM Projet p JOIN p.entrepreneurs e WHERE e.id = :userId")
     List<Object[]> findProjetCardByUserId(@Param("userId") Long userId);
     boolean existsByNameIgnoreCase(String name);
+    @Query("SELECT p FROM Projet p LEFT JOIN FETCH p.pendingCollaborator LEFT JOIN FETCH p.founder")
+    List<Projet> findAllWithPendingCollaborator();
 }

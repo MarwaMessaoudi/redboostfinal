@@ -3,19 +3,47 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #0A4955; /* custom-blue */
+  min-height: 100vh;
+  background-color: #f5f7fa;
   font-family: 'Arial', sans-serif;
+  padding: 2rem;
+}
+
+.login-wrapper {
+  display: flex;
+  max-width: 900px;
+  width: 100%;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .login-card {
+  flex: 1;
   background: white;
   padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
+  border-radius: 10px 0 0 10px;
   text-align: center;
+  position: relative; /* For positioning the back arrow */
+}
+
+/* Back Arrow Styles */
+.back-arrow {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+}
+
+.back-arrow a {
+  color: #245C67; /* custom-dark-blue */
+  text-decoration: none;
+  font-size: 1.2rem;
+  transition: color 0.3s ease;
+}
+
+.back-arrow a:hover {
+  color: #DB1E37; /* custom-red */
 }
 
 h2 {
@@ -53,30 +81,6 @@ input {
 input:focus {
   outline: none;
   border-color: #DB1E37; /* custom-red */
-}
-
-/* Role Selection */
-.role-selection {
-  margin-bottom: 1.5rem;
-}
-
-select {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #568086; /* custom-light-blue */
-  border-radius: 5px;
-  background-color: #f5f5f5;
-  font-size: 1rem;
-  color: #245C67; /* custom-dark-blue */
-  appearance: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-}
-
-select:focus {
-  outline: none;
-  border-color: #DB1E37; /* custom-red */
-  background-color: #fff;
 }
 
 /* Buttons */
@@ -160,4 +164,93 @@ select:focus {
 
 .signup-link a:hover {
   color: #E44D62; /* custom-pink */
+}
+
+/* Right Section: Updated Content for Sign-In Interface */
+.contact-info {
+  flex: 1;
+  background: #0A4955;
+  color: white;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 10px 10px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Center content vertically */
+}
+
+.contact-info h2 {
+  color: white;
+  font-size: 1.5rem;
+  position: relative;
+  display: inline-block;
+}
+
+.contact-info h2::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 50%;
+  height: 2px;
+  background: #DB1E37;
+}
+
+.contact-info p {
+  display: flex;
+  align-items: center;
+  margin: 15px 0;
+  font-size: 1rem;
+  font-weight: 300;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+  color: white;
+}
+
+.contact-info p:first-of-type {
+  margin-top: 50px; /* Add margin-top to the first <p> tag */
+}
+
+.contact-info p:hover {
+  opacity: 1;
+}
+
+.contact-info p a {
+  color: white;
+  text-decoration: none;
+  transition: color 0.3s ease, text-decoration 0.3s ease;
+}
+
+.contact-info p a:hover {
+  color: #EA7988;
+  text-decoration: underline;
+}
+
+.contact-info span {
+  margin-right: 10px;
+  font-size: 1.2rem;
+}
+
+.signup-prompt {
+  margin-top: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .login-wrapper {
+    flex-direction: column;
+  }
+
+  .login-card, .contact-info {
+    border-radius: 10px;
+  }
+
+  .login-card {
+    border-radius: 10px 10px 0 0;
+  }
+
+  .contact-info {
+    border-radius: 0 0 10px 10px;
+  }
 }

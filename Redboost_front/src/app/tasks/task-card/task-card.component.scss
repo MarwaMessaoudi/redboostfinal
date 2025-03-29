@@ -14,7 +14,8 @@
             box-shadow 0.2s;
         width: 100%;
         box-sizing: border-box;
-        overflow: hidden; /* Prevent content from overflowing */
+        overflow: hidden;
+        cursor: pointer; // Make the card clickable
 
         &:hover {
             transform: translateY(-2px);
@@ -25,7 +26,7 @@
             margin-bottom: 8px;
 
             .task-title {
-                font-size: 15px;
+                font-size: 14px; /* Reduced font size */
                 font-weight: 500;
                 color: #333;
                 word-wrap: break-word;
@@ -34,59 +35,81 @@
                 text-overflow: ellipsis;
                 display: -webkit-box;
                 -webkit-box-orient: vertical;
-                -webkit-line-clamp: 2; /* Limit to 2 lines */
+                -webkit-line-clamp: 2;
             }
         }
 
-        .task-description {
-            font-size: 13px;
-            color: #666;
+        .task-category {
             margin-bottom: 10px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            line-height: 1.4;
+
+            .category-badge {
+                display: inline-block;
+                background-color: #f2e7ff; /* Light purple background */
+                color: #8e24aa; /* Dark purple text */
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 11px; /* Reduced font size */
+                font-weight: 500;
+                text-transform: uppercase; /* Uppercase text */
+            }
         }
 
         .task-footer {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: space-between; /* Maintains spacing */
             border-top: 1px solid #f0f0f0;
             padding-top: 8px;
             margin-top: 2px;
 
-            .task-id {
-                color: #777;
-                font-size: 12px;
-                font-weight: 500;
-            }
-
-            .task-icons {
+            .task-info {
                 display: flex;
                 align-items: center;
+                gap: 8px;
+                flex-grow: 1; /* Allows task-info to take available space */
 
-                .priority-icon {
+                .phase-name {
+                    color: #777;
+                    font-size: 12px;
+                    font-weight: 500;
+                    background-color: #f0f0f0; /* Light grey background */
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    border: 1px solid #ced4da;
+                }
+            }
+
+            .task-points {
+                font-size: 12px;
+                font-weight: 500;
+                color: #777;
+                border: 1px solid #ced4da;
+                padding: 0 5px;
+                border-radius: 3px;
+                margin-right: 8px; /* Space between points and avatar */
+            }
+
+            .task-assignee {
+                display: flex; //Added
+                align-items: center; //Added
+                .assignee-avatar {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    width: 20px;
-                    height: 20px;
+                    width: 24px; /* Reduced size */
+                    height: 24px; /* Reduced size */
+                    border-radius: 50%;
+                    background-color: #26a69a; /* Teal color */
+                    color: white;
+                    font-size: 11px; /* Reduced font size */
+                    font-weight: 500;
+                    overflow: hidden; // Make sure the image fits the circle
+                }
 
-                    &.high i {
-                        color: #e53935;
-                        font-size: 16px;
-                    }
-
-                    &.medium i {
-                        color: #fb8c00;
-                        font-size: 16px;
-                    }
-
-                    &.low i {
-                        color: #43a047;
-                        font-size: 16px;
-                    }
+                img {
+                    width: 100%; // Make the image fill the container
+                    height: 100%;
+                    object-fit: cover; // Ensure the image covers the area
                 }
             }
         }
@@ -108,21 +131,32 @@
                 }
             }
 
-            .task-description {
-                font-size: 12px;
+            .task-category {
                 margin-bottom: 8px;
+
+                .category-badge {
+                    font-size: 11px;
+                }
             }
 
             .task-footer {
                 padding-top: 8px;
 
-                .task-id {
+                .task-info {
+                    .phase-name {
+                        font-size: 11px;
+                    }
+                }
+
+                .task-points {
                     font-size: 11px;
                 }
 
-                .priority-icon {
-                    i {
-                        font-size: 14px !important;
+                .task-assignee {
+                    .assignee-avatar {
+                        width: 24px;
+                        height: 24px;
+                        font-size: 11px;
                     }
                 }
             }

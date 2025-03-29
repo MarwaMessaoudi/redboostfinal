@@ -76,7 +76,7 @@ export class PhaseFormComponent implements OnInit {
     }
 
     loadProjects(): void {
-        this.projetService.getAllProjets().subscribe({
+        this.projetService.getUserProjects().subscribe({
             next: (projects) => {
                 this.projects = projects;
             },

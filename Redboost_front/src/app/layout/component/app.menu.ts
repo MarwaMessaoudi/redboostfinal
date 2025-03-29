@@ -96,6 +96,14 @@ export class AppMenu implements OnInit {
       case 'INVESTOR':
         roleMenu = this.getInvestorMenu();
         break;
+        case 'SUPERADMIN':
+          roleMenu = this.getSuperAdminMenu();
+          break;
+          case 'ADMIN':
+            roleMenu = this.getAdminMenu();
+            break;
+
+          
       default:
         console.warn('Unknown role:', role);
         roleMenu = []; // Empty menu or fallback
@@ -108,7 +116,43 @@ export class AppMenu implements OnInit {
     // Append Profile item to all menus
     this.model = [...roleMenu, this.getProfileMenuItem()];
   }
+  getSuperAdminMenu(): MenuItem[] {
 
+return [
+ { label: 'Home',
+  items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }],
+ },
+ { label: 'coach requests',
+  items: [{ label: 'Coach Requests', icon: 'pi pi-fw pi-home', routerLink: ['/all-coach-requests'] }],
+ }
+
+ 
+];
+}
+
+
+
+   // Admin Menu
+   private getAdminMenu(): MenuItem[] {
+    return [
+      {
+        label: 'Home',
+        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }],
+      },
+      {
+        label: 'Reclamations',  // Changed the label for clarity
+        items: [
+          { label: 'All Reclamations', icon: 'pi pi-fw pi-file', routerLink: ['/all-reclamations'] },  // Link to admin reclamations
+        ],
+      },
+       {
+        label: 'Les Documents',
+        items: [
+          { label: 'Docs', icon: 'pi pi-fw pi-file', routerLink: ['/gestion-docs'] },
+        ],
+      },
+    ];
+  }
   // Entrepreneur Menu
   private getEntrepreneurMenu(): MenuItem[] {
     return [
@@ -121,6 +165,7 @@ export class AppMenu implements OnInit {
         items: [
           { label: 'Projet', icon: 'pi pi-fw pi-home', routerLink: ['/addprojet'] },
           { label: 'Projets', icon: 'pi pi-fw pi-home', routerLink: ['/GetProjet'] },
+        //  { label: 'produits', icon: 'pi pi-fw pi-home', routerLink: ['/ShowProd'] },
         ],
       },
       
@@ -139,7 +184,7 @@ export class AppMenu implements OnInit {
       {
         label: 'Marketplace',
         items: [
-          { label: 'Marketplace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace/v1'] },
+          { label: 'Marketplace', icon: 'pi pi-fw pi-home', routerLink: ['marketplace/v1'] },
         ],
       },
       {

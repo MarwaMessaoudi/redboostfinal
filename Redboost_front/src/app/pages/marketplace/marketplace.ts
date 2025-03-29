@@ -32,14 +32,16 @@ import { MessageService } from 'primeng/api';
 
         <!-- Sector Checkboxes -->
         <div class="flex flex-wrap gap-4">
-          <label *ngFor="let sector of sectors" class="flex items-center space-x-2">
+          <label *ngFor="let sector of sectors" class="flex items-center space-x-3 cursor-pointer">
             <input
               type="checkbox"
               [checked]="selectedSectors.includes(sector)"
               (change)="toggleSector(sector)"
-              class="h-4 w-4 text-[#0A4955] border-gray-300 rounded focus:ring-[#0A4955]"
+              class="h-6 w-6 text-[#0A4955] border-gray-300 rounded focus:ring-[#0A4955]"
             />
-            <span class="text-[#568086] text-sm">{{ sector }}</span>
+            <span class="text-[#568086] text-lg font-medium" [ngClass]="{'text-[#0A4955]': selectedSectors.includes(sector)}">
+              {{ sector }}
+            </span>
           </label>
         </div>
       </div>
@@ -52,7 +54,15 @@ import { MessageService } from 'primeng/api';
         >
           <div class="p-5">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-xl font-semibold text-[#245C67]">{{ startup.name }}</h2>
+              <div class="flex items-center space-x-3">
+                <img
+                  [src]="startup.logo_url"
+                  alt="{{ startup.name }} logo"
+                  class="w-10 h-10 rounded-full object-cover"
+                  
+                />
+                <h2 class="text-xl font-semibold text-[#245C67] truncate">{{ startup.name }}</h2>
+              </div>
               <span class="text-xs font-medium px-2 py-1 rounded-full bg-[#E88D9A] text-[#DB1E37]">
                 {{ startup.sector }}
               </span>
@@ -75,7 +85,7 @@ import { MessageService } from 'primeng/api';
               </div>
               <div class="flex justify-between">
                 <span>ID:</span>
-                <span class="font-medium">{{ startup.id }}</span> <!-- Display ID for verification -->
+                <span class="font-medium">{{ startup.id }}</span>
               </div>
             </div>
 
@@ -162,6 +172,11 @@ import { MessageService } from 'primeng/api';
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
+    .truncate {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   `]
 })
 export class MarketplaceComponent {
@@ -232,7 +247,6 @@ export class MarketplaceComponent {
       .get('http://localhost:8085/api/projets/GetAll')
       .then((response) => {
         this.startups = response.data.map((startup: any) => {
-          // Ensure each startup has an id
           if (!startup.id) {
             console.warn('Startup missing ID:', startup);
           }
@@ -247,7 +261,7 @@ export class MarketplaceComponent {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Failed to load startups.',
+          detail: '.failed to load startups.',
         });
         this.loading = false;
       });
@@ -391,4 +405,6 @@ export class MarketplaceComponent {
     }
     this.router.navigate([`/startup/${startupId}`]);
   }
+
+  // Handle image loading errors by setting a fallback imag
 }

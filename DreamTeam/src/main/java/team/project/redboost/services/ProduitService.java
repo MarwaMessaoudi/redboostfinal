@@ -19,41 +19,27 @@ public class ProduitService {
     @Autowired
     private ProjetRepository projetRepository;
 
-    // Ajouter un produit et l'associer à un Projet
     @Transactional
     public Produit createProduit(Produit produit, Long projetId) {
-        // Fetch the Projet by ID
         Projet projet = projetRepository.findById(projetId)
                 .orElseThrow(() -> new RuntimeException("Projet not found with id: " + projetId));
-
-        // Save the Produit first (if it doesn't have an ID)
-        Produit savedProduit = produitRepository.save(produit);
-
-        // Add the Produit to the Projet's produits list
-        projet.getProduits().add(savedProduit);
-
-        // Save the Projet (this will update the foreign key in the Produit table)
+        projet.getProduits().add(produit);
         projetRepository.save(projet);
-
-        return savedProduit;
+        return produit;
     }
 
-    // Récupérer tous les produits
     public List<Produit> getAllProduits() {
         return produitRepository.findAll();
     }
 
-    // Récupérer un produit par ID
     public Optional<Produit> getProduitById(Long id) {
         return produitRepository.findById(id);
     }
 
-    // Mettre à jour un produit
     @Transactional
     public Produit updateProduit(Long id, Produit produitDetails) {
         Produit produit = produitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Produit not found with id: " + id));
-
         produit.setName(produitDetails.getName());
         produit.setDescription(produitDetails.getDescription());
         produit.setPrice(produitDetails.getPrice());
@@ -63,13 +49,14 @@ public class ProduitService {
         produit.setCategorie(produitDetails.getCategorie());
         produit.setDateExpiration(produitDetails.getDateExpiration());
         produit.setImage(produitDetails.getImage());
-
         return produitRepository.save(produit);
     }
 
-    // Supprimer un produit
     @Transactional
     public void deleteProduit(Long id) {
+        if (!produitRepository.existsById(id)) {
+            throw new RuntimeException("Produit not found with id: " + id);
+        }
         produitRepository.deleteById(id);
     }
 }

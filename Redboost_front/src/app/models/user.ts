@@ -6,5 +6,5 @@ export interface User {
     email: string;
     phoneNumber: string;
     role: string; // Assuming your Role enum maps to a string
-    // Add any other properties you need from the backend User entity
+    profilePictureUrl: string; // Added to match the backend data
 }

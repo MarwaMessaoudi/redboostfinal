@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
-import { ReclamationService } from '../layout/service/reclamation.service';
+import { ReclamationService } from '../service/reclamation.service';
 import { jwtDecode } from 'jwt-decode';
 
 @Component({
@@ -146,7 +146,7 @@ export class GestionReclamationComponent implements OnInit {
     
         console.log('Sending reclamation data:', reclamationData);
     
-        this.http.post<any>('http://localhost:8085/api/reclamations', reclamationData, {
+        this.http.post<any>('http://localhost:8085/api/reclamations/add', reclamationData, {
             headers: new HttpHeaders({
                 'Authorization': `Bearer ${this.accessToken}`,
                 'Content-Type': 'application/json'

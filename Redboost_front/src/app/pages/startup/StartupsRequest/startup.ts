@@ -10,7 +10,7 @@ import axios from 'axios';
   imports: [FormsModule, CommonModule],
   template: `
     <div class="container mx-auto px-4 py-8">
-      <h1 class="text-3xl font-bold text-center text-[#245C67] mb-8">Investment Requests</h1>
+      <h1 class="text-3xl font-bold text-center text-[#245C67] mb-8">My Startup Investment Requests</h1>
 
       <!-- Search and Filter Section -->
       <div class="flex flex-col gap-4 mb-8">
@@ -19,7 +19,7 @@ import axios from 'axios';
             type="text"
             [(ngModel)]="searchQuery"
             (ngModelChange)="filterRequests()"
-            placeholder="Search by investor name or message..."
+            placeholder="Search by investor name, message, or project..."
             class="w-full p-3 pl-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#0A4955] focus:border-[#0A4955]"
           />
           <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,11 +63,15 @@ import axios from 'axios';
             <div class="space-y-2 text-sm text-[#568086] mb-4">
               <div class="flex justify-between">
                 <span>Phone:</span>
-                <span class="font-medium">{{ request.investor.phoneNumber }}</span>
+                <span class="font-medium">{{ request.investor.phoneNumber || 'N/A' }}</span>
               </div>
               <div class="flex justify-between">
                 <span>Proposed Amount:</span>
                 <span class="font-medium">{{ request.proposedAmount | currency }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span>Project:</span>
+                <span class="font-medium">{{ request.projet.name }}</span>
               </div>
               <div class="flex justify-between">
                 <span>Date Submitted:</span>
@@ -105,7 +109,7 @@ import axios from 'axios';
 
       <!-- No Results Message -->
       <div *ngIf="!loading && displayedRequests.length === 0" class="text-center text-[#568086] mt-6">
-        No investment requests found matching your criteria.
+        No investment requests found for your startups.
       </div>
 
       <!-- Error Message -->
@@ -126,7 +130,6 @@ import axios from 'axios';
 export class StartupInvestmentRequestsComponent {
   investmentRequests: any[] = [];
   displayedRequests: any[] = [];
-  startupId: number = 2; // Replace with actual startup ID (e.g., from auth service or route)
   searchQuery: string = '';
   selectedStatuses: string[] = [];
   statuses = ['PENDING', 'ACCEPTED', 'DECLINED'];
@@ -134,15 +137,28 @@ export class StartupInvestmentRequestsComponent {
   errorMessage: string = '';
 
   constructor(private http: HttpClient) {
-    this.fetchStartupInvestmentRequests();
+    this.fetchUserStartupRequests();
   }
 
-  fetchStartupInvestmentRequests() {
+  fetchUserStartupRequests() {
     this.loading = true;
     this.errorMessage = '';
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      this.errorMessage = 'You must be logged in to view investment requests.';
+      this.loading = false;
+      return;
+    }
+
+    console.log('Fetching requests from /my-startups with token:', token); // Debug log
     axios
-      .get(`http://localhost:8085/api/investment-requests/projet/${this.startupId}`) // Updated to match controller
+      .get('http://localhost:8085/api/investment-requests/my-startups', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
       .then((response) => {
+        console.log('Response data:', response.data); // Debug log
         this.investmentRequests = response.data.map((req: any) => ({
           ...req,
           createdAt: req.createdAt || new Date().toISOString(),
@@ -155,7 +171,12 @@ export class StartupInvestmentRequestsComponent {
         console.error('Error fetching investment requests:', error);
         this.investmentRequests = [];
         this.filterRequests();
-        this.errorMessage = 'Failed to load investment requests. Please try again later.';
+        if (error.response) {
+          console.log('Error response:', error.response.data); // Debug log
+          this.errorMessage = error.response.data.message || 'Failed to load investment requests.';
+        } else {
+          this.errorMessage = 'Failed to connect to the server. Please try again later.';
+        }
         this.loading = false;
       });
   }
@@ -176,15 +197,31 @@ export class StartupInvestmentRequestsComponent {
       const matchesSearch = 
         (request.investor?.name || '').toLowerCase().includes(query) ||
         (request.message || '').toLowerCase().includes(query) ||
-        (request.investor?.phoneNumber || '').toLowerCase().includes(query);
+        (request.investor?.phoneNumber || '').toLowerCase().includes(query) ||
+        (request.projet?.name || '').toLowerCase().includes(query);
       return matchesStatus && matchesSearch;
     });
   }
 
   updateStatus(requestId: number, newStatus: string) {
-    this.loading = true; // Optional: Show loading during update
+    this.loading = true;
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      this.errorMessage = 'You must be logged in to update request status.';
+      this.loading = false;
+      return;
+    }
+
     axios
-      .put(`http://localhost:8085/api/investment-requests/${requestId}/status?status=${newStatus}`)
+      .put(
+        `http://localhost:8085/api/investment-requests/${requestId}/status?status=${newStatus}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
       .then(() => {
         this.investmentRequests = this.investmentRequests.map(req =>
           req.id === requestId ? { ...req, status: newStatus, updatedAt: new Date().toISOString() } : req

@@ -3,19 +3,21 @@ import {
   HttpClient,
   HttpHeaders,
   HttpErrorResponse,
+  HttpParams,
 } from '@angular/common/http';
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { StatutReclamation } from '../../models/statut-reclamation.model';
+import { jwtDecode } from 'jwt-decode'; // Correct import
 
 export interface ReponseReclamation {
   id: number;
   contenu: string;
   dateCreation: Date;
-  sender: 'USER' | 'ADMIN';
   userId?: number;
   reclamation?: Reclamation;
   fichiers?: Fichier[];
+  roleEnvoyeur?: 'USER' | 'ADMIN' | 'INVESTOR' | 'ENTREPRENEUR' | 'COACH'; // Optional because the frontend doesn't necessarily need to know it until the data arrives
 }
 
 export interface Message {
@@ -43,6 +45,9 @@ export interface Reclamation {
   fichiers?: Fichier[];
 }
 
+// Define Role
+export type Role = 'USER' | 'ADMIN' | 'INVESTOR' | 'ENTREPRENEUR' | 'COACH'; // Update for your actual role types
+
 @Injectable({
   providedIn: 'root',
 })
@@ -51,12 +56,10 @@ export class ReclamationService {
 
   constructor(private http: HttpClient) {}
 
-  // Get token from local storage
   private getAccessToken(): string | null {
     return localStorage.getItem('accessToken');
   }
 
-  // Add Authorization header to the request
   private getHeaders(): HttpHeaders {
     const token = this.getAccessToken();
     let headers = new HttpHeaders();
@@ -69,23 +72,46 @@ export class ReclamationService {
   }
 
   getAllReclamations(): Observable<Reclamation[]> {
-    return this.http.get<Reclamation[]>(`${this.apiUrl}`, {
+    return this.http.get<Reclamation[]>(`${this.apiUrl}/all`, {
       headers: this.getHeaders(),
     });
   }
 
   getReclamationsUtilisateur(): Observable<Reclamation[]> {
-    return this.http
-      .get<Reclamation[]>(`${this.apiUrl}`, { headers: this.getHeaders() })
-      .pipe(
-        catchError((error: any) => {
-          console.error(
-            'Erreur lors de la récupération des réclamations utilisateur :',
-            error
-          );
-          return of([]); // Return an empty array in case of error
+    const token = this.getAccessToken(); // Get the access token
+
+    if (!token) {
+      console.warn('No token found. Cannot retrieve reclamations.');
+      return of([]); // Handle error
+    }
+    try {
+      const decodedToken: any = jwtDecode(token); // Change from JwtPayload because we do not know what the function is
+
+      const userId = decodedToken.userId; //Access the data from data decodedToken (use any)
+
+      if (!userId) {
+        console.warn('No user ID found in token. Cannot retrieve reclamations.');
+        return of([]); // Handle error
+      }
+
+      let params = new HttpParams().set('userId', userId.toString());
+
+      return this.http
+        .get<Reclamation[]>(`${this.apiUrl}/user`, {
+          headers: this.getHeaders(),
+          params: params,
         })
-      );
+        .pipe(
+          catchError((error: HttpErrorResponse) => {
+            console.error('Error retrieving reclamations.', error);
+            return of([]);
+          })
+        );
+
+    } catch (error) {
+      console.error('Error decoding JWT token:', error);
+      return of([]);
+    }
   }
 
   getReponses(idReclamation: number): Observable<ReponseReclamation[]> {
@@ -95,32 +121,25 @@ export class ReclamationService {
     );
   }
 
-  // Example of how your service methods might need to be adjusted
-// Dans reclamation.service.ts, modifiez la méthode createReponse:
-createReponse(
+  createReponse(
     idReclamation: number,
     contenu: string,
-    isAdmin: boolean
+    roleEnvoyeur: Role
   ): Observable<ReponseReclamation> {
-    const url = isAdmin 
-    ? `${this.apiUrl}/${idReclamation}/responses/admin` 
-    : `${this.apiUrl}/${idReclamation}/responses/user`;
+    const url = `${this.apiUrl}/${idReclamation}/responses`;
     const body = { contenu };
-  
+
     console.log('URL de la requête:', url);
     console.log('Corps de la requête:', body);
     console.log('Headers:', this.getHeaders().keys());
-    
+
     return this.http
       .post<ReponseReclamation>(url, body, {
-        headers: this.getHeaders().set('Content-Type', 'application/json')
+        headers: this.getHeaders().set('Content-Type', 'application/json'),
       })
       .pipe(
         tap(response => console.log('Réponse du serveur:', response)),
-        catchError(error => {
-          console.error('Erreur complète:', error);
-          return this.handleError(error);
-        })
+        catchError(this.handleError)
       );
   }
 
@@ -130,29 +149,47 @@ createReponse(
   ): Observable<any> {
     const url = `${this.apiUrl}/${idReclamation}/statut`;
 
-    return this.http.patch<any>(url, { statut }, { headers: this.getHeaders() })
+    return this.http
+      .patch<any>(url, { statut }, { headers: this.getHeaders() })
       .pipe(
-        tap((updatedReclamation: any) =>
-          console.log(`Réclamation ${idReclamation} statut mis à jour.`)
-        ),
+        tap(response => console.log('Réponse du serveur:', response)),
         catchError(this.handleError)
       );
   }
+    getCurrentRole() : Role | null { //Or whatever data type your role is
+        const token = this.getAccessToken(); // Use getAccessToken since you already have this
+
+        if (!token) {
+          console.warn('No token found. Cannot retrieve reclamations.');
+          return null; // Handle error
+        }
+        try {
+            const decodedToken: any = jwtDecode(token); // Change from JwtPayload because we do not know what the function is
+            const role = decodedToken.role; // Assuming it's userId in the claim
+            if (!role) {
+                console.warn('No user role found in token.');
+                 return null; // Handle error
+            }
+            return role as Role;
+
+        } catch (error) {
+            console.error('Error decoding JWT token:', error);
+            return null;
+        }
+    }
 
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = '';
-    
+
     if (error.error instanceof ErrorEvent) {
-      // Erreur côté client
       errorMessage = `Erreur: ${error.error.message}`;
     } else {
-      // Erreur côté serveur
       errorMessage = `Code d'erreur: ${error.status}\nMessage: ${error.message}`;
       if (error.error) {
         console.error('Corps de la réponse d\'erreur:', error.error);
       }
     }
-    
+
     console.error(errorMessage);
     return throwError(() => new Error(errorMessage));
   }

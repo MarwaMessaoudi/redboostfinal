@@ -1,197 +1,243 @@
-import { Component } from '@angular/core';
-import { ButtonModule } from 'primeng/button';
-import { RippleModule } from 'primeng/ripple';
-import { trigger, state, style, transition, animate } from '@angular/animations';
+import { Component, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
+import { trigger, state, style, animate, transition, keyframes, query, stagger } from '@angular/animations';
 
 @Component({
   selector: 'app-become-a-coach',
   standalone: true,
-  imports: [ButtonModule, RippleModule],
+  imports: [RouterModule],
   template: `
-    <div class="become-a-coach-section">
-      <div class="text-container" @fadeIn>
-        <h2 class="section-title">Become a <span class="coach-highlight">Coach</span></h2>
-        <p class="section-description">
-          Are you a passionate coach ready to guide entrepreneurs and investors?
-          Join our platform to share your expertise, gain visibility, and connect
-          with a dynamic community.
-        </p>
-      </div>
+    <section class="min-h-screen bg-gradient-to-br from-white to-gray-50 py-20 px-4 sm:px-6 lg:px-8" #section>
+      <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center" 
+           [@containerAnimation]="isVisible ? 'visible' : 'hidden'">
 
-      <div class="features-container">
-        <div class="feature-card" @staggerIn *ngFor="let feature of features; let i = index">
-          <div class="feature-icon-container">
-            <i [class]="feature.icon + ' feature-icon'"></i>
+        <!-- Texte et contenu -->
+        <div class="space-y-8 text-left">
+          <h1 class="text-5xl font-bold text-[#034A55] leading-tight">
+            Become a 
+            <span class="text-[#C8223A] relative inline-block">
+              Coach
+              <span class="absolute -bottom-2 left-0 w-full h-1 bg-[#C8223A]" 
+                    [@underlineAnimation]="isVisible ? 'visible' : 'hidden'"></span>
+            </span>
+          </h1>
+
+          <p class="text-lg text-gray-600 leading-relaxed max-w-xl" 
+             [@itemAnimation]="isVisible ? 'visible' : 'hidden'">
+            Are you a passionate coach ready to guide entrepreneurs and investors? 
+            Join our platform to share your expertise, gain visibility, and connect 
+            with a dynamic community.
+          </p>
+
+          <!-- Cards avec icônes -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div *ngFor="let item of cards; let i = index" 
+                 class="bg-white p-6 rounded-xl shadow-lg text-left"
+                 [@itemAnimation]="{ value: isVisible ? 'visible' : 'hidden', params: { delay: i * 0.2 } }"
+                 [@hoverAnimation]="hoverStates[item.id] || 'default'"
+                 (mouseenter)="onMouseEnter(item.id)"
+                 (mouseleave)="onMouseLeave(item.id)">
+              <span class="text-4xl mb-4 block">{{ item.icon }}</span>
+              <h3 class="text-lg font-semibold text-[#034A55] mb-2">{{ item.title }}</h3>
+              <p class="text-gray-600 text-sm">{{ item.desc }}</p>
+            </div>
           </div>
-          <h3 class="feature-title">{{ feature.title }}</h3>
-          <p class="feature-description">{{ feature.description }}</p>
+
+          <!-- Bouton -->
+          <div class="mt-8 text-left">
+      <button class="action-button relative" 
+              routerLink="/coach-request" 
+              [@buttonAnimation]="buttonState"
+              (mouseenter)="onButtonMouseEnter()"
+              (mouseleave)="onButtonMouseLeave()">
+        Start Now
+        <span class="button-glow absolute inset-0 bg-gradient-to-r from-[#C8223A] to-[#034A55]"
+              [@glowAnimation]="buttonState"></span>
+      </button>
+    </div>
+        </div>
+
+        <!-- Image -->
+        <div class="relative" [@imageAnimation]="isVisible ? 'visible' : 'hidden'">
+          <div class="relative z-10" [@floatingAnimation]="isVisible ? 'visible' : 'hidden'">
+            <img src="/assets/images/coach.jpg" alt="Coaching Session" class="rounded-2xl shadow-2xl w-full object-cover" />
+            <div class="absolute -top-6 -right-6 w-24 h-24 bg-[#C8223A] rounded-full opacity-20" 
+                 [@circleAnimation]="isVisible ? 'visible' : 'hidden'"></div>
+            <div class="absolute -bottom-6 -left-6 w-32 h-32 bg-[#034A55] rounded-full opacity-20" 
+                 [@circleAnimationReverse]="isVisible ? 'visible' : 'hidden'"></div>
+          </div>
         </div>
       </div>
-
-      <div class="button-container" @fadeIn>
-        <button pButton pRipple label="Start Now" class="p-button-raised p-button-rounded start-now-button"></button>
-      </div>
-    </div>
+    </section>
   `,
   styles: [`
-    .become-a-coach-section {
-      padding: 4rem 2rem;
-      text-align: center;
-      font-family: 'Inter', sans-serif; /* Modern font */
-      background: linear-gradient(135deg, #f9f9f9, #e0f4ff);
-      border-radius: 16px;
-      margin: 2rem auto;
-      max-width: 1200px;
-      box-shadow: 0 8px 24px rgba(0, 73, 85, 0.1);
+    :host {
+      display: block;
     }
 
-    .text-container {
-      margin-bottom: 3rem;
-    }
-
-    .section-title {
-      font-size: 3.5rem;
-      color: #004955;
-      margin-bottom: 1rem;
-      font-weight: 700;
-      letter-spacing: -1px;
-      transition: color 0.3s ease;
-    }
-
-    .section-title:hover {
-      color: #DB1E37;
-    }
-
-    .coach-highlight {
-      color: #DB1E37;
-      font-weight: 800;
-    }
-
-    .section-description {
-      font-size: 1.25rem;
-      color: #555;
-      max-width: 700px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-
-    .features-container {
-      display: flex;
-      gap: 2rem;
-      margin-bottom: 3rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .feature-card {
-      background-color: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0, 73, 85, 0.1);
-      padding: 2rem;
-      text-align: center;
-      width: 220px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    .action-button {
       position: relative;
       overflow: hidden;
-    }
-
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, #DB1E37, #004955);
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .feature-card:hover::before {
-      opacity: 1;
-    }
-
-    .feature-card:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 8px 24px rgba(0, 73, 85, 0.2);
-    }
-
-    .feature-icon-container {
-      background: linear-gradient(135deg, #004955, #DB1E37);
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 1rem;
-      transition: transform 0.3s ease;
-    }
-
-    .feature-card:hover .feature-icon-container {
-      transform: rotate(360deg);
-    }
-
-    .feature-icon {
-      font-size: 2rem;
-      color: #fff;
-    }
-
-    .feature-title {
-      font-size: 1.25rem;
-      color: #004955;
-      margin-bottom: 0.5rem;
+      color: #ffffff;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
       font-weight: 600;
-    }
-
-    .feature-description {
-      font-size: 0.95rem;
-      color: #777;
-      line-height: 1.5;
-    }
-
-    .button-container {
-      text-align: center;
-    }
-
-    .start-now-button {
-      background: linear-gradient(135deg, #DB1E37, #004955);
-      color: #fff;
-      font-size: 1.2rem;
-      padding: 1rem 2.5rem;
+      background: linear-gradient(to right, #C8223A, #034A55);
       border: none;
       border-radius: 50px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+      z-index: 1;
     }
 
-    .start-now-button:hover {
-      transform: scale(1.05);
-      box-shadow: 0 8px 16px rgba(219, 30, 55, 0.3);
+    .button-glow {
+      z-index: -1;
+      opacity: 0;
     }
   `],
   animations: [
-    trigger('fadeIn', [
-      state('void', style({ opacity: 0, transform: 'translateY(20px)' })),
-      transition(':enter', [
-        animate('0.6s ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+    // Container animation
+    trigger('containerAnimation', [
+      state('hidden', style({ opacity: 0 })),
+      state('visible', style({ opacity: 1 })),
+      transition('hidden => visible', [
+        animate('0.5s', style({ opacity: 1 })),
+        query(':enter', stagger('0.3s', [
+          animate('0.5s', style({ opacity: 1 }))
+        ]), { optional: true })
       ])
     ]),
-    trigger('staggerIn', [
-      transition(':enter', [
-        style({ opacity: 0, transform: 'translateY(30px)' }),
-        animate('0.6s {{delay}}ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
-      ], { params: { delay: 0 } })
+
+    // Item animation (text, cards, etc.)
+    trigger('itemAnimation', [
+      state('hidden', style({ opacity: 0, transform: 'translateY(20px)' })),
+      state('visible', style({ opacity: 1, transform: 'translateY(0)' })),
+      transition('hidden => visible', [
+        animate('0.5s ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
+      ])
+    ]),
+
+    // Underline animation
+    trigger('underlineAnimation', [
+      state('hidden', style({ transform: 'scaleX(0)' })),
+      state('visible', style({ transform: 'scaleX(1)' })),
+      transition('hidden => visible', animate('0.5s 0.5s ease-out'))
+    ]),
+
+    // Card hover animation
+    trigger('hoverAnimation', [
+      state('default', style({ transform: 'translateY(0)', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' })),
+      state('hovered', style({ transform: 'translateY(-5px)', boxShadow: '0 10px 15px rgba(0, 0, 0, 0.2)' })),
+      transition('default <=> hovered', animate('0.3s ease-out'))
+    ]),
+
+    // Image animation
+    trigger('imageAnimation', [
+      state('hidden', style({ opacity: 0, transform: 'translateX(100px)' })),
+      state('visible', style({ opacity: 1, transform: 'translateX(0)' })),
+      transition('hidden => visible', animate('0.8s ease-out')) // Simplified spring-like effect
+    ]),
+
+    // Floating animation
+    trigger('floatingAnimation', [
+      state('hidden', style({ opacity: 0 })),
+      state('visible', style({ opacity: 1 })),
+      transition('hidden => visible', [
+        animate('6s infinite ease-in-out', keyframes([
+          style({ transform: 'translateY(0)' }),
+          style({ transform: 'translateY(-20px)' }),
+          style({ transform: 'translateY(0)' })
+        ]))
+      ])
+    ]),
+
+    // Circle animation (red circle)
+    trigger('circleAnimation', [
+      state('hidden', style({ opacity: 0 })),
+      state('visible', style({ opacity: 1 })),
+      transition('hidden => visible', [
+        animate('8s infinite ease-in-out', keyframes([
+          style({ transform: 'scale(1) rotate(0deg)' }),
+          style({ transform: 'scale(1.2) rotate(180deg)' }),
+          style({ transform: 'scale(1) rotate(360deg)' })
+        ]))
+      ])
+    ]),
+
+    // Circle animation (blue circle, reverse direction)
+    trigger('circleAnimationReverse', [
+      state('hidden', style({ opacity: 0 })),
+      state('visible', style({ opacity: 1 })),
+      transition('hidden => visible', [
+        animate('10s infinite ease-in-out', keyframes([
+          style({ transform: 'scale(1) rotate(360deg)' }),
+          style({ transform: 'scale(1.3) rotate(180deg)' }),
+          style({ transform: 'scale(1) rotate(0deg)' })
+        ]))
+      ])
+    ]),
+
+    // Button animation
+    trigger('buttonAnimation', [
+      state('default', style({ background: 'linear-gradient(to right, #C8223A, #034A55)' })),
+      state('hovered', style({ background: 'linear-gradient(to right, #034A55, #C8223A)' })),
+      transition('default <=> hovered', animate('0.3s ease-out'))
+    ]),
+
+    // Button glow animation
+    trigger('glowAnimation', [
+      state('default', style({ opacity: 0, transform: 'translateX(100%)' })),
+      state('hovered', style({ opacity: 1, transform: 'translateX(0)' })),
+      transition('default <=> hovered', animate('0.3s ease-out'))
     ])
   ]
 })
-export class BecomeACoachComponent {
-  features = [
-    { icon: 'pi pi-rocket', title: 'Instant Access', description: 'Start coaching immediately.' },
-    { icon: 'pi pi-lightbulb', title: 'Share Expertise', description: 'Help others grow.' },
-    { icon: 'pi pi-star', title: 'Build Network', description: 'Connect with professionals.' }
+export class BecomeCoachComponent {
+  @ViewChild('section', { static: true }) section!: ElementRef;
+
+  cards = [
+    { id: 1, icon: '🚀', title: 'Instant Access', desc: 'Start coaching immediately' },
+    { id: 2, icon: '💡', title: 'Share Expertise', desc: 'Help others grow' },
+    { id: 3, icon: '🌟', title: 'Build Network', desc: 'Connect with professionals' }
   ];
 
-  getStaggerDelay(index: number): number {
-    return index * 200; // Stagger delay for each card
+  isVisible = false;
+  hoverStates: { [key: number]: string } = {};
+  buttonState = 'default';
+
+  constructor(private router: Router) {}
+
+  ngOnInit() {
+    this.checkVisibility();
+  }
+
+  @HostListener('window:scroll', [])
+  onScroll() {
+    this.checkVisibility();
+  }
+
+  checkVisibility() {
+    const rect = this.section.nativeElement.getBoundingClientRect();
+    const windowHeight = window.innerHeight;
+    this.isVisible = rect.top <= windowHeight * 0.75 && rect.bottom >= 0;
+  }
+
+  onMouseEnter(id: number) {
+    this.hoverStates[id] = 'hovered';
+  }
+
+  onMouseLeave(id: number) {
+    this.hoverStates[id] = 'default';
+  }
+
+  onButtonMouseEnter() {
+    this.buttonState = 'hovered';
+  }
+
+  onButtonMouseLeave() {
+    this.buttonState = 'default';
+  }
+
+  navigateToSignUp() {
+    this.router.navigate(['/signup']);
   }
 }

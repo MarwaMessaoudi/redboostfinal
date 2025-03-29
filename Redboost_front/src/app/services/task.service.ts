@@ -1,21 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Task, Attachment, TaskCategory, SubTask } from '../models/task';
+import { Task, Attachment, TaskCategory, SubTask, Comment } from '../models/task';
 import { map } from 'rxjs/operators';
 
 interface Assignee {
     id: number;
     name: string;
     avatar?: string;
-}
-
-interface Comment {
-    id: number;
-    authorName: string;
-    authorAvatar?: string;
-    content: string;
-    createdAt: Date;
 }
 
 @Injectable({
@@ -38,19 +30,21 @@ export class TaskService {
         const taskToSend = {
             ...task,
             attachments: task.attachments?.map((attachment) => attachment.name) || [],
-            taskCategory: { id: task.taskCategory?.id ?? task.taskCategoryId }, // Send only id
-            subTasks: task.subTasks || [] // Include sub-tasks
+            taskCategory: { id: task.taskCategory?.id ?? task.taskCategoryId },
+            subTasks: task.subTasks || [],
+            comments: task.comments || [] // Include comments
         };
         return this.http.post<Task>(this.apiUrl, taskToSend).pipe(map((task) => this.transformTask(task)));
     }
 
     updateTask(id: number, task: Task): Observable<Task> {
-        console.log('Task being sent to update:', task); // Debug
+        console.log('Task being sent to update:', task);
         const taskToSend = {
             ...task,
             attachments: task.attachments?.map((attachment) => attachment.name) || [],
-            taskCategory: { id: task.taskCategory?.id ?? task.taskCategoryId }, // Use taskCategoryId as fallback
-            subTasks: task.subTasks || [] // Include sub-tasks
+            taskCategory: { id: task.taskCategory?.id ?? task.taskCategoryId },
+            subTasks: task.subTasks || [],
+            comments: task.comments || [] // Include comments
         };
         return this.http.put<Task>(`${this.apiUrl}/${id}`, taskToSend).pipe(map((updatedTask) => this.transformTask(updatedTask)));
     }
@@ -75,6 +69,10 @@ export class TaskService {
         return this.http.get<Comment[]>(`${this.apiUrl}/${taskId}/comments`);
     }
 
+    addCommentToTask(taskId: number, comment: Comment): Observable<Task> {
+        return this.http.post<Task>(`${this.apiUrl}/${taskId}/comments`, comment).pipe(map((task) => this.transformTask(task)));
+    }
+
     downloadAttachment(taskId: number, fileName: string): Observable<Blob> {
         const url = `${this.apiUrl}/${taskId}/attachments/${fileName}`;
         const headers = new HttpHeaders({
@@ -87,14 +85,13 @@ export class TaskService {
     }
 
     private transformTask(task: Task): Task {
-        // Ensure taskCategory is always an object, even if minimal
         let category: TaskCategory | undefined;
         if (task.taskCategory) {
-            category = task.taskCategory; // use existing TaskCategory data
+            category = task.taskCategory;
         } else if (task.taskCategoryId) {
             category = { id: task.taskCategoryId, name: 'Unknown' };
         } else {
-            category = { id: 0, name: 'None' }; // or whatever default makes sense
+            category = { id: 0, name: 'None' };
         }
 
         return {
@@ -107,8 +104,9 @@ export class TaskService {
                         url: `${this.apiUrl}/${task.taskId}/attachments/${name}`
                     };
                 }) || [],
-            taskCategory: category, // Now always defined
-            subTasks: task.subTasks || [] // Ensure subTasks is always an array
+            taskCategory: category,
+            subTasks: task.subTasks || [],
+            comments: task.comments || [] // Ensure comments is always an array
         };
     }
 

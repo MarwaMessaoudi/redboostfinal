@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import team.project.redboost.entities.InvestmentRequest;
 import team.project.redboost.services.InvestmentRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,7 +24,7 @@ public class InvestmentRequestController {
     @GetMapping
     public List<InvestmentRequest> getAllRequests() {
         List<InvestmentRequest> requests = investmentRequestService.getAllRequests();
-        System.out.println("Requests: " + requests); // Log the response
+        System.out.println("Requests: " + requests);
         return requests;
     }
 
@@ -32,9 +33,15 @@ public class InvestmentRequestController {
         return investmentRequestService.getRequestsByInvestor(investorId);
     }
 
-    @GetMapping("/projet/{projetId}")  // Changed from /startup/{startupId}
-    public List<InvestmentRequest> getRequestsByProjet(@PathVariable Long projetId) {  // Changed from getRequestsByStartup
-        return investmentRequestService.getRequestsByProjet(projetId);  // Changed from getRequestsByStartup
+    @GetMapping("/projet/{projetId}")
+    public List<InvestmentRequest> getRequestsByProjet(@PathVariable Long projetId) {
+        return investmentRequestService.getRequestsByProjet(projetId);
+    }
+
+    @GetMapping("/my-startups")
+    public List<InvestmentRequest> getRequestsForUserStartups() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return investmentRequestService.getRequestsForUserStartups(username);
     }
 
     @PutMapping("/{requestId}/status")

@@ -2,6 +2,7 @@ package team.project.redboost.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import team.project.redboost.entities.Entrepreneur;
 import team.project.redboost.entities.RendezVous;
 import team.project.redboost.entities.Coach;
 
@@ -14,5 +15,7 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
     List<RendezVous> findByDateAndStatus(LocalDate date, RendezVous.Status status);
     List<RendezVous> findByCoachId(Long coachId);
     List<RendezVous> findByEntrepreneurId(Long entrepreneurId);
+    List<RendezVous> findByEntrepreneur(Entrepreneur entrepreneur);
+
 
 }

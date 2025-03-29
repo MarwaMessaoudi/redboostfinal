@@ -217,9 +217,21 @@
             <div class="section">
                 <div class="section-header-task-update">
                     <h3>POINTS XP</h3>
+                    <button (click)="startEditingXpPoint()" *ngIf="!editingXpPoint" class="edit-button">
+                        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </button>
                 </div>
-                <div class="xp-points">
+                <div *ngIf="!editingXpPoint" class="xp-points">
                     {{ task.xpPoint || 0 }}
+                </div>
+                <div *ngIf="editingXpPoint" class="edit-mode">
+                    <input type="number" formControlName="xpPoint" class="xp-input" min="0" placeholder="Points XP" />
+                    <div class="edit-actions">
+                        <button (click)="saveXpPoint()" class="save-button">Enregistrer</button>
+                        <button (click)="cancelEditXpPoint()" class="cancel-edit-button">Annuler</button>
+                    </div>
                 </div>
             </div>
 
@@ -259,7 +271,11 @@
                     <div class="date-field">
                         <label>Date de début</label>
                         <div class="date-input-container">
-                            <input type="date" [min]="minStartDate" formControlName="startDate" class="date-picker-field" />
+                            <mat-form-field appearance="outline" class="date-picker-field">
+                                <input matInput [matDatepicker]="startPicker" formControlName="startDate" [matDatepickerFilter]="startDateFilter" (dateChange)="saveStartDate()" />
+                                <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                                <mat-datepicker #startPicker></mat-datepicker>
+                            </mat-form-field>
                             <div class="date-actions">
                                 <button class="save-button" (click)="saveStartDate()">Mettre à jour</button>
                                 <button class="cancel-edit-button" (click)="cancelEditStartDate()">Annuler</button>
@@ -269,7 +285,11 @@
                     <div class="date-field">
                         <label>Date d'échéance</label>
                         <div class="date-input-container">
-                            <input type="date" [min]="minStartDate" formControlName="endDate" class="date-picker-field" />
+                            <mat-form-field appearance="outline" class="date-picker-field">
+                                <input matInput [matDatepicker]="endPicker" formControlName="endDate" [matDatepickerFilter]="endDateFilter" (dateChange)="saveEndDate()" />
+                                <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+                                <mat-datepicker #endPicker></mat-datepicker>
+                            </mat-form-field>
                             <div class="date-actions">
                                 <button class="save-button" (click)="saveEndDate()">Mettre à jour</button>
                                 <button class="cancel-edit-button" (click)="cancelEditEndDate()">Annuler</button>
@@ -295,7 +315,8 @@
                     <div class="comment-item" *ngFor="let comment of comments">
                         <div class="comment-header-task-update">
                             <div class="commenter-info">
-                                <span class="commenter-name">{{ comment.authorName }}</span>
+                                <img *ngIf="comment.profilePictureUrl" [src]="comment.profilePictureUrl" alt="Profile Picture" class="commenter-avatar" />
+                                <span class="commenter-name">{{ comment.firstName }} {{ comment.lastName }}</span>
                                 <span class="comment-date">{{ comment.createdAt | date: 'short' }}</span>
                             </div>
                         </div>
@@ -306,16 +327,16 @@
                     <div class="new-comment">
                         <div class="comment-form">
                             <textarea formControlName="comment" placeholder="Ajouter un commentaire" rows="2" class="comment-input"></textarea>
-                            <button class="save-button" [disabled]="!taskForm.value.comment" (click)="addComment()">Commenter</button>
+                            <button class="save-button" [disabled]="!taskForm.value.comment || submitting" (click)="addComment()">Commenter</button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Loading State -->
-        <div *ngIf="loading" class="loading-overlay">
-            <div class="spinner"></div>
+            <!-- Loading State -->
+            <div *ngIf="loading" class="loading-overlay">
+                <div class="spinner"></div>
+            </div>
         </div>
     </div>
 </div>

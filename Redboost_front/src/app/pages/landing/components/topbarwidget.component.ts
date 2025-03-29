@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core'; // Add OnInit
 import { StyleClassModule } from 'primeng/styleclass';
 import { Router, RouterModule } from '@angular/router';
 import { RippleModule } from 'primeng/ripple';
 import { ButtonModule } from 'primeng/button';
 import { CommonModule } from '@angular/common';
+import { AuthService } from '../../auth/auth.service';
+import { UserService } from '../../service/UserService'; // Import UserService
 
 @Component({
     selector: 'topbar-widget',
@@ -39,13 +41,21 @@ import { CommonModule } from '@angular/common';
             <div class="flex items-center justify-between px-4 sm:px-8 py-4">
                 <!-- Logo -->
                 <a class="flex items-center" href="#">
-                    <img src="assets/images/logo_redboost.png" alt="RedBoost Logo" class="h-8 mr-2" />
+                    <img src="assets/images/logo_redboost.png" alt="RedBoost Logo" class="h-12 mr-2" />
                 </a>
 
                 <!-- Hamburger Menu for Mobile -->
                 <div class="flex items-center gap-4 sm:hidden">
-                    <button pButton pRipple label="Se connecter" routerLink="/signin" [rounded]="true" [text]="true" class="custom-button-login transition-colors duration-300 transform hover:scale-105"></button>
-                    <button pButton pRipple label="S'inscrire" routerLink="/signup" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
+                    <ng-container *ngIf="!isLoggedIn; else loggedInMobile">
+                        <button pButton pRipple label="Se connecter" routerLink="/auth/login" [rounded]="true" [text]="true" class="custom-button-login transition-colors duration-300 transform hover:scale-105"></button>
+                        <button pButton pRipple label="S'inscrire" routerLink="/auth/register" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
+                    </ng-container>
+                    <ng-template #loggedInMobile>
+                        <a routerLink="/profile" class="profile-picture-container">
+                            <img *ngIf="user?.profile_pictureurl" [src]="user.profile_pictureurl" alt="Profile Picture" class="profile-picture" />
+                            <i *ngIf="!user?.profile_pictureurl" class="pi pi-user text-2xl hover:scale-110 transition-transform duration-300"></i>
+                        </a>
+                    </ng-template>
                     <button class="p-2 text-surface-900 dark:text-surface-0" (click)="toggleMenu()">
                         <i class="pi pi-bars text-2xl"></i>
                     </button>
@@ -63,10 +73,18 @@ import { CommonModule } from '@angular/common';
                     </li>
                 </ul>
 
-                <!-- Login and Register Buttons (Hidden on Mobile) -->
+                <!-- Login/Register or Profile Picture (Hidden on Mobile) -->
                 <div class="hidden sm:flex gap-4">
-                    <button pButton pRipple label="Se connecter" routerLink="/signin" [rounded]="true" [text]="true" class="custom-button-login transition-colors duration-300 transform hover:scale-105"></button>
-                    <button pButton pRipple label="S'inscrire" routerLink="/signup" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
+                    <ng-container *ngIf="!isLoggedIn; else loggedInDesktop">
+                        <button pButton pRipple label="Login" routerLink="/signin" [rounded]="true" [text]="true" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
+                        <button pButton pRipple label="Register" routerLink="/signup" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
+                    </ng-container>
+                    <ng-template #loggedInDesktop>
+                        <a routerLink="/profile" class="profile-picture-container">
+                            <img *ngIf="user?.profile_pictureurl" [src]="user.profile_pictureurl" alt="Profile Picture" class="profile-picture" />
+                            <i *ngIf="!user?.profile_pictureurl" class="pi pi-user text-2xl hover:scale-110 transition-transform duration-300"></i>
+                        </a>
+                    </ng-template>
                 </div>
             </div>
 
@@ -160,25 +178,72 @@ import { CommonModule } from '@angular/common';
             cursor: pointer;
             font-size: 16px;
         }
+
+        /* Profile Picture Styles */
+        .profile-picture-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .profile-picture-container:hover {
+            transform: scale(1.1);
+        }
+
+        .profile-picture {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
     `]
 })
-export class TopbarWidget {
+export class TopbarWidget implements OnInit {
     menuItems = [
         { label: 'About Us', route: '/about' },
-        { label: 'Our Services', route: '/landing', fragment: 'Our Services' },
+        { label: 'Our Services', route: '/landing', fragment: 'servicesSection' },
         { label: 'Resources', route: '/landing', fragment: 'Resources' },
-        { label: 'Marketplace', route: '/landing', fragment: 'Marketplace' },
-        { label: 'Contact', route: '/contact' }
+        { label: 'Marketplace', route: '/landing', fragment: 'marketlanding' },
+        { label: 'Contact', route: '/contactlanding' }
     ];
 
     isMenuOpen = false;
+    isLoggedIn = false;
+    user: any = null; // To store user data including profile picture
 
-    constructor(public router: Router) {}
+    constructor(
+        public router: Router,
+        private authService: AuthService,
+        private userService: UserService // Inject UserService
+    ) {}
+
+    ngOnInit() {
+        // Check if the user is logged in using AuthService
+        this.authService.getCurrentUser().subscribe(user => {
+            this.isLoggedIn = !!user;
+        });
+
+        // Subscribe to UserService to get user profile data including profile picture
+        this.userService.user$.subscribe(user => {
+            this.user = user;
+        });
+    }
 
     navigateTo(route: string | undefined, fragment: string | undefined = undefined) {
         if (route) {
             if (fragment) {
-                this.router.navigate([route], { fragment });
+                if (route === '/landing' && fragment === 'servicesSection') {
+                    this.scrollToSection('servicesSection');
+                } else if (route === '/landing' && fragment === 'marketlanding') {
+                    this.scrollToSection('marketlanding');
+                } else {
+                    this.router.navigate([route], { fragment });
+                }
             } else {
                 this.router.navigate([route]);
             }
@@ -188,5 +253,12 @@ export class TopbarWidget {
 
     toggleMenu() {
         this.isMenuOpen = !this.isMenuOpen;
+    }
+
+    scrollToSection(sectionId: string) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 }

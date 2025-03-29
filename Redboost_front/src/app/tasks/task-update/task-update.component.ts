@@ -5,12 +5,16 @@ import { RouterModule } from '@angular/router';
 import { TaskService } from '../../services/task.service';
 import { PhaseService } from '../../services/phase.service';
 import { TaskCategoryService } from '../../services/taskCategory.service';
-import { Task, Priority, Status, Attachment, TaskCategory, SubTask } from '../../models/task';
-import { Phase, PhaseStatus } from '../../models/phase'; // Import Phase and PhaseStatus
+import { Task, Priority, Status, Attachment, TaskCategory, SubTask, Comment } from '../../models/task';
+import { Phase, PhaseStatus } from '../../models/phase';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
+import { HttpClient } from '@angular/common/http';
 
 interface Assignee {
     id: number;
@@ -21,18 +25,10 @@ interface Assignee {
     role: string;
 }
 
-interface Comment {
-    id: number;
-    authorName: string;
-    authorAvatar?: string;
-    content: string;
-    createdAt: Date;
-}
-
 @Component({
     selector: 'app-task-update',
     standalone: true,
-    imports: [CommonModule, FormsModule, RouterModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule, MatFormFieldModule, MatSelectModule],
+    imports: [CommonModule, FormsModule, RouterModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatDatepickerModule, MatNativeDateModule],
     templateUrl: './task-update.component.html',
     styleUrls: ['./task-update.component.scss'],
     encapsulation: ViewEncapsulation.None
@@ -57,6 +53,7 @@ export class TaskUpdateComponent implements OnInit {
     editingTitle: boolean = false;
     editingDescription: boolean = false;
     editingCategory: boolean = false;
+    editingXpPoint: boolean = false; // Added for XP Point editing
     showStatusDropdown: boolean = false;
     showPriorityDropdown: boolean = false;
     showAssigneeDropdown: boolean = false;
@@ -66,12 +63,14 @@ export class TaskUpdateComponent implements OnInit {
     comments: Comment[] = [];
     selectedCategoryId: number | undefined;
 
-    subTasks: SubTask[] = []; // List of sub-tasks
-    editingSubTaskIndex: number | null = null; // Index of sub-task being edited
-    newSubTask: SubTask = { title: '', description: '' }; // New sub-task input
+    subTasks: SubTask[] = [];
+    editingSubTaskIndex: number | null = null;
+    newSubTask: SubTask = { title: '', description: '' };
 
     minStartDate: string = new Date().toISOString().split('T')[0];
     minEndDate: string = '';
+
+    currentUser: any = null;
 
     constructor(
         private fb: FormBuilder,
@@ -80,12 +79,14 @@ export class TaskUpdateComponent implements OnInit {
         private taskCategoryService: TaskCategoryService,
         private snackBar: MatSnackBar,
         private renderer: Renderer2,
-        private cdr: ChangeDetectorRef
+        private cdr: ChangeDetectorRef,
+        private http: HttpClient
     ) {}
 
     ngOnInit(): void {
         this.initForm();
         this.updateMinEndDate();
+        this.fetchCurrentUser();
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -94,7 +95,7 @@ export class TaskUpdateComponent implements OnInit {
                 this.loadTask(this.task.taskId);
             } else {
                 this.task = {
-                    taskId: 1,
+                    taskId: undefined,
                     title: 'New Task',
                     xpPoint: 0,
                     priority: Priority.MEDIUM,
@@ -102,16 +103,19 @@ export class TaskUpdateComponent implements OnInit {
                     phase: {
                         phaseId: 1,
                         phaseName: 'Phase 1',
-                        status: PhaseStatus.NOT_STARTED, // Use enum value
-                        startDate: '', // Required field
-                        endDate: '' // Required field
+                        status: PhaseStatus.NOT_STARTED,
+                        startDate: '',
+                        endDate: ''
                     },
                     taskCategory: { id: undefined, name: '' },
                     startDate: '',
                     endDate: '',
-                    subTasks: []
+                    subTasks: [],
+                    comments: []
                 } as Task;
                 this.patchForm(this.task);
+                this.loading = false;
+                this.cdr.detectChanges();
             }
         }
     }
@@ -125,14 +129,51 @@ export class TaskUpdateComponent implements OnInit {
             status: [Status.TO_DO],
             comment: [''],
             xpPoint: [0, [Validators.min(0)]],
-            startDate: [''],
-            endDate: [''],
+            startDate: [null],
+            endDate: [null],
             assigneeId: [null, [Validators.required]],
             categoryId: [null]
         });
 
         this.taskForm.get('startDate')?.valueChanges.subscribe((startDate) => {
             this.updateMinEndDate(startDate);
+            this.taskForm.get('endDate')?.updateValueAndValidity();
+        });
+    }
+
+    startDateFilter = (date: Date | null): boolean => {
+        if (!date) return true;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const phaseStart = this.task?.phase?.startDate ? new Date(this.task.phase.startDate) : null;
+        const phaseEnd = this.task?.phase?.endDate ? new Date(this.task.phase.endDate) : null;
+        if (phaseStart) phaseStart.setHours(0, 0, 0, 0);
+        if (phaseEnd) phaseEnd.setHours(23, 59, 59, 999);
+        const earliestAllowed = phaseStart && phaseStart > today ? phaseStart : today;
+        return date >= earliestAllowed && (!phaseEnd || date <= phaseEnd);
+    };
+
+    endDateFilter = (date: Date | null): boolean => {
+        if (!date) return true;
+        const startDate = this.taskForm.get('startDate')?.value;
+        const phaseEnd = this.task?.phase?.endDate ? new Date(this.task.phase.endDate) : null;
+        if (phaseEnd) phaseEnd.setHours(23, 59, 59, 999);
+        const start = startDate ? new Date(startDate) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        const earliestAllowed = start || new Date();
+        return date >= earliestAllowed && (!phaseEnd || date <= phaseEnd);
+    };
+
+    fetchCurrentUser(): void {
+        this.http.get('http://localhost:8085/users/profile').subscribe({
+            next: (response: any) => {
+                this.currentUser = response;
+                console.log('Current user fetched:', this.currentUser);
+            },
+            error: (error) => {
+                console.error('Failed to fetch current user:', error);
+                this.snackBar.open('Failed to fetch user profile', 'Close', { duration: 3000 });
+            }
         });
     }
 
@@ -141,18 +182,12 @@ export class TaskUpdateComponent implements OnInit {
         this.taskService.getTaskById(id).subscribe({
             next: (task) => {
                 this.task = task;
-                this.subTasks = task.subTasks || []; // Load sub-tasks
+                this.subTasks = task.subTasks || [];
+                this.comments = task.comments || [];
                 this.patchForm(task);
                 this.selectedCategoryId = task.taskCategoryId;
-                console.log('Task loaded - taskCategoryId:', this.task.taskCategoryId);
-                console.log('Task loaded - subTasks:', this.subTasks);
-
-                const projetId = task.phase?.projetId;
-                if (projetId !== null && projetId !== undefined) {
-                    this.loadTaskAssignees(projetId);
-                } else {
-                    this.loadTaskAssignees(1);
-                }
+                const projetId = task.phase?.projetId ?? 1;
+                this.loadTaskAssignees(projetId);
                 this.loadAvailableCategories();
                 this.loading = false;
                 this.cdr.detectChanges();
@@ -161,15 +196,16 @@ export class TaskUpdateComponent implements OnInit {
                 this.error = 'Failed to load task. Please try again later.';
                 this.loading = false;
                 this.snackBar.open('Failed to load task details', 'Close', { duration: 3000 });
+                this.cdr.detectChanges();
             }
         });
     }
 
     patchForm(task: Task): void {
-        const startDate = task.startDate && task.startDate.length === 10 ? task.startDate : '';
-        const endDate = task.endDate && task.endDate.length === 10 ? task.endDate : '';
+        const startDate = task.startDate ? new Date(task.startDate) : null;
+        const endDate = task.endDate ? new Date(task.endDate) : null;
 
-        this.taskForm?.patchValue(
+        this.taskForm.patchValue(
             {
                 title: task.title || '',
                 description: task.description || '',
@@ -186,19 +222,28 @@ export class TaskUpdateComponent implements OnInit {
             { emitEvent: false }
         );
 
-        this.task!.startDate = startDate;
-        this.task!.endDate = endDate;
+        if (this.task) {
+            this.task.startDate = startDate?.toISOString().split('T')[0] || '';
+            this.task.endDate = endDate?.toISOString().split('T')[0] || '';
+        }
         this.cdr.detectChanges();
     }
 
-    updateMinEndDate(startDate: string = this.taskForm.get('startDate')?.value): void {
-        this.minEndDate = startDate && startDate.length === 10 ? startDate : this.minStartDate;
+    updateMinEndDate(startDate: Date | string | null = this.taskForm.get('startDate')?.value): void {
+        if (startDate instanceof Date) {
+            this.minEndDate = startDate.toISOString().split('T')[0];
+        } else if (typeof startDate === 'string' && startDate.length === 10) {
+            this.minEndDate = startDate;
+        } else {
+            this.minEndDate = this.minStartDate;
+        }
     }
 
     loadTaskAssignees(projectId: number): void {
         this.phaseService.getEntrepreneursByProject(projectId).subscribe({
             next: (entrepreneurs) => {
                 this.availableAssignees = entrepreneurs;
+                this.cdr.detectChanges();
             },
             error: (error) => {
                 this.snackBar.open('Failed to load assignees', 'Close', { duration: 3000 });
@@ -210,10 +255,10 @@ export class TaskUpdateComponent implements OnInit {
         this.taskCategoryService.getAllTaskCategories().subscribe({
             next: (categories) => {
                 this.availableCategories = categories;
-                console.log('Available categories loaded:', this.availableCategories);
                 if (this.task && this.task.taskCategoryId !== undefined) {
                     this.selectedCategoryId = this.task.taskCategoryId;
                 }
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 console.error('Error fetching categories:', err);
@@ -243,12 +288,11 @@ export class TaskUpdateComponent implements OnInit {
         if (this.task && this.task.taskId) {
             this.taskService.updateTask(this.task.taskId, taskData).subscribe({
                 next: (updatedTask) => {
-                    console.log('Server response - updatedTask:', updatedTask);
                     this.task = { ...updatedTask };
-                    this.subTasks = updatedTask.subTasks || []; // Update sub-tasks
+                    this.subTasks = updatedTask.subTasks || [];
+                    this.comments = updatedTask.comments || [];
                     this.selectedCategoryId = updatedTask.taskCategoryId;
                     this.patchForm(this.task);
-                    console.log('After update - this.task.taskCategoryId:', this.task.taskCategoryId);
                     this.submitting = false;
                     this.taskUpdated.emit(this.task);
                     this.snackBar.open('Task updated successfully', 'Close', { duration: 3000 });
@@ -258,6 +302,7 @@ export class TaskUpdateComponent implements OnInit {
                     this.error = 'Failed to update task. Please try again later.';
                     this.submitting = false;
                     this.snackBar.open('Failed to update task', 'Close', { duration: 3000 });
+                    this.cdr.detectChanges();
                 }
             });
         } else {
@@ -266,6 +311,7 @@ export class TaskUpdateComponent implements OnInit {
                     this.submitting = false;
                     this.task = newTask;
                     this.subTasks = newTask.subTasks || [];
+                    this.comments = newTask.comments || [];
                     this.taskUpdated.emit(newTask);
                     this.close();
                     this.snackBar.open('Task created successfully', 'Close', { duration: 3000 });
@@ -274,6 +320,7 @@ export class TaskUpdateComponent implements OnInit {
                     this.error = 'Failed to create task. Please try again later.';
                     this.submitting = false;
                     this.snackBar.open('Failed to create task', 'Close', { duration: 3000 });
+                    this.cdr.detectChanges();
                 }
             });
         }
@@ -283,14 +330,10 @@ export class TaskUpdateComponent implements OnInit {
         const formValues = this.taskForm.value;
         const selectedCategory = this.availableCategories.find((cat) => cat.id === this.selectedCategoryId);
 
-        console.log('Preparing task data - selectedCategoryId:', this.selectedCategoryId);
-        console.log('Preparing task data - subTasks:', this.subTasks);
-
         return {
             ...(this.task && this.task.taskId ? { taskId: this.task.taskId } : {}),
             title: formValues.title,
             description: formValues.description,
-            comments: formValues.comments,
             priority: formValues.priority,
             status: formValues.status,
             phase: this.task?.phase,
@@ -298,10 +341,11 @@ export class TaskUpdateComponent implements OnInit {
             taskCategory: selectedCategory || this.task?.taskCategory,
             attachments: this.task?.attachments,
             xpPoint: formValues.xpPoint,
-            startDate: formValues.startDate || undefined,
-            endDate: formValues.endDate || undefined,
+            startDate: formValues.startDate ? formValues.startDate.toISOString().split('T')[0] : undefined,
+            endDate: formValues.endDate ? formValues.endDate.toISOString().split('T')[0] : undefined,
             assigneeId: formValues.assigneeId,
-            subTasks: this.subTasks // Include sub-tasks
+            subTasks: this.subTasks,
+            comments: this.comments
         } as Task;
     }
 
@@ -329,6 +373,7 @@ export class TaskUpdateComponent implements OnInit {
             error: (error) => {
                 this.loading = false;
                 this.snackBar.open('Failed to delete task', 'Close', { duration: 3000 });
+                this.cdr.detectChanges();
             }
         });
     }
@@ -380,6 +425,31 @@ export class TaskUpdateComponent implements OnInit {
         this.editingDescription = false;
     }
 
+    startEditingXpPoint(): void {
+        this.editingXpPoint = true;
+    }
+
+    saveXpPoint(): void {
+        const xpPointValue = this.taskForm.value.xpPoint;
+        if (xpPointValue < 0) {
+            this.snackBar.open('XP Points cannot be negative', 'Close', { duration: 3000 });
+            return;
+        }
+
+        if (this.task) {
+            this.task.xpPoint = xpPointValue;
+            this.editingXpPoint = false;
+            this.onSubmit();
+        }
+    }
+
+    cancelEditXpPoint(): void {
+        if (this.task) {
+            this.taskForm.patchValue({ xpPoint: this.task.xpPoint });
+        }
+        this.editingXpPoint = false;
+    }
+
     toggleStatusDropdown(): void {
         this.showStatusDropdown = !this.showStatusDropdown;
     }
@@ -428,7 +498,6 @@ export class TaskUpdateComponent implements OnInit {
         if (this.task && this.selectedCategoryId !== undefined) {
             this.task.taskCategoryId = this.selectedCategoryId;
             this.taskForm.get('categoryId')?.setValue(this.selectedCategoryId);
-            console.log('Before save - task.taskCategoryId:', this.task.taskCategoryId);
             this.onSubmit();
             this.editingCategory = false;
         } else {
@@ -454,20 +523,32 @@ export class TaskUpdateComponent implements OnInit {
 
     addComment(): void {
         const commentValue = this.taskForm.value.comment;
-        if (!commentValue?.trim()) {
+        if (!commentValue?.trim() || !this.task?.taskId || !this.currentUser) {
+            this.snackBar.open('Comment cannot be empty or user not loaded', 'Close', { duration: 3000 });
             return;
         }
 
         const newComment: Comment = {
-            id: Date.now(),
-            authorName: 'Current User',
-            authorAvatar: 'assets/default-avatar.png',
             content: commentValue,
-            createdAt: new Date()
+            profilePictureUrl: this.currentUser.profile_pictureurl,
+            firstName: this.currentUser.firstName,
+            lastName: this.currentUser.lastName,
+            userId: this.currentUser.id
         };
 
-        this.comments.unshift(newComment);
-        this.taskForm.patchValue({ comment: '' });
+        this.taskService.addCommentToTask(this.task.taskId, newComment).subscribe({
+            next: (updatedTask) => {
+                this.task = updatedTask;
+                this.comments = updatedTask.comments || [];
+                this.taskForm.patchValue({ comment: '' });
+                this.snackBar.open('Comment added successfully', 'Close', { duration: 3000 });
+                this.cdr.detectChanges();
+            },
+            error: (error) => {
+                console.error('Failed to add comment:', error);
+                this.snackBar.open('Failed to add comment', 'Close', { duration: 3000 });
+            }
+        });
     }
 
     trackByAttachments(index: number, attachment: Attachment): string {
@@ -475,7 +556,8 @@ export class TaskUpdateComponent implements OnInit {
     }
 
     downloadAttachment(attachment: Attachment) {
-        this.taskService.downloadAttachment(this.task!.taskId!, attachment.name).subscribe({
+        if (!this.task?.taskId) return;
+        this.taskService.downloadAttachment(this.task.taskId, attachment.name).subscribe({
             next: (blob: Blob) => {
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
@@ -502,6 +584,7 @@ export class TaskUpdateComponent implements OnInit {
                 this.loading = false;
                 this.taskUpdated.emit(updatedTask);
                 this.snackBar.open('Attachment deleted successfully.', 'Close', { duration: 2000 });
+                this.cdr.detectChanges();
             },
             error: (err) => {
                 this.loading = false;
@@ -509,6 +592,7 @@ export class TaskUpdateComponent implements OnInit {
                 this.taskService.getTaskById(this.task!.taskId!).subscribe((task) => {
                     this.task = task;
                     this.patchForm(task);
+                    this.cdr.detectChanges();
                 });
             }
         });
@@ -516,36 +600,37 @@ export class TaskUpdateComponent implements OnInit {
 
     saveStartDate(): void {
         if (this.task) {
-            this.task.startDate = this.taskForm.value.startDate;
+            const startDate = this.taskForm.value.startDate;
+            this.task.startDate = startDate ? startDate.toISOString().split('T')[0] : '';
             this.onSubmit();
         }
     }
 
     cancelEditStartDate(): void {
         if (this.task) {
-            this.taskForm.patchValue({ startDate: this.task.startDate || '' });
+            this.taskForm.patchValue({ startDate: this.task.startDate ? new Date(this.task.startDate) : null });
         }
     }
 
     saveEndDate(): void {
         if (this.task) {
-            this.task.endDate = this.taskForm.value.endDate;
+            const endDate = this.taskForm.value.endDate;
+            this.task.endDate = endDate ? endDate.toISOString().split('T')[0] : '';
             this.onSubmit();
         }
     }
 
     cancelEditEndDate(): void {
         if (this.task) {
-            this.taskForm.patchValue({ endDate: this.task.endDate || '' });
+            this.taskForm.patchValue({ endDate: this.task.endDate ? new Date(this.task.endDate) : null });
         }
     }
 
-    // Sub-task methods
     addSubTask(): void {
         if (this.newSubTask.title.trim()) {
             this.subTasks.push({ ...this.newSubTask });
-            this.newSubTask = { title: '', description: '' }; // Reset form
-            this.onSubmit(); // Save immediately
+            this.newSubTask = { title: '', description: '' };
+            this.onSubmit();
         } else {
             this.snackBar.open('Sub-task title is required', 'Close', { duration: 3000 });
         }
@@ -558,7 +643,7 @@ export class TaskUpdateComponent implements OnInit {
     saveSubTask(index: number): void {
         if (this.subTasks[index].title.trim()) {
             this.editingSubTaskIndex = null;
-            this.onSubmit(); // Save changes
+            this.onSubmit();
         } else {
             this.snackBar.open('Sub-task title is required', 'Close', { duration: 3000 });
         }
@@ -570,6 +655,6 @@ export class TaskUpdateComponent implements OnInit {
 
     deleteSubTask(index: number): void {
         this.subTasks.splice(index, 1);
-        this.onSubmit(); // Save changes
+        this.onSubmit();
     }
 }

@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { DividerModule } from 'primeng/divider';
 import { RippleModule } from 'primeng/ripple';
 import { TimelineModule } from 'primeng/timeline';
 import { CardModule } from 'primeng/card';
-import { trigger, transition, style, animate, state, keyframes } from '@angular/animations'; // Ajout de 'keyframes'
+import { trigger, transition, style, animate, state, keyframes } from '@angular/animations';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-icons';
 
@@ -14,24 +14,24 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
     standalone: true,
     imports: [CommonModule, DividerModule, ButtonModule, RippleModule, TimelineModule, CardModule, FontAwesomeModule],
     template: `
-        <section class="roadmap-section">
+        <section class="roadmap-section" #roadmapSection>
             <div class="roadmap-container">
-                <div class="roadmap-header text-center mb-80">
+                <div class="roadmap-header text-center mb-80" [@fadeInUp]="headerState">
                     <span class="section-subtitle">Phased Growth Approach</span>
                     <h2 class="section-title">A Roadmap to RedBoost Success</h2>
                     <p class="section-description">Our strategic approach to building a comprehensive platform for your success</p>
                 </div>
 
                 <div class="timeline">
-                    <div class="timeline-line"></div>
+                    <div class="timeline-line" [@lineGrow]="timelineState"></div>
                     <div class="timeline-items">
                         <div *ngFor="let event of events; let i = index" 
                              class="timeline-item {{ event.status }}" 
                              [style]="{ '--item-index': i }">
-                            <div class="timeline-icon">
+                            <div class="timeline-icon" [@iconBounce]="iconStates[i]">
                                 <fa-icon [icon]="event.icon" size="2x" class="text-[#004D4D]"></fa-icon>
                             </div>
-                            <div class="timeline-content">
+                            <div class="timeline-content" [@contentSlide]="timelineState">
                                 <div class="phase-badge">
                                     <span class="phase-number">{{ event.phase }}</span>
                                     <span class="phase-date">{{ event.date }}</span>
@@ -39,12 +39,12 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
                                 <h3 class="phase-title">{{ event.title }}</h3>
                                 <p class="phase-description">{{ event.description }}</p>
                             </div>
-                            <div class="timeline-dot"></div>
+                            <div class="timeline-dot" [@dotFade]="timelineState"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="roadmap-cta text-center mt-60">
+                <div class="roadmap-cta text-center mt-60" [@fadeInUp]="ctaState">
                     <button class="learn-more-button">
                         Learn More About Our Vision
                         <span class="button-arrow">→</span>
@@ -55,13 +55,12 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
     `,
     animations: [
         trigger('fadeInUp', [
-            transition(':enter', [
-                style({ opacity: 0, transform: 'translateY(20px)' }),
-                animate('0.6s ease forwards', style({ opacity: 1, transform: 'translateY(0)' }))
-            ])
+            state('hidden', style({ opacity: 0, transform: 'translateY(20px)' })),
+            state('visible', style({ opacity: 1, transform: 'translateY(0)' })),
+            transition('hidden => visible', animate('0.6s ease'))
         ]),
         trigger('pulse', [
-            transition(':enter', [
+            transition('* => *', [
                 style({ boxShadow: '0 0 0 0 rgba(203, 74, 89, 0.4)' }),
                 animate('2s infinite', keyframes([
                     style({ boxShadow: '0 0 0 0 rgba(203, 74, 89, 0.4)' }),
@@ -69,6 +68,32 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
                     style({ boxShadow: '0 0 0 0 rgba(203, 74, 89, 0)' })
                 ]))
             ])
+        ]),
+        trigger('iconBounce', [
+            state('hidden', style({ transform: 'scale(0.8)', opacity: 0 })),
+            state('visible', style({ transform: 'scale(1)', opacity: 1 })),
+            transition('hidden => visible', [
+                animate('0.5s ease-in-out', keyframes([
+                    style({ transform: 'scale(0.8)', opacity: 0, offset: 0 }),
+                    style({ transform: 'scale(1.2)', opacity: 1, offset: 0.7 }),
+                    style({ transform: 'scale(1)', opacity: 1, offset: 1 })
+                ]))
+            ])
+        ]),
+        trigger('lineGrow', [
+            state('hidden', style({ height: '0%' })),
+            state('visible', style({ height: '100%' })),
+            transition('hidden => visible', animate('1s ease-out'))
+        ]),
+        trigger('contentSlide', [
+            state('hidden', style({ opacity: 0, transform: 'translateX({{direction}})' }), { params: { direction: '50px' } }),
+            state('visible', style({ opacity: 1, transform: 'translateX(0)' })),
+            transition('hidden => visible', animate('0.6s ease-in-out'))
+        ]),
+        trigger('dotFade', [
+            state('hidden', style({ opacity: 0, transform: 'scale(0)' })),
+            state('visible', style({ opacity: 1, transform: 'scale(1)' })),
+            transition('hidden => visible', animate('0.4s 0.2s ease-out')) // Delay for stagger effect
         ])
     ],
     styles: [`
@@ -143,10 +168,6 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
             display: flex;
             align-items: center;
             margin-bottom: 100px;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 0.6s ease forwards;
-            animation-delay: calc(var(--item-index) * 0.2s);
         }
 
         .timeline-item:last-child {
@@ -179,6 +200,8 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
             z-index: 2;
             position: relative;
             border: 2px solid #E0E7FF;
+            transition: transform 0.3s ease-in-out;
+            margin-left: 5px;
         }
 
         .timeline-icon fa-icon {
@@ -194,6 +217,11 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
             padding: 1rem;
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .timeline-item:hover .timeline-content {
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
         }
 
         .phase-badge {
@@ -252,6 +280,10 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
             animation: pulse 2s infinite;
         }
 
+        .timeline-item.current .timeline-icon {
+            animation: subtleBounce 2s infinite;
+        }
+
         .timeline-item.upcoming .timeline-dot {
             background: #E0E7FF;
             border: 2px solid #004D4D;
@@ -292,27 +324,9 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
             transform: translateX(4px);
         }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(203, 74, 89, 0.4);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(203, 74, 89, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(203, 74, 89, 0);
-            }
+        @keyframes subtleBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
         }
 
         @media (max-width: 768px) {
@@ -363,6 +377,13 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
     `]
 })
 export class RoadmapWidget implements OnInit {
+    @ViewChild('roadmapSection', { static: true }) roadmapSection!: ElementRef;
+
+    headerState: string = 'hidden';
+    timelineState: string = 'hidden';
+    ctaState: string = 'hidden';
+    iconStates: string[] = [];
+
     events = [
         {
             status: 'completed',
@@ -391,6 +412,25 @@ export class RoadmapWidget implements OnInit {
     ];
 
     ngOnInit() {
-        // Pas besoin de startAutoRotation ici, car c'est une timeline statique
+        // Initialize icon states
+        this.iconStates = this.events.map(() => 'hidden');
+        this.checkVisibility();
+    }
+
+    @HostListener('window:scroll', [])
+    onScroll(): void {
+        this.checkVisibility();
+    }
+
+    private checkVisibility(): void {
+        const rect = this.roadmapSection.nativeElement.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+
+        if (rect.top <= windowHeight * 0.75 && rect.bottom >= 0) {
+            this.headerState = 'visible';
+            this.timelineState = 'visible';
+            this.ctaState = 'visible';
+            this.iconStates = this.events.map(() => 'visible'); // All icons bounce when in view
+        }
     }
 }

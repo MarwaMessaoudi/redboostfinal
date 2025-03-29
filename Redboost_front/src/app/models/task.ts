@@ -2,7 +2,7 @@
 import { Phase } from './phase';
 
 export interface TaskCategory {
-    id?: number; // Optional for creation
+    id?: number;
     name: string;
 }
 
@@ -20,13 +20,23 @@ export enum Status {
 
 export interface Attachment {
     name: string;
-    url: string; // URL to download the attachment
+    url: string;
 }
 
 export interface SubTask {
-    subTaskId?: number; // Optional, assigned by backend
+    subTaskId?: number;
     title: string;
     description?: string;
+}
+
+export interface Comment {
+    commentId?: number;
+    content: string;
+    profilePictureUrl?: string;
+    firstName: string;
+    lastName: string;
+    userId: number;
+    createdAt?: string; // ISO string
 }
 
 export interface Task {
@@ -34,17 +44,17 @@ export interface Task {
     title: string;
     xpPoint: number;
     description?: string;
-    comments?: string;
     assigneeId?: number;
-    startDate?: string; // ISO string (e.g., "2025-03-15")
-    endDate?: string; // ISO string (e.g., "2025-03-20")
+    startDate?: string;
+    endDate?: string;
     priority: Priority;
     status: Status;
-    phase: Phase; // Changed to ALWAYS be a Phase
-    taskCategory: TaskCategory; // Added to match backend TaskCategory relationship
-    createdAt?: string; // ISO string (e.g., "2025-03-15T10:00:00")
-    updatedAt?: string; // ISO string (e.g., "2025-03-15T12:00:00")
-    attachments?: Attachment[]; // Updated to use Attachment interface
-    taskCategoryId?: number; // Optional, added for transient field compatibility
-    subTasks?: SubTask[]; // Added to support sub-tasks
+    phase: Phase;
+    taskCategory: TaskCategory;
+    createdAt?: string;
+    updatedAt?: string;
+    attachments?: Attachment[];
+    taskCategoryId?: number;
+    subTasks?: SubTask[];
+    comments?: Comment[]; // Renamed to avoid conflict with existing 'comments' field
 }

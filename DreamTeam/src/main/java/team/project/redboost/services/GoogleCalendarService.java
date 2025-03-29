@@ -1,82 +1,144 @@
 package team.project.redboost.services;
 
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp;
-import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver;
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.DateTime;
-import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
-import com.google.api.services.calendar.model.Event;
-import com.google.api.services.calendar.model.EventDateTime;
-import com.google.api.services.calendar.model.EventAttendee;
-import org.springframework.core.io.ClassPathResource;
+import com.google.api.services.calendar.model.*;
 import org.springframework.stereotype.Service;
 import team.project.redboost.entities.RendezVous;
 
-import java.io.File;
-import java.io.FileNotFoundException;
+import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 @Service
 public class GoogleCalendarService {
-
-
     private static final String APPLICATION_NAME = "RedBoostCalendarIntegration";
     private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
-    private static final String CREDENTIALS_FILE_PATH = "client_secret.json"; // Chemin vers le fichier OAuth 2.0 credentials
     private static final List<String> SCOPES = Collections.singletonList(CalendarScopes.CALENDAR);
-    private static final String TOKENS_DIRECTORY_PATH = "tokens";
-    public void ajouterRendezVous(RendezVous rdv) {
+    private static final String ORGANIZER_EMAIL = "oussama.hajboubaker@gmail.com";
+    private static final String CENTRAL_CALENDAR_ID = "oussama.hajboubaker@gmail.com";
+    private static final String CLIENT_ID = "847579644213-tt8aljrm2luej8b38q16f7hdl99ssnl1.apps.googleusercontent.com";
+    private static final String CLIENT_SECRET = "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";
+    private static final String REFRESH_TOKEN = "1//04G4i8qTxAoiQCgYIARAAGAQSNwF-L9IrKGSPKQKzk4DbVOR-ob_FTdJ-sgk9hC3SCpTWIyHvZQb_ZVMavC3_2Xr5_po0rAXT5uo";
+
+    private Calendar calendarService;
+
+    @PostConstruct
+    public void init() throws GeneralSecurityException, IOException {
+        System.out.println("Initialisation de GoogleCalendarService...");
+        this.calendarService = getCalendarService();
+        System.out.println("GoogleCalendarService initialisé avec succès");
+    }
+
+    public void ajouterRendezVous(RendezVous rendezVous) {
         try {
             System.out.println("Début de l'ajout dans Google Calendar");
 
-            // Créer un événement avec des attendees statiques
-            Event event = new Event()
-                    .setSummary(rdv.getTitle())
-                    .setDescription(rdv.getDescription());
+            System.out.println("RendezVous ID: " + rendezVous.getId());
+            System.out.println("Email stocké dans RendezVous: " + rendezVous.getEmail());
 
-            // Parser date et heure
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-            LocalDateTime startTime = LocalDateTime.parse(rdv.getDate() + " " + rdv.getHeure(), formatter);
-            LocalDateTime endTime = startTime.plusHours(1); // Durée de 1 heure, ajustez selon vos besoins
-            // Définir la date/heure de début
+            Event event = new Event()
+                    .setSummary(rendezVous.getTitle())
+                    .setDescription(rendezVous.getDescription())
+                    .setOrganizer(new Event.Organizer().setEmail(ORGANIZER_EMAIL));
+
+            // Convertir LocalDate et heure en LocalDateTime
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+            LocalTime heure = LocalTime.parse(rendezVous.getHeure(), formatter);
+            LocalDateTime startTime = LocalDateTime.of(rendezVous.getDate(), heure);
+            LocalDateTime endTime = startTime.plusHours(1);
             DateTime startDateTime = new DateTime(startTime.atZone(ZoneId.of("Europe/Paris")).toInstant().toEpochMilli());
             EventDateTime start = new EventDateTime()
                     .setDateTime(startDateTime)
                     .setTimeZone("Europe/Paris");
             event.setStart(start);
 
-            // Définir la date/heure de fin
             DateTime endDateTime = new DateTime(endTime.atZone(ZoneId.of("Europe/Paris")).toInstant().toEpochMilli());
             EventDateTime end = new EventDateTime()
                     .setDateTime(endDateTime)
                     .setTimeZone("Europe/Paris");
             event.setEnd(end);
 
-            // Ajouter les attendees statiques (vos emails spécifiques)
-            List<EventAttendee> attendees = List.of(
-                    new EventAttendee().setEmail("ahmedbenmohamed799@gmail.com"),
-                    new EventAttendee().setEmail("baylassenelabed03@gmail.com")
-            );
-            event.setAttendees(attendees);
+            Event.Reminders reminders = new Event.Reminders()
+                    .setUseDefault(false)
+                    .setOverrides(Arrays.asList(
+                            new EventReminder().setMethod("email").setMinutes(30),
+                            new EventReminder().setMethod("email").setMinutes(10)
+                    ));
+            event.setReminders(reminders);
 
-            // Créer le service et insérer l'événement
-            Calendar service = getCalendarService();
-            event = service.events().insert("primary", event).execute();
+            List<EventAttendee> attendees = new ArrayList<>();
+            if (rendezVous.getCoach() != null && rendezVous.getCoach().getEmail() != null) {
+                System.out.println("Email du coach: " + rendezVous.getCoach().getEmail());
+                attendees.add(new EventAttendee().setEmail(rendezVous.getCoach().getEmail()));
+            } else {
+                System.err.println("Email du coach non disponible pour le rendez-vous ID: " + rendezVous.getId());
+            }
+
+            if (rendezVous.getEntrepreneur() != null && rendezVous.getEntrepreneur().getEmail() != null) {
+                System.out.println("Email de l'entrepreneur: " + rendezVous.getEntrepreneur().getEmail());
+                attendees.add(new EventAttendee().setEmail(rendezVous.getEntrepreneur().getEmail()));
+            } else {
+                System.err.println("Email de l'entrepreneur non disponible pour le rendez-vous ID: " + rendezVous.getId());
+                if (rendezVous.getEntrepreneur() == null) {
+                    System.err.println("L'entité Entrepreneur est null pour ce rendez-vous.");
+                } else {
+                    System.err.println("L'email de l'Entrepreneur est null.");
+                }
+            }
+
+            if (!attendees.isEmpty()) {
+                event.setAttendees(attendees);
+                System.out.println("Participants ajoutés à l'événement : " + attendees);
+            } else {
+                System.err.println("Aucun email valide trouvé pour les attendees de l'événement.");
+            }
+
+            ConferenceData conferenceData = new ConferenceData();
+            CreateConferenceRequest createConferenceRequest = new CreateConferenceRequest();
+            createConferenceRequest.setRequestId("random-string-" + System.currentTimeMillis());
+            createConferenceRequest.setConferenceSolutionKey(new ConferenceSolutionKey().setType("hangoutsMeet"));
+            conferenceData.setCreateRequest(createConferenceRequest);
+            event.setConferenceData(conferenceData);
+
+            // Ajouter l'événement dans le calendrier centralisé
+            event = calendarService.events().insert(CENTRAL_CALENDAR_ID, event)
+                    .setConferenceDataVersion(1)
+                    .setSendNotifications(true)
+                    .execute();
+
+            String meetingLink = null;
+            if (event.getConferenceData() != null && event.getConferenceData().getEntryPoints() != null) {
+                for (EntryPoint entryPoint : event.getConferenceData().getEntryPoints()) {
+                    if ("video".equals(entryPoint.getEntryPointType())) {
+                        meetingLink = entryPoint.getUri();
+                        System.out.println("Lien Google Meet généré : " + meetingLink);
+                        rendezVous.setMeetingLink(meetingLink);
+                        break;
+                    }
+                }
+            }
+
+            if (meetingLink == null) {
+                System.err.println("Aucun lien Google Meet n'a été généré.");
+            }
 
             System.out.println("Événement créé avec succès: " + event.getHtmlLink());
 
@@ -86,33 +148,23 @@ public class GoogleCalendarService {
             throw new RuntimeException("Erreur calendrier: " + e.getClass().getName() + " - " + e.getMessage(), e);
         }
     }
+
     private Calendar getCalendarService() throws GeneralSecurityException, IOException {
-        // Charger les credentials OAuth 2.0
-        InputStream in = new ClassPathResource(CREDENTIALS_FILE_PATH).getInputStream();
-        if (in == null) {
-            throw new FileNotFoundException("Resource not found: " + CREDENTIALS_FILE_PATH);
-        }
-
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
-        // Configurer le flux d’autorisation
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                GoogleNetHttpTransport.newTrustedTransport(),
+        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(
                 JSON_FACTORY,
-                clientSecrets,
-                SCOPES)
-                .setDataStoreFactory(new FileDataStoreFactory(new File(TOKENS_DIRECTORY_PATH)))
-                .setAccessType("offline")
-                .build();
-        // Authentification interactive avec un port correspondant aux URIs autorisés
-        LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8088).build(); // Garder le port 8087
-        Credential credential = new AuthorizationCodeInstalledApp(flow, receiver).authorize("user");
+                new StringReader("{\"installed\":{\"client_id\":\"" + CLIENT_ID + "\",\"client_secret\":\"" + CLIENT_SECRET + "\"}}")
+        );
 
-        return new Calendar.Builder(
-                GoogleNetHttpTransport.newTrustedTransport(),
-                JSON_FACTORY,
-                credential)
+        Credential credential = new GoogleCredential.Builder()
+                .setClientSecrets(clientSecrets)
+                .setJsonFactory(JSON_FACTORY)
+                .setTransport(GoogleNetHttpTransport.newTrustedTransport())
+                .build()
+                .setRefreshToken(REFRESH_TOKEN);
+
+        NetHttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        return new Calendar.Builder(httpTransport, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build();
     }
-
 }

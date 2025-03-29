@@ -8,6 +8,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReclamationRepository extends JpaRepository<Reclamation, Long> {
+    // Find all reclamations for a specific user
     List<Reclamation> findByUser(User user);
-    Optional<Reclamation> findByIdReclamationAndUser(Long idReclamation, User user); // Updated method name
+    List<Reclamation> findByUser_Id(Long userId);
+
+    // Find a reclamation by ID and user
+    Optional<Reclamation> findByIdReclamationAndUser(Long idReclamation, User user);
+
+    // Find all reclamations (provided by default by JpaRepository)
+    List<Reclamation> findAll();
 }

@@ -8,31 +8,37 @@ import { ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="modal-overlay">
-      <div class="modal-box">
+    <div class="modal-container">
+      <div class="modal-content">
         <div class="modal-header">
           <h4 class="modal-title">Modifier le rendez-vous</h4>
-          <button class="btn-close" (click)="activeModal.dismiss()">✖</button>
         </div>
         <div class="modal-body">
           <form [formGroup]="form" (ngSubmit)="onSave()">
             <div class="input-group">
-              <label for="title">Titre</label>
-              <input id="title" formControlName="title" type="text" required>
+              <label for="title">Titre <span class="required">*</span></label>
+              <input id="title" type="text" class="form-control" formControlName="title" required>
+            </div>
+            <div class="input-row">
+              
+              <div class="input-group half">
+                <label for="heure">Heure <span class="required">*</span></label>
+                <div class="input-with-icon">
+                  <span class="calendar-icon">
+                    
+                  </span>
+                  <input id="heure" type="time" class="form-control" formControlName="heure" required>
+                </div>
+              </div>
             </div>
             <div class="input-group">
-              <label for="heure">Heure</label>
-              <input id="heure" formControlName="heure" type="time" required>
+              <label for="email">Email <span class="required">*</span></label>
+              <input id="email" type="email" class="form-control" formControlName="email" required>
             </div>
             <div class="input-group">
               <label for="description">Description</label>
-              <textarea id="description" formControlName="description"></textarea>
+              <textarea id="description" class="form-control" formControlName="description"></textarea>
             </div>
-            <div class="input-group">
-              <label for="email">Email</label>
-              <input id="email" formControlName="email" type="email" required>
-            </div>
-            
             <div class="modal-footer">
               <button type="button" class="btn-cancel" (click)="activeModal.dismiss()">Annuler</button>
               <button type="submit" class="btn-save" [disabled]="form.invalid">Enregistrer</button>
@@ -43,7 +49,7 @@ import { ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
     </div>
   `,
   styles: [`
-    .modal-overlay {
+    .modal-container {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -52,143 +58,133 @@ import { ReactiveFormsModule, FormGroup, FormBuilder } from '@angular/forms';
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(8px);
-      z-index: 1050;
-      animation: fadeInBackground 0.3s ease-in-out;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 1050 !important;
     }
 
-    .modal-box {
-      background: #1E1F2F;
-      color: #ffffff;
-      width: 420px;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      padding: 24px;
-      animation: slideIn 0.3s ease-in-out;
+    .modal-content {
+      width: 600px;
+      background: #f5f7fa;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      z-index: 1060 !important;
+      color: #333;
     }
 
     .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 16px;
-      margin-bottom: 16px;
+      padding: 20px 30px;
+      border-bottom: none;
     }
 
     .modal-title {
-      font-size: 1.8rem;
-      font-weight: 600;
-      color: #ffffff;
-    }
-
-    .btn-close {
-      background: none;
-      border: none;
       font-size: 1.5rem;
-      color: #ff6b6b;
-      cursor: pointer;
-      transition: color 0.3s ease, transform 0.3s ease;
+      font-weight: 600;
+      color: #1a3c34;
+      margin: 0;
     }
 
-    .btn-close:hover {
-      color: #ff4040;
-      transform: scale(1.1);
+    .modal-body {
+      padding: 20px 30px;
     }
 
     .input-group {
+      margin-bottom: 20px;
+    }
+
+    .input-row {
       display: flex;
-      flex-direction: column;
-      margin-bottom: 16px;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .half {
+      flex: 1;
     }
 
     .input-group label {
-      font-size: 1rem;
+      font-size: 0.9rem;
+      color: #666;
       margin-bottom: 5px;
-      color: rgba(255, 255, 255, 0.8);
+      display: block;
+    }
+
+    .required {
+      color: #ff0000;
+      font-size: 0.9rem;
     }
 
     .input-group input,
-    .input-group textarea,
-    .input-group select {
+    .input-group textarea {
       width: 100%;
-      padding: 10px;
+      padding: 10px 15px 10px 40px; /* Ajout de padding à gauche pour l'icône */
       font-size: 1rem;
-      border: none;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all 0.3s ease;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      background: #fff;
+      color: #333;
+      transition: border-color 0.3s ease;
     }
 
     .input-group input:focus,
-    .input-group textarea:focus,
-    .input-group select:focus {
+    .input-group textarea:focus {
       outline: none;
-      border-color: #4a90e2;
-      box-shadow: 0 0 8px rgba(74, 144, 226, 0.5);
-      background: rgba(255, 255, 255, 0.15);
+      border-color: #1a73e8;
     }
 
     .input-group textarea {
+      padding: 10px 15px; /* Pas d'icône pour textarea, donc padding normal */
       height: 80px;
       resize: vertical;
     }
 
-    .modal-footer {
-      display: flex;
-      justify-content: space-between;
-      padding-top: 20px;
+    .input-with-icon {
+      position: relative;
     }
 
-    .btn-cancel, .btn-save {
-      padding: 12px 24px;
-      font-size: 1.1rem;
-      border-radius: 8px;
+   
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 20px 30px;
+      border-top: none;
+    }
+
+    .btn-cancel,
+    .btn-save {
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 5px;
       border: none;
       cursor: pointer;
-      transition: all 0.3s ease;
-      font-weight: 500;
+      transition: background-color 0.3s ease;
     }
 
     .btn-cancel {
-      background: #6c757d;
-      color: #ffffff;
+      background: transparent;
+      color: #666;
+      border: 1px solid #e0e0e0;
     }
 
     .btn-cancel:hover {
-      background: #5a6268;
+      background: #e0e0e0;
     }
 
     .btn-save {
-      background: linear-gradient(45deg, #4a90e2, #50e3c2);
-      color: #ffffff;
+      background: #1a73e8;
+      color: #fff;
     }
 
     .btn-save:hover {
-      background: linear-gradient(45deg, #357abd, #38d9b2);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
+      background: #1557b0;
     }
 
     .btn-save:disabled {
-      background: #cccccc;
+      background: #b0c4de;
       cursor: not-allowed;
-      opacity: 0.7;
     }
-
-    @keyframes fadeInBackground {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @keyframes slideIn {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-  `],
+  `]
 })
 export class EditAppointmentModalComponent {
   @Input() form: FormGroup = new FormGroup({});

@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
-import { ReclamationService, Reclamation, Message, ReponseReclamation } from '../pages/service/reclamation.service';
-import { StatutReclamation } from '../models/statut-reclamation.model';
+import { HttpClientModule, HttpErrorResponse } from '@angular/common/http';
+import { ReclamationService, Reclamation, ReponseReclamation } from '../service/reclamation.service';
+import { StatutReclamation } from '../../models/statut-reclamation.model';
+import { jwtDecode } from 'jwt-decode'; // Import the jwt_decode library
 
 @Component({
   selector: 'app-messagerie-reclamation',
@@ -23,12 +24,11 @@ export class MessagerieReclamationComponent implements OnInit {
   fichiersSelectionnes: File[] = [];
   statutOptions: StatutReclamation[] = [StatutReclamation.NOUVELLE, StatutReclamation.EN_ATTENTE, StatutReclamation.TRAITE, StatutReclamation.FERMEE];
   nouveauStatut: StatutReclamation | null = null;
-  isAdmin: boolean = false;
   retourListeReclamations: boolean = false;
   reponses: ReponseReclamation[] = [];
   messageSucces: string = '';
 
-  constructor(private reclamationService: ReclamationService) { }
+  constructor(public reclamationService: ReclamationService) { }
 
   ngOnInit(): void {
     this.chargerReclamations();
@@ -42,10 +42,12 @@ export class MessagerieReclamationComponent implements OnInit {
         this.reclamations = data;
         this.chargement = false;
       },
-      error: (err: Error) => {
+      error: (err: any) => {
         this.erreur = 'Une erreur est survenue lors du chargement des réclamations.';
         this.chargement = false;
         console.error('Erreur:', err);
+        console.error('Error details:', err.error);
+        console.error('Status:', err.status);
       }
     });
   }
@@ -88,7 +90,6 @@ export class MessagerieReclamationComponent implements OnInit {
     return libelles[statut] || statut;
   }
 
-
   envoyerMessage(): void {
     if (!this.nouveauMessage.trim() && this.fichiersSelectionnes.length === 0) {
       console.warn("Aucun message ni fichier à envoyer.");
@@ -103,10 +104,16 @@ export class MessagerieReclamationComponent implements OnInit {
 
     const idReclamation = this.reclamationSelectionnee.idReclamation;
     const contenu = this.nouveauMessage.trim();
+    const roleEnvoyeur = this.reclamationService.getCurrentRole();
 
     console.log("Envoi du message avec l'ID de la réclamation :", idReclamation);
+    if (!roleEnvoyeur) {
+      console.error("Impossible de déterminer le rôle de l'utilisateur.");
+      this.erreur = "Erreur lors de l'envoi du message : rôle invalide.";
+      return;
+    }
 
-    this.reclamationService.createReponse(idReclamation, contenu, this.isAdmin)
+    this.reclamationService.createReponse(idReclamation, contenu, roleEnvoyeur)
       .subscribe({
         next: (nouvelleReponse: ReponseReclamation) => {
           console.log("Réponse envoyée avec succès :", nouvelleReponse);
@@ -120,9 +127,13 @@ export class MessagerieReclamationComponent implements OnInit {
           this.nouveauMessage = '';
           this.fichiersSelectionnes = [];
         },
-        error: (err: any) => {
+        error: (err: HttpErrorResponse) => {
           console.error("Erreur lors de l'envoi du message :", err);
-          this.erreur = "Erreur lors de l'envoi du message.";
+          if (err.error && typeof err.error === 'string') {
+            this.erreur = `Erreur lors de l'envoi du message : ${err.error}`; // Display backend error
+          } else {
+            this.erreur = "Erreur lors de l'envoi du message."; // Generic error
+          }
         }
       });
   }
@@ -153,38 +164,4 @@ export class MessagerieReclamationComponent implements OnInit {
     }
   }
 
-  // Méthode pour mettre à jour le statut de la réclamation
-
-
-    mettreAJourStatut(): void {
-    if (!this.reclamationSelectionnee || !this.nouveauStatut) {
-      this.erreur = 'Veuillez sélectionner une réclamation et un nouveau statut.'; // Message plus clair.
-      return;
-    }
-
-    const ancienStatut = this.reclamationSelectionnee.statut; // Sauvegarde de l'ancien statut (pour rollback éventuel)
-
-    // Optimistic Update : Mise à jour *immédiate* de l'UI
-    this.reclamationSelectionnee.statut = this.nouveauStatut;
-    this.messageSucces = 'Mise à jour du statut en cours...'; // Message de feedback immédiat
-    this.erreur = ''; // Effacer les erreurs précédentes.
-
-    this.reclamationService.updateReclamationStatut(this.reclamationSelectionnee.idReclamation, this.nouveauStatut)
-      .subscribe({
-        next: (updatedReclamation: Reclamation) => {
-          console.log('Statut de la réclamation mis à jour avec succès.', updatedReclamation);
-          // Pas besoin de reaffecter le statut ici car on l'a fait en optimistic update
-          this.nouveauStatut = null; // Réinitialiser le statut sélectionné
-          this.messageSucces = 'Statut mis à jour avec succès !'; // Message de succès.
-        },
-        error: (err: any) => {
-          console.error('Erreur lors de la mise à jour du statut:', err);
-          this.erreur = 'Erreur lors de la mise à jour du statut. Veuillez réessayer.'; // Message plus convivial.
-          this.messageSucces = ''; // Effacer le message de succès s'il y en a un.
-
-          // Rollback : Rétablissement de l'ancien statut en cas d'erreur
-          this.reclamationSelectionnee!.statut = ancienStatut;
-        }
-      });
-  }
 }

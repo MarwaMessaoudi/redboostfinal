@@ -16,29 +16,35 @@ import { ToastrService } from 'ngx-toastr';
       <div class="modal-content">
         <div class="modal-header">
           <h4 class="modal-title">Créer un rendez-vous</h4>
-          <button type="button" class="btn-close" (click)="activeModal.dismiss('Cross click')">✖</button>
         </div>
         <div class="modal-body">
           <form [formGroup]="createForm" (ngSubmit)="onSubmit()">
             <div class="input-group">
+              <label for="title">Titre <span class="required">*</span></label>
               <input id="title" type="text" class="form-control" formControlName="title" required>
-              <label for="title">Titre</label>
+            </div>
+            <div class="input-row">
+              <div class="input-group half">
+                <label for="date">Date <span class="required">*</span></label>
+                <div class="input-with-icon">
+                  <input id="date" type="date" class="form-control" formControlName="date" required>
+                </div>
+              </div>
+              <div class="input-group half">
+                <label for="heure">Heure <span class="required">*</span></label>
+                <div class="input-with-icon">
+                  <input id="heure" type="time" class="form-control" formControlName="heure" (change)="checkAvailability()" required>
+     
+                </div>
+              </div>
             </div>
             <div class="input-group">
-              <input id="heure" type="time" class="form-control" formControlName="heure" (change)="checkAvailability()" required>
-              <label for="heure">Heure</label>
-            </div>
-            <div class="input-group">
-              <input id="date" type="date" class="form-control" formControlName="date" required>
-              <label for="date">Date</label>
-            </div>
-            <div class="input-group">
-              <textarea id="description" class="form-control" formControlName="description"></textarea>
-              <label for="description">Description</label>
-            </div>
-            <div class="input-group">
+              <label for="email">Email <span class="required">*</span></label>
               <input id="email" type="email" class="form-control" formControlName="email" required>
-              <label for="email">Email</label>
+            </div>
+            <div class="input-group">
+              <label for="description">Description</label>
+              <textarea id="description" class="form-control" formControlName="description"></textarea>
             </div>
             <div *ngIf="isHourUnavailable" class="alert alert-danger">
               Cette heure n’est pas disponible ou trop proche d’un rendez-vous existant.
@@ -55,7 +61,6 @@ import { ToastrService } from 'ngx-toastr';
     </div>
   `,
   styles: [`
-    /* Nouveau design attractif */
     .modal-container {
       display: flex;
       align-items: center;
@@ -65,172 +70,161 @@ import { ToastrService } from 'ngx-toastr';
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(8px);
+      background: rgba(0, 0, 0, 0.3);
       z-index: 1050 !important;
-      animation: fadeInBackground 0.3s ease-in-out;
-    }
-
-    @keyframes fadeInBackground {
-      from { opacity: 0; }
-      to { opacity: 1; }
     }
 
     .modal-content {
-      width: 400px;
-      padding: 24px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #1e1e2f, #2d2d44);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(74, 144, 226, 0.2);
-      animation: slideIn 0.3s ease-in-out;
+      width: 600px;
+      background: #f5f7fa;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
       z-index: 1060 !important;
-      color: #ffffff;
-    }
-
-    @keyframes slideIn {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+      color: #333;
     }
 
     .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 16px;
-      margin-bottom: 16px;
+      padding: 20px 30px;
+      border-bottom: none;
     }
 
     .modal-title {
-      font-size: 1.8rem;
-      font-weight: 600;
-      color: #ffffff;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    }
-
-    .btn-close {
-      background: none;
-      border: none;
       font-size: 1.5rem;
-      color: #ff6b6b;
-      cursor: pointer;
-      transition: color 0.3s ease, transform 0.3s ease;
+      font-weight: 600;
+      color: #1a3c34;
+      margin: 0;
     }
 
-    .btn-close:hover {
-      color: #ff4040;
-      transform: scale(1.1);
+    .modal-body {
+      padding: 20px 30px;
     }
 
     .input-group {
-      position: relative;
       margin-bottom: 20px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .half {
+      flex: 1;
+    }
+
+    .input-group label {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .required {
+      color: #ff0000;
+      font-size: 0.9rem;
     }
 
     .input-group input,
     .input-group textarea {
       width: 100%;
-      padding: 14px 12px;
+      padding: 10px 15px;
       font-size: 1rem;
-      border: none;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      transition: all 0.3s ease;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      background: #fff;
+      color: #333;
+      transition: border-color 0.3s ease;
     }
 
     .input-group input:focus,
     .input-group textarea:focus {
       outline: none;
-      border-color: #4a90e2;
-      box-shadow: 0 0 8px rgba(74, 144, 226, 0.5);
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .input-group label {
-      position: absolute;
-      top: 50%;
-      left: 12px;
-      transform: translateY(-50%);
-      font-size: 1rem;
-      color: rgba(255, 255, 255, 0.7);
-      transition: 0.3s;
-      pointer-events: none;
-    }
-
-    .input-group input:focus + label,
-    .input-group input:not(:placeholder-shown) + label,
-    .input-group textarea:focus + label,
-    .input-group textarea:not(:placeholder-shown) + label {
-      top: 5px;
-      font-size: 0.8rem;
-      color: #4a90e2;
+      border-color: #1a73e8;
     }
 
     .input-group textarea {
-      height: 100px;
+      height: 80px;
       resize: vertical;
     }
 
-    .modal-footer {
-      display: flex;
-      justify-content: space-between;
-      padding-top: 20px;
+    .input-with-icon {
+      position: relative;
+
     }
 
-    .btn-cancel, .btn-submit {
-      padding: 12px 24px;
-      font-size: 1.1rem;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-weight: 500;
+    .input-with-icon input {
+      padding-right: 40px;
     }
 
-    .btn-cancel {
-      background: #ff6b6b;
-      color: #ffffff;
+    .calendar-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #666;
+      font-size: 1.2rem;
     }
 
-    .btn-cancel:hover {
-      background: #ff4040;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(255, 64, 64, 0.3);
-    }
-
-    .btn-submit {
-      background: linear-gradient(45deg, #4a90e2, #50e3c2);
-      color: #ffffff;
-    }
-
-    .btn-submit:hover {
-      background: linear-gradient(45deg, #357abd, #38d9b2);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.4);
-    }
-
-    .btn-submit:disabled {
-      background: #cccccc;
-      cursor: not-allowed;
-      opacity: 0.7;
+    .calendar-icon svg {
+      display: block;
     }
 
     .alert-danger {
       margin-top: 10px;
-      background-color: #e74c3c;
-      border-color: #e74c3c;
-      color: #fff;
+      background-color: rgba(255, 0, 0, 0.1);
+      border: 1px solid #ff0000;
+      color: #ff0000;
       padding: 10px;
-      border-radius: 8px;
+      border-radius: 5px;
+      font-size: 0.9rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 20px 30px;
+      border-top: none;
+    }
+
+    .btn-cancel,
+    .btn-submit {
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-cancel {
+      background: transparent;
+      color: #666;
+      border: 1px solid #e0e0e0;
+    }
+
+    .btn-cancel:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-submit {
+      background: #1a73e8;
+      color: #fff;
+    }
+
+    .btn-submit:hover {
+      background: #1557b0;
+    }
+
+    .btn-submit:disabled {
+      background: #b0c4de;
+      cursor: not-allowed;
     }
   `]
 })
 export class CreateAppointmentModalComponent implements OnInit {
-  @Input() coachId?: number; // Conservé pour passer l'ID du coach
-  // @Input() selectedDate: string = ''; // Commenté : Supprimé car la date est gérée par le formulaire
+  @Input() coachId?: number;
   createForm!: FormGroup;
   isHourUnavailable: boolean = false;
   acceptedAppointments: RendezVous[] = [];
@@ -246,7 +240,7 @@ export class CreateAppointmentModalComponent implements OnInit {
   ngOnInit() {
     this.createForm = this.fb.group({
       title: ['', Validators.required],
-      date: ['', Validators.required], // La date est choisie dans le formulaire
+      date: ['', Validators.required],
       heure: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       description: [''],

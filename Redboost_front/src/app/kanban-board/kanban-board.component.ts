@@ -34,6 +34,7 @@ import { TaskCategoryFormComponent } from '../tasks/task-category-form/task-cate
 })
 export class KanbanBoardComponent implements OnInit {
     phaseId: number | null = null;
+    phaseName: string = 'Unknown Phase';
     tasks: Task[] = [];
     filteredTasks: Task[] = [];
     todo: Task[] = [];
@@ -88,6 +89,7 @@ export class KanbanBoardComponent implements OnInit {
         this.phaseService.getPhaseById(phaseId).subscribe({
             next: (phase) => {
                 this.phase = phase;
+                this.phaseName = phase.phaseName;
                 if (phase.projetId) {
                     this.loadEntrepreneurs(phase.projetId);
                 } else {
@@ -107,7 +109,18 @@ export class KanbanBoardComponent implements OnInit {
         this.phaseService.getEntrepreneursByProject(projetId).subscribe({
             next: (entrepreneurs) => {
                 this.entrepreneurs = entrepreneurs;
-                console.log('KanbanBoard: Entrepreneurs loaded:', this.entrepreneurs);
+                console.log('KanbanBoard: Entrepreneurs loaded successfully:', this.entrepreneurs);
+                this.entrepreneurs.forEach((entrepreneur, index) => {
+                    console.log(`Entrepreneur ${index + 1}:`, {
+                        id: entrepreneur.id,
+                        firstName: entrepreneur.firstName,
+                        lastName: entrepreneur.lastName,
+                        email: entrepreneur.email,
+                        phoneNumber: entrepreneur.phoneNumber,
+                        role: entrepreneur.role,
+                        profilePictureUrl: entrepreneur.profilePictureUrl
+                    });
+                });
             },
             error: (err) => {
                 console.error('KanbanBoard: Failed to load entrepreneurs:', err);
@@ -123,6 +136,7 @@ export class KanbanBoardComponent implements OnInit {
                 tasks.forEach((task) => console.log(`Task ${task.taskId}:`, { taskCategory: task.taskCategory, taskCategoryId: task.taskCategoryId }));
                 this.tasks = tasks;
                 this.applyFilters();
+                this.updatePhaseStatus();
             },
             error: (err) => {
                 console.error('Échec du chargement des tâches :', err);
@@ -180,15 +194,20 @@ export class KanbanBoardComponent implements OnInit {
     updateTaskStatus(task: Task) {
         const originalStatus = task.status;
         this.taskService.updateTask(task.taskId!, task).subscribe({
-            next: () => {
+            next: (updatedTask) => {
                 console.log(`Task ${task.taskId} status updated to ${task.status}`);
+                const taskIndex = this.tasks.findIndex((t) => t.taskId === task.taskId);
+                if (taskIndex !== -1) {
+                    this.tasks[taskIndex] = { ...task };
+                }
+                this.applyFilters();
                 this.updatePhaseStatus();
             },
             error: (err) => {
                 console.error(`Échec de la mise à jour de la tâche ${task.taskId} :`, err);
                 this.snackBar.open('Erreur : Échec de la mise à jour de la tâche.', 'Fermer', { duration: 3000 });
                 task.status = originalStatus;
-                this.loadTasksForPhase(this.phaseId!);
+                this.applyFilters();
             }
         });
     }
@@ -197,13 +216,14 @@ export class KanbanBoardComponent implements OnInit {
         if (!this.phase || !this.phaseId) return;
 
         let newPhaseStatus: PhaseStatus;
-        if (this.tasks.every((task) => task.status === Status.DONE)) {
+        if (this.tasks.length > 0 && this.tasks.every((task) => task.status === Status.DONE)) {
             newPhaseStatus = PhaseStatus.COMPLETED;
         } else if (this.tasks.some((task) => task.status === Status.IN_PROGRESS || task.status === Status.DONE)) {
             newPhaseStatus = PhaseStatus.IN_PROGRESS;
         } else {
             newPhaseStatus = PhaseStatus.NOT_STARTED;
         }
+
         if (this.phase.status !== newPhaseStatus) {
             this.phase.status = newPhaseStatus;
             this.phaseService.updatePhase(this.phaseId, { ...this.phase, status: newPhaseStatus }).subscribe({
@@ -227,7 +247,8 @@ export class KanbanBoardComponent implements OnInit {
                 phaseId: this.phaseId,
                 task: null,
                 isEdit: false,
-                entrepreneurs: this.entrepreneurs
+                entrepreneurs: this.entrepreneurs,
+                phase: this.phase // Pass the phase object with startDate and endDate
             }
         });
 
@@ -323,5 +344,18 @@ export class KanbanBoardComponent implements OnInit {
 
     calculateTotalXp(tasks: Task[]): number {
         return tasks.reduce((sum, task) => sum + task.xpPoint, 0);
+    }
+
+    getAssigneeAvatarUrl(assigneeId: number | null | undefined): string | null {
+        if (!assigneeId) return null;
+        const assignee = this.entrepreneurs.find((e) => e.id === assigneeId);
+        return assignee ? assignee.profilePictureUrl : null;
+    }
+
+    getAssigneeInitials(assigneeId: number | null | undefined): string | null {
+        if (!assigneeId) return null;
+        const assignee = this.entrepreneurs.find((e) => e.id === assigneeId);
+        if (!assignee) return null;
+        return `${assignee.firstName.charAt(0).toUpperCase()}.${assignee.lastName.charAt(0).toUpperCase()}`;
     }
 }

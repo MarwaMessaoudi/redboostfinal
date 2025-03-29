@@ -1,74 +1,91 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // Import FormsModule
+import { FormsModule } from '@angular/forms';
 import { GoogleDriveService } from '../service/GoogleDriveService';
+import { RandomImagePipe } from '../../random-image.pipe';
+import { trigger, style, animate, transition } from '@angular/animations';
 
 @Component({
   selector: 'app-google-drive',
   standalone: true,
-  imports: [CommonModule, FormsModule], // Add FormsModule here
+  imports: [CommonModule, FormsModule, RandomImagePipe],
   templateUrl: './documents.component.html',
+  styleUrls: ['./documents.component.scss'],
+  animations: [
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' })),
+      ]),
+    ]),
+  ],
 })
-export class DocumentsComponent {
+export class DocumentsComponent implements OnInit {
   folderName: string = '';
   folderId: string = '';
-  uploadFolderId: string = '';
+  selectedFolder: any = null;  // Changed from selectedFolderId to selectedFolder
   selectedFile: File | null = null;
   fileId: string = '';
+  folders: any[] = [];
 
   constructor(private googleDriveService: GoogleDriveService) {}
 
-  // Trigger Google OAuth2 authorization
-  authorize(): void {
+  ngOnInit(): void {
+    this.loadFolders();
+  }
+
+  authorize() {
     this.googleDriveService.authorize();
   }
 
-  // Create a folder in Google Drive
-  createFolder(): void {
-    if (!this.folderName) {
-      alert('Folder name is required');
-      return;
-    }
-
-    this.googleDriveService.createFolder(this.folderName).subscribe({
-      next: (response) => {
-        this.folderId = response;
-        alert('Folder created successfully!');
+  loadFolders() {
+    this.googleDriveService.getFolders().subscribe({
+      next: (folders) => {
+        this.folders = folders;
       },
       error: (error) => {
-        console.error('Error creating folder:', error);
-        alert('Failed to create folder. Please try again.');
+        console.error('Failed to load folders:', error);
       },
     });
   }
 
-  // Handle file selection
-  onFileSelected(event: any): void {
+  createFolder() {
+    this.googleDriveService.createFolder(this.folderName).subscribe({
+      next: (folderId) => {
+        this.folderId = folderId;
+        this.loadFolders();
+        console.log('Folder created with ID:', folderId);
+      },
+      error: (error) => {
+        console.error('Failed to create folder:', error);
+      },
+    });
+  }
+
+  onFileSelected(event: any) {
     this.selectedFile = event.target.files[0];
   }
 
-  // Upload a file to Google Drive
-  uploadFile(): void {
-    if (!this.uploadFolderId) {
-      alert('Folder ID is required');
-      return;
-    }
-    if (!this.selectedFile) {
-      alert('Please select a file');
+  uploadFile() {
+    if (!this.selectedFile || !this.selectedFolder) {
+      console.error('No file selected or folder missing');
       return;
     }
 
     this.googleDriveService
-      .uploadFile(this.uploadFolderId, this.selectedFile.name, this.selectedFile)
+      .uploadFile(this.selectedFolder.id, this.selectedFile.name, this.selectedFile)
       .subscribe({
-        next: (response) => {
-          this.fileId = response;
-          alert('File uploaded successfully!');
+        next: (fileId) => {
+          this.fileId = fileId;
+          console.log('File uploaded with ID:', fileId);
         },
         error: (error) => {
-          console.error('Error uploading file:', error);
-          alert('Failed to upload file. Please try again.');
+          console.error('Failed to upload file:', error);
         },
       });
+  }
+
+  selectFolder(folder: any) {
+    this.selectedFolder = folder;
   }
 }

@@ -8,6 +8,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.FileList;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -19,6 +20,10 @@ import team.project.redboost.repositories.UserRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class GoogleDriveService {
@@ -31,6 +36,21 @@ public class GoogleDriveService {
 
     @Autowired
     private UserRepository userRepository;
+
+    private Drive getDriveService(Long userId) throws IOException {
+        String accessToken = getAccessToken(userId);
+
+        // Create GoogleCredentials using AccessToken
+        AccessToken token = new AccessToken(accessToken, null); // No expiration time provided
+        GoogleCredentials credentials = GoogleCredentials.create(token);
+
+        return new Drive.Builder(
+                new NetHttpTransport(),
+                JacksonFactory.getDefaultInstance(),
+                new HttpCredentialsAdapter(credentials))
+                .setApplicationName("MyDriveApp")
+                .build();
+    }
 
     public String getAccessToken(Long userId) throws IOException {
         // Retrieve the refresh token from the database
@@ -53,18 +73,7 @@ public class GoogleDriveService {
     }
 
     public String createFolder(String folderName, Long userId) throws IOException {
-        String accessToken = getAccessToken(userId);
-
-        // Create GoogleCredentials using AccessToken
-        AccessToken token = new AccessToken(accessToken, null); // No expiration time provided
-        GoogleCredentials credentials = GoogleCredentials.create(token);
-
-        Drive driveService = new Drive.Builder(
-                new NetHttpTransport(),
-                JacksonFactory.getDefaultInstance(),
-                new HttpCredentialsAdapter(credentials))
-                .setApplicationName("MyDriveApp")
-                .build();
+        Drive driveService = getDriveService(userId);
 
         File folderMetadata = new File();
         folderMetadata.setName(folderName);
@@ -77,29 +86,46 @@ public class GoogleDriveService {
         return folder.getId();
     }
 
-    public String uploadFile(String folderId, String fileName, InputStream fileContent, Long userId) throws IOException {
-        String accessToken = getAccessToken(userId);
+    public String uploadFile(String folderId, String fileName, InputStream fileContent, Long userId) {
+        try {
+            Drive driveService = getDriveService(userId);
 
-        // Create GoogleCredentials using AccessToken
-        AccessToken token = new AccessToken(accessToken, null); // No expiration time provided
-        GoogleCredentials credentials = GoogleCredentials.create(token);
+            File fileMetadata = new File();
+            fileMetadata.setName(fileName);
+            fileMetadata.setParents(Collections.singletonList(folderId));
 
-        Drive driveService = new Drive.Builder(
-                new NetHttpTransport(),
-                JacksonFactory.getDefaultInstance(),
-                new HttpCredentialsAdapter(credentials))
-                .setApplicationName("MyDriveApp")
-                .build();
+            InputStreamContent mediaContent = new InputStreamContent("application/octet-stream", fileContent);
 
-        File fileMetadata = new File();
-        fileMetadata.setName(fileName);
-        fileMetadata.setParents(Collections.singletonList(folderId));
+            File file = driveService.files().create(fileMetadata, mediaContent)
+                    .setFields("id")
+                    .execute();
 
-        File file = driveService.files().create(fileMetadata, new InputStreamContent("application/octet-stream", fileContent))
-                .setFields("id")
+            return file.getId();
+        } catch (IOException e) {
+            // Log the exception
+            e.printStackTrace();
+            throw new RuntimeException("Failed to upload file to Google Drive", e);
+        }
+    }
+
+    public List<Map<String, String>> getFoldersList(Long userId) throws IOException {
+        Drive driveService = getDriveService(userId);
+        // Query for folders
+        String query = "mimeType = 'application/vnd.google-apps.folder' and 'root' in parents and trashed = false";
+        FileList result = driveService.files().list()
+                .setQ(query)
+                .setFields("files(id, name)")
                 .execute();
 
-        return file.getId();
+        List<Map<String, String>> folderList = new ArrayList<>();
+        for (File file : result.getFiles()) {
+            Map<String, String> folderInfo = new HashMap<>();
+            folderInfo.put("id", file.getId());
+            folderInfo.put("name", file.getName());
+            folderList.add(folderInfo);
+        }
+
+        return folderList;
     }
 
 

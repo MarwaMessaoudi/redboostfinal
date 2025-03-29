@@ -1,14 +1,16 @@
 import { Component } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http'; // Added HttpHeaders
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import axios from 'axios';
+import { MessageService } from 'primeng/api'; // Added MessageService
 
 @Component({
   selector: 'app-investor-startups',
   standalone: true,
   imports: [FormsModule, CommonModule],
+  providers: [MessageService], // Added MessageService to providers
   template: `
     <div class="container mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold text-center text-[#245C67] mb-8">My Investments</h1>
@@ -111,17 +113,75 @@ import axios from 'axios';
 export class InvestorStartupsComponent {
   investmentRequests: any[] = [];
   displayedRequests: any[] = [];
-  investorId: number = 1; // Replace with actual logged-in investor ID (e.g., from auth service)
+  investorId: number | null = null; // Changed to null initially
   searchQuery: string = '';
   selectedStatuses: string[] = [];
   statuses = ['PENDING', 'ACCEPTED', 'DECLINED'];
   loading: boolean = false;
+  currentUser: any = null; // Added currentUser property
 
-  constructor(private http: HttpClient, private router: Router) {
-    this.fetchInvestorStartups();
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private messageService: MessageService // Added MessageService
+  ) {
+    this.fetchCurrentUser(); // Fetch user first
+  }
+
+  // Imported fetchCurrentUser logic from MarketplaceComponent
+  private fetchCurrentUser(): void {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No authentication token found. Please log in.',
+      });
+      this.router.navigate(['/signin']);
+      return;
+    }
+
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    });
+
+    this.http.get('http://localhost:8085/users/profile', { headers }).subscribe({
+      next: (response: any) => {
+        this.currentUser = response;
+        this.investorId = response.id; // Set investorId from currentUser
+        if (response.role !== 'INVESTOR') {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Warning',
+            detail: 'Only investors can view investments.',
+          });
+          this.router.navigate(['/dashboard']);
+        } else {
+          this.fetchInvestorStartups(); // Fetch investments only if user is an investor
+        }
+      },
+      error: (error) => {
+        console.error('Failed to fetch user profile:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to fetch user profile',
+        });
+        this.router.navigate(['/signin']);
+      },
+    });
   }
 
   fetchInvestorStartups() {
+    if (!this.investorId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'User not authenticated. Unable to fetch investments.',
+      });
+      return;
+    }
+
     this.loading = true;
     axios
       .get(`http://localhost:8085/api/investment-requests/investor/${this.investorId}`)
@@ -135,6 +195,11 @@ export class InvestorStartupsComponent {
         this.investmentRequests = []; // Reset to empty array on error
         this.filterInvestments();
         this.loading = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load investments.',
+        });
       });
   }
 
@@ -164,6 +229,11 @@ export class InvestorStartupsComponent {
       this.router.navigate(['/startup-details', projetId]);
     } else {
       console.error('Projet ID is undefined');
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Project ID is missing.',
+      });
       this.router.navigate(['/investor-startups']); // Fallback route
     }
   }

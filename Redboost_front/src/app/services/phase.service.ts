@@ -42,36 +42,42 @@ export class PhaseService {
      * @param projectId - The ID of the project
      * @returns Observable<User[]> - List of entrepreneurs
      */
+    /**
+     * Fetches the list of entrepreneurs (users) belonging to a specific project.
+     * @param projectId - The ID of the project
+     * @returns Observable<User[]> - List of entrepreneurs
+     */
     getEntrepreneursByProject(projectId: number): Observable<User[]> {
         return this.http.get<any[]>(`${this.apiUrl}/entrepreneurs/${projectId}`).pipe(
             map((response) => {
                 if (response && response.length > 0 && response[0].entrepreneurs_info) {
                     const entrepreneursString: string = response[0].entrepreneurs_info;
                     const entrepreneursArray = entrepreneursString
-                        .split(';')
+                        .split('; ')
                         .map((entrepreneur) => {
                             const values = entrepreneur.split('|');
-                            if (values.length === 6) {
-                                // Adjust based on the number of fields you expect (ID, firstName, lastName, email, phoneNumber, role)
+                            if (values.length === 6 || values.length === 7) {
+                                // Accept 6 or 7 fields
                                 return {
-                                    id: parseInt(values[0], 10), // Parse the ID as a number!
+                                    id: parseInt(values[0], 10),
                                     firstName: values[1],
                                     lastName: values[2],
                                     email: values[3],
                                     phoneNumber: values[4],
-                                    role: values[5]
+                                    role: values[5],
+                                    profilePictureUrl: values.length === 7 ? values[6] : '' // Default to empty string if missing
                                 } as User;
                             } else {
                                 console.warn('Invalid entrepreneur data:', entrepreneur);
-                                return null; // Or handle invalid data as appropriate
+                                return null;
                             }
                         })
-                        .filter((entrepreneur) => entrepreneur !== null) as User[]; // Filter out any null values
+                        .filter((entrepreneur) => entrepreneur !== null) as User[];
 
                     return entrepreneursArray;
                 } else {
                     console.warn('No entrepreneurs_info found in the response:', response);
-                    return []; // Return an empty array if no data is found
+                    return [];
                 }
             })
         );

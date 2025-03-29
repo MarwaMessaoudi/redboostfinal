@@ -152,22 +152,22 @@
         <div class="invitations-grid">
           <div class="invitation-card" *ngFor="let invitation of pendingInvitations">
             <div class="invitation-content">
-              <h3 class="invitation-title">{{ invitation.name }}</h3>
-              <p class="invitation-founder">Invité par: {{ invitation.founder?.email || 'N/A' }}</p>
+              <h3 class="invitation-title">{{ invitation.projectName }}</h3>
+              <p class="invitation-email">Invité par: {{ invitation.invitorName }} ({{ invitation.invitorEmail }})</p>
               <div class="invitation-actions">
                 <button
                   mat-flat-button
                   class="accept-button"
-                  (click)="acceptInvitation(invitation.id)"
-                  *ngIf="invitation.id !== undefined && invitation.id !== 0"
+                  (click)="acceptInvitation(invitation.projectId)"
+                  [disabled]="!invitation.projectId || invitation.projectId === 0"
                 >
                   Accepter
                 </button>
                 <button
                   mat-flat-button
                   class="decline-button"
-                  (click)="declineInvitation(invitation.id)"
-                  *ngIf="invitation.id !== undefined && invitation.id !== 0"
+                  (click)="declineInvitation(invitation.projectId)"
+                  [disabled]="!invitation.projectId || invitation.projectId === 0"
                 >
                   Refuser
                 </button>

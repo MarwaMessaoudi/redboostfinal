@@ -1,23 +1,74 @@
-<div>
-    <h2>Google Drive Integration</h2>
-  
-    <!-- Grant Access Button -->
-    <button (click)="authorize()">Grant Access to Google Drive</button>
-  
-    <!-- Create Folder Section -->
-    <div>
-      <h3>Create Folder</h3>
-      <input [(ngModel)]="folderName" placeholder="Folder Name" />
-      <button (click)="createFolder()">Create Folder</button>
-      <p *ngIf="folderId">Folder created with ID: {{ folderId }}</p>
+<div class="container">
+  <!-- Header Card unchanged -->
+  <div class="header-card">
+    <div class="header-content">
+      <h2 class="header-title">Google Drive Manager</h2>
+      <button class="auth-btn" (click)="authorize()">Connect to Google Drive</button>
     </div>
-  
-    <!-- Upload File Section -->
-    <div>
-      <h3>Upload File</h3>
-      <input [(ngModel)]="uploadFolderId" placeholder="Folder ID" />
-      <input type="file" (change)="onFileSelected($event)" />
-      <button (click)="uploadFile()">Upload File</button>
-      <p *ngIf="fileId">File uploaded with ID: {{ fileId }}</p>
+    <img src="assets/images/photo1.png" alt="Header Image" class="header-image" />
+  </div>
+
+  <div class="main-layout">
+    <!-- Folders Section -->
+    <section class="folders-section">
+      <div class="folders-card">
+        <h3 class="card-title">Your Folders</h3>
+        <div class="folder-list-container">
+          <div
+            *ngFor="let folder of folders"
+            class="folder-list-item"
+            (click)="selectFolder(folder)"
+            [class.selected]="selectedFolder?.id === folder.id"
+          >
+            <img [src]="folder.id | randomImage" alt="Folder Icon" class="folder-icon" />
+            <div class="folder-info">
+              <span class="folder-name">{{ folder.name }}</span>
+            </div>
+          </div>
+          <div *ngIf="folders.length === 0" class="no-folders">
+            No folders found. Create one to get started!
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Actions Card -->
+    <div class="action-card">
+      <h3 class="card-title">Manage Files</h3>
+      <div class="card-content">
+        <!-- Create Folder Section unchanged -->
+        <div class="action-section">
+          <h4 class="action-subtitle">Create New Folder</h4>
+          <input
+            [(ngModel)]="folderName"
+            placeholder="Enter folder name"
+            class="input-field"
+          />
+          <button class="action-btn" (click)="createFolder()">Create</button>
+          <p class="info-text" *ngIf="folderId">
+            Folder created: <span class="highlight">{{ folderId }}</span>
+          </p>
+        </div>
+
+        <!-- Upload File Section -->
+        <div class="action-section">
+          <h4 class="action-subtitle">Upload File</h4>
+          <input type="file" (change)="onFileSelected($event)" class="file-input" />
+          <button
+            class="action-btn"
+            (click)="uploadFile()"
+            [disabled]="!selectedFolder"
+          >
+            Upload
+          </button>
+          <p class="info-text" *ngIf="fileId">
+            File uploaded: <span class="highlight">{{ fileId }}</span>
+          </p>
+          <p class="info-text" *ngIf="selectedFolder">
+            To Folder: <span class="highlight">{{ selectedFolder.name }}</span>
+          </p>
+        </div>
+      </div>
     </div>
   </div>
+</div>

@@ -8,7 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-import team.project.redboost.authentif.JwtUtil;
+import team.project.redboost.config.JwtUtil;
 import team.project.redboost.dto.ReclamationDTO;
 import team.project.redboost.entities.Reclamation;
 import team.project.redboost.entities.User;

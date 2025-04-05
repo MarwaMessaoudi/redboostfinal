@@ -1,4 +1,4 @@
-package team.project.redboost.authentif;
+package team.project.redboost.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,7 +24,7 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtRequestFilter jwtAuthFilter;
+    private final team.project.redboost.config.JwtRequestFilter jwtAuthFilter;
 
     public SecurityConfig(JwtRequestFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;

@@ -6,7 +6,7 @@ import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { provideNativeDateAdapter } from '@angular/material/core'; // Import this!
 import { MessageService } from 'primeng/api'; // Import MessageService
-import { AuthInterceptor } from './app/pages/auth/AuthInterceptor'; // Import AuthInterceptor
+import { AuthInterceptor } from './app/pages/gestion_user/auth/AuthInterceptor'; // Import AuthInterceptor
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth, setPersistence, browserLocalPersistence } from '@angular/fire/auth';
 import { environment } from './environment';

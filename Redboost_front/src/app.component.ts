@@ -3,7 +3,7 @@ import { Router, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
-import { AuthService } from './app/pages/auth/auth.service';
+import { AuthService } from './app/pages/service/auth.service';
 import { UserService } from './app/pages/service/UserService'; // Import UserService
 import { HttpClient } from '@angular/common/http'; // Import HttpClient
 
@@ -37,12 +37,12 @@ export class AppComponent implements OnInit {
         next: (response) => {
           console.log('Token verification successful:', response);
           this.fetchUserProfile(); // Fetch user profile after token verification
-          this.router.navigate(['landing']);
+          this.router.navigate(['']);
         },
         error: (error) => {
           console.error('Token verification failed:', error);
           this.clearTokens();
-          this.router.navigate(['landing']);
+          this.router.navigate(['']);
         },
       });
     } else {
@@ -52,12 +52,12 @@ export class AppComponent implements OnInit {
           localStorage.setItem('accessToken', response.accessToken);
           localStorage.setItem('refreshToken', response.refreshToken);
           this.fetchUserProfile(); // Fetch user profile after token refresh
-          this.router.navigate(['landing']);
+          this.router.navigate(['']);
         },
         error: (error) => {
           console.error('Token refresh failed:', error);
           this.clearTokens();
-          this.router.navigate(['landing']);
+          this.router.navigate(['']);
         },
       });
     }

@@ -5,9 +5,9 @@ import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '../service/layout.service';
-import { AuthService } from '../../pages/auth/auth.service';
+import { AuthService } from '../../pages/service/auth.service';
 import { Router } from '@angular/router';
-import { RendezVousService, RendezVousDTO } from '../../services/RendezVousService';
+import { RendezVousService, RendezVousDTO } from '../../pages/service/RendezVousService';
 import { UserService } from '../../pages/service/UserService';
 
 @Component({

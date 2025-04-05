@@ -1,0 +1,153 @@
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card card-profile">
+        <!-- Profile Header -->
+        <div class="profile-header">
+          <div class="text-center pt-5 pb-3">
+            <div class="profile-img-container">
+              <img [src]="user?.profile_pictureurl" 
+                   class="profile-img" 
+                   alt="Photo de profil">
+              <button (click)="triggerFileInput()" class="edit-btn profile-edit-btn">
+                <i class="fas fa-edit"></i>
+              </button>
+            </div>
+            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;" />
+            <h3 class="profile-name">{{ user?.firstName }} {{ user?.lastName }}
+              <span class="profile-badge">{{ user?.role === 'COACH' ? 'Coach' : 'Entrepreneur' }}</span>
+            </h3>
+            <div class="social-links mt-3">
+              <a href="https://twitter.com" target="_blank" class="social-icon"><i class="fab fa-twitter"></i></a>
+              <a href="https://linkedin.com" target="_blank" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+              <a href="https://instagram.com" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+            </div>
+            <div class="profile-stats mt-3">
+              <div class="stat-item">
+                <span class="stat-number">1.2K</span>
+                <span class="stat-label">Connexions</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">850</span>
+                <span class="stat-label">Abonnés</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">45</span>
+                <span class="stat-label">Publications</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="card-body">
+          <!-- User Info -->
+          <div class="info mt-4">
+            <div class="info-item">
+              <span class="label">Prénom :</span> 
+              <span class="value">{{ user?.firstName || 'N/A' }}</span>
+              <button (click)="toggleEditMode('firstName')" class="edit-btn"><i class="fas fa-edit"></i></button>
+              <div *ngIf="editMode['firstName']" class="edit-container">
+                <input type="text" [(ngModel)]="user.firstName" class="form-control">
+                <button class="btn save-btn" (click)="saveField('firstName')">Enregistrer</button>
+              </div>
+            </div>
+            <div class="info-item">
+              <span class="label">Nom :</span> 
+              <span class="value">{{ user?.lastName || 'N/A' }}</span>
+              <button (click)="toggleEditMode('lastName')" class="edit-btn"><i class="fas fa-edit"></i></button>
+              <div *ngIf="editMode['lastName']" class="edit-container">
+                <input type="text" [(ngModel)]="user.lastName" class="form-control">
+                <button class="btn save-btn" (click)="saveField('lastName')">Enregistrer</button>
+              </div>
+            </div>
+            <div class="info-item">
+              <span class="label">Email :</span> 
+              <span class="value">{{ user?.email || 'N/A' }}</span>
+              <button (click)="toggleEditMode('email')" class="edit-btn"><i class="fas fa-edit"></i></button>
+              <div *ngIf="editMode['email']" class="edit-container">
+                <input type="email" [(ngModel)]="user.email" class="form-control">
+                <button class="btn save-btn" (click)="saveField('email')">Enregistrer</button>
+              </div>
+            </div>
+            <div class="info-item">
+              <span class="label">Numéro de téléphone :</span> 
+              <span class="value">{{ user?.phoneNumber || 'N/A' }}</span>
+              <button (click)="toggleEditMode('phoneNumber')" class="edit-btn"><i class="fas fa-edit"></i></button>
+              <div *ngIf="editMode['phoneNumber']" class="edit-container">
+                <input type="text" [(ngModel)]="user.phoneNumber" class="form-control">
+                <button class="btn save-btn" (click)="saveField('phoneNumber')">Enregistrer</button>
+              </div>
+            </div>
+
+            <!-- Role-specific Fields -->
+            <div *ngIf="user?.role === 'COACH'" class="info-item">
+              <span class="label">Spécialisation :</span> 
+              <span class="value">{{ user?.specialization || 'N/A' }}</span>
+              <button (click)="toggleEditMode('specialization')" class="edit-btn"><i class="fas fa-edit"></i></button>
+              <div *ngIf="editMode['specialization']" class="edit-container">
+                <input type="text" [(ngModel)]="user.specialization" class="form-control">
+                <button class="btn save-btn" (click)="saveField('specialization')">Enregistrer</button>
+              </div>
+            </div>
+            <div *ngIf="user?.role === 'COACH'" class="info-item">
+              <span class="label">Années d'expérience :</span> 
+              <span class="value">{{ user?.yearsOfExperience || 'N/A' }}</span>
+              <button (click)="toggleEditMode('yearsOfExperience')" class="edit-btn"><i class="fas fa-edit"></i></button>
+              <div *ngIf="editMode['yearsOfExperience']" class="edit-container">
+                <input type="number" [(ngModel)]="user.yearsOfExperience" class="form-control">
+                <button class="btn save-btn" (click)="saveField('yearsOfExperience')">Enregistrer</button>
+              </div>
+            </div>
+            <div *ngIf="user?.role === 'ENTREPRENEUR'" class="info-item">
+              <span class="label">Startup :</span> 
+              <span class="value">{{ user?.StartupName || 'N/A' }}</span>
+              <button (click)="toggleEditMode('StartupName')" class="edit-btn"><i class="fas fa-edit"></i></button>
+              <div *ngIf="editMode['StartupName']" class="edit-container">
+                <input type="text" [(ngModel)]="user.StartupName" class="form-control">
+                <button class="btn save-btn" (click)="saveField('StartupName')">Enregistrer</button>
+              </div>
+            </div>
+            <div *ngIf="user?.role === 'ENTREPRENEUR'" class="info-item">
+              <span class="label">Industrie :</span> 
+              <span class="value">{{ user?.Industry || 'N/A' }}</span>
+              <button (click)="toggleEditMode('Industry')" class="edit-btn"><i class="fas fa-edit"></i></button>
+              <div *ngIf="editMode['Industry']" class="edit-container">
+                <input type="text" [(ngModel)]="user.Industry" class="form-control">
+                <button class="btn save-btn" (click)="saveField('Industry')">Enregistrer</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="progress-section mt-4">
+            <h4 class="progress-title">Niveau d'expérience</h4>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 75%;"></div>
+            </div>
+          </div>
+
+          <!-- Skills Section -->
+          <div class="skills-section mt-4">
+            <h4 class="skills-title">Compétences</h4>
+            <div class="skills-list">
+              <span class="skill-tag">Leadership</span>
+              <span class="skill-tag">Entrepreneuriat</span>
+              <span class="skill-tag">Marketing</span>
+              <span class="skill-tag">Coaching</span>
+            </div>
+          </div>
+
+          <!-- Bio -->
+          <p class="bio mt-4">{{ user?.bio || 'Aucune biographie disponible.' }}</p>
+
+          <!-- Buttons -->
+          <div class="text-center mt-4 pb-4">
+            <a href="javascript:void(0)" class="btn action-btn connect-btn">Se connecter</a>
+            <a href="javascript:void(0)" class="btn action-btn message-btn">Message</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

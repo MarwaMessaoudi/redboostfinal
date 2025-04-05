@@ -1,46 +1,46 @@
 import { Routes } from '@angular/router';
 import { AppLayout } from './app/layout/component/app.layout';
-import { Dashboard } from './app/pages/dashboard/dashboard';
 import { Landing } from './app/pages/landing/landing';
 import { GestionDocsComponent } from './app/pages/gestion-docs/gestion-docs.component';
 import { UserLibraryComponent } from './app/pages/gestion-docs/gestion-folder/folder-details/user-library/user-library.component'; 
 import { Notfound } from './app/pages/notfound/notfound';
-import { GestionReclamationComponent } from './app/pages/gestion-reclamation/gestion-reclamation.component';
-import { MessagerieReclamationComponent } from './app/pages/messagerie-reclamation/messagerie-reclamation.component';
-import { PhaseListComponent } from './app/phases/phase-list/phase-list.component';
-import { KanbanBoardComponent } from './app/kanban-board/kanban-board.component';
-import { SigninComponent } from './app/pages/auth/signin/signin.component'; 
-import { SignUpComponent } from './app/pages/auth/signup/signup.component';
-import { ConfirmEmailComponent } from './app/pages/auth/confirm-email/confirm-email.component';
-import { MeetingComponent } from './app/pages/streaming/meeting/meeting.component'; 
-import { MeetingListComponent } from './app/pages/streaming/meetinglist/meeting-list.component';
-import { JitsiMeetingComponent } from './app/pages/streaming/jitsi-meeting/jitsi-meeting.component';
+import { GestionReclamationComponent } from './app/pages/gestion_reclamation/gestion-reclamation/gestion-reclamation.component';
+import { MessagerieReclamationComponent } from './app/pages/gestion_reclamation/messagerie-reclamation/messagerie-reclamation.component';
+import { PhaseListComponent } from './app/pages/gestion_accompagnement/phases/phase-list/phase-list.component';
+import { KanbanBoardComponent } from './app/pages/gestion_accompagnement/kanban-board/kanban-board.component';
+import { SigninComponent } from './app/pages/gestion_user/auth/signin/signin.component'; 
+import { SignUpComponent } from './app/pages/gestion_user/auth/signup/signup.component';
+import { ConfirmEmailComponent } from './app/pages/gestion_user/auth/confirm-email/confirm-email.component';
+
 import { MarketplaceComponent } from './app/pages/marketplace/marketplace';
-import { AppointmentsReceivedComponent } from './app/pages/Coach/AppointmentsReceived/appointments-received.component';
-import { AddProjetComponent } from './app/pages/Projet/addprojet/addprojet.component';
-import { AfficheProjetComponent } from './app/pages/Projet/affiche-projet/affiche-projet.component';
-import { DetailsProjetComponent } from './app/pages/Projet/details-projet/details-projet.component';
-import { Crud } from './app/pages/crud/crud';
-import { Empty } from './app/pages/empty/empty';
+import { AppointmentsReceivedComponent } from './app/pages/gestion_rendez-vous/AppointmentsReceived/appointments-received.component';
+import { AddProjetComponent } from './app/pages/gestion_startup/addprojet/addprojet.component';
+import { AfficheProjetComponent } from './app/pages/gestion_startup/affiche-projet/affiche-projet.component';
+import { DetailsProjetComponent } from './app/pages/gestion_startup/details-projet/details-projet.component';
+
 import { SubFolderComponent } from './app/pages/gestion-docs/gestion-folder/sub-folder/sub-folder.component';  // Import SubFolderComponent
-import {UserProfileComponent} from './app/pages/profile/profile.component'; // Import UserProfileComponent
+import { UserProfileComponent } from './app/pages/gestion_user/profile/profile.component'; // Import UserProfileComponent
 import { DocumentsComponent } from './app/pages/documents/documents.component'; // Import DocumentsComponent
 import { ContactLandingComponent } from './app/pages/landing/components/contact-landing';
 import { MarketLandingComponent } from './app/pages/landing/components/market-landing';
-import { ShowProduitsComponent } from './app/pages/Projet/Produit/show-produits/show-produits.component';
-import { CoachRequestComponent } from './app/pages/landing/coachrequest';
-import { AllCoachRequestsComponent } from './app/pages/all-coach-requests.component';
-import { AllReclamationsComponent } from './app/pages/all-reclamations/all-reclamations.component';
+import { ShowProduitsComponent } from './app/pages/gestion_startup/Produit/show-produits/show-produits.component';
+import { CoachRequestComponent } from './app/pages/become_coach/coachrequest';
+import { AllCoachRequestsComponent } from './app/pages/become_coach/all-coach-requests.component';
+import { AllReclamationsComponent } from './app/pages/gestion_reclamation/all-reclamations/all-reclamations.component';
+import { CoachDashboardComponent } from './app/pages/dashboard/coachdashboard/coach-dashboard.component';
+import { InvestorDashboardComponent } from './app/pages/dashboard/inverstdashboard/investor-dashboard';
+import { RoleGuard } from './role.guard';
+import { DashboardRedirectComponent } from './app/pages/dashboard/dashboard-redirect/dashboard-redirect.component';
+import { Dashboard } from './app/pages/dashboard/entrepredashboard/dashboard';
+import { AppointmentListComponent } from './app/pages/gestion_rendez-vous/appointment-list/appointment-list.component';
 export const pagesRoutes: Routes = [
     { path: 'addprojet', component: AddProjetComponent },
     { path: 'GetProjet', component: AfficheProjetComponent },
     { path: 'details-projet/:id', component: DetailsProjetComponent },
-    { path: 'crud', component: Crud },
-    { path: 'empty', component: Empty },
+    
     { path: 'gestion-reclamation', component: GestionReclamationComponent },
     { path: 'marketplace', component: MarketplaceComponent },
-    { path: 'meeting', component: MeetingComponent },
-    { path: 'meetinglist', component: MeetingListComponent },
+    {path: 'appointments', component: AppointmentListComponent},
     { path: 'appointments/received', component: AppointmentsReceivedComponent },
     {path: 'profile', component: UserProfileComponent}, // Add route for UserProfileComponent
     {path: 'documents', component: DocumentsComponent}, // Add route for DocumentsComponent
@@ -60,8 +60,30 @@ export const appRoutes: Routes = [
         path: '',
         component: AppLayout,
         children: [
-            { path: '', redirectTo: 'dashboard', pathMatch: 'full' }, // Default route
-            { path: 'dashboard', component: Dashboard },
+            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        canActivate: [RoleGuard],
+        component: DashboardRedirectComponent
+      },
+      {
+        path: 'coach-dashboard',
+        canActivate: [RoleGuard],
+        data: { expectedRole: 'COACH' },
+        component: CoachDashboardComponent,
+      },
+      {
+        path: 'entrepreneur-dashboard',
+        canActivate: [RoleGuard],
+        data: { expectedRole: 'ENTREPRENEUR' },
+        component: Dashboard,
+      },
+      {
+        path: 'investor-dashboard',
+        canActivate: [RoleGuard],
+        data: { expectedRole: 'INVESTOR' },
+        component: InvestorDashboardComponent,
+      },
             { path: 'gestion-docs', component: GestionDocsComponent },
             {path: 'profile', component: UserProfileComponent}, // Add route for UserProfileComponent
             { path: 'sub-folder/:folderName/:folderMetadataId/:categoryName/:subFolderName', component: SubFolderComponent },  // Updated route
@@ -77,23 +99,20 @@ export const appRoutes: Routes = [
                     { path: ':phaseId', component: KanbanBoardComponent }
                 ]
             },
-            { path: 'marketplace/v1', loadChildren: () => import('./app/pages/marketplace/marketplace.routes') },
+            //{ path: 'marketplace', loadChildren: () => import('./app/pages/marketplace/marketplace.routes') },
             { path: 'investor/v1', loadChildren: () => import('./app/pages/startup/investorStartups/investor.routes') },
             { path: 'startup/v1', loadChildren: () => import('./app/pages/startup/StartupsRequest/startup.routes') },
             { path: 'startup/:id', loadChildren: () => import('./app/pages/marketplace/StartupDetails/startup.routes') },
             { path:'startup-details/:id', loadChildren: () => import('./app/pages/startup/DetailsInvestment/details.routes')},
             
-            {
-                path: 'appointments',
-                loadChildren: () => import('./app/pages/appointments/appointments.module').then(m => m.AppointmentsModule)
-            },
+           
 
             ...pagesRoutes
         ]
     },
+    { path: '', component: Landing },
+
     { path: 'landing', component: Landing },
-    { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes') },
     { path: 'notfound', component: Notfound },
-    { path: 'jitsi-meeting', component: JitsiMeetingComponent },
     { path: '**', redirectTo: 'notfound' }
 ];

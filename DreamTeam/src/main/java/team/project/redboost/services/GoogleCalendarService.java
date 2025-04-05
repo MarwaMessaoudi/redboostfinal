@@ -32,11 +32,11 @@ public class GoogleCalendarService {
     private static final String APPLICATION_NAME = "RedBoostCalendarIntegration";
     private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
     private static final List<String> SCOPES = Collections.singletonList(CalendarScopes.CALENDAR);
-    private static final String ORGANIZER_EMAIL = "oussama.hajboubaker@gmail.com";
-    private static final String CENTRAL_CALENDAR_ID = "oussama.hajboubaker@gmail.com";
+    private static final String ORGANIZER_EMAIL = "messaoudimarwa75@gmail.com";
+    private static final String CENTRAL_CALENDAR_ID = "messaoudimarwa75@gmail.com";
     private static final String CLIENT_ID = "847579644213-tt8aljrm2luej8b38q16f7hdl99ssnl1.apps.googleusercontent.com";
     private static final String CLIENT_SECRET = "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";
-    private static final String REFRESH_TOKEN = "1//04G4i8qTxAoiQCgYIARAAGAQSNwF-L9IrKGSPKQKzk4DbVOR-ob_FTdJ-sgk9hC3SCpTWIyHvZQb_ZVMavC3_2Xr5_po0rAXT5uo";
+    private static final String REFRESH_TOKEN = "1//04wDrnxwFNYEaCgYIARAAGAQSNwF-L9IrDvjz4DWQAebjDHvtH-bJ6XlelLkVD3DBL2aQC73mxfTKGLK7zOgmYjBkCiSsta16TxQ";
 
     private Calendar calendarService;
 
@@ -50,7 +50,6 @@ public class GoogleCalendarService {
     public void ajouterRendezVous(RendezVous rendezVous) {
         try {
             System.out.println("Début de l'ajout dans Google Calendar");
-
             System.out.println("RendezVous ID: " + rendezVous.getId());
             System.out.println("Email stocké dans RendezVous: " + rendezVous.getEmail());
 

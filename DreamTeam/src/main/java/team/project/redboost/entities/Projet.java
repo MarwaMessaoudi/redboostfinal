@@ -99,13 +99,7 @@ public class Projet {
     )
     private List<User> investors = new ArrayList<>();
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-            name = "projet_folder",
-            joinColumns = @JoinColumn(name = "projet_id"),
-            inverseJoinColumns = @JoinColumn(name = "folder_id")
-    )
-    private List<FolderMetadata> folders = new ArrayList<>();
+
 
     @OneToMany(mappedBy = "projet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Phase> phases = new ArrayList<>();

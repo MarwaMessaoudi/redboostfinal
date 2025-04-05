@@ -4,7 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { RippleModule } from 'primeng/ripple';
 import { ButtonModule } from 'primeng/button';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../auth/auth.service';
+import { AuthService } from '../../service/auth.service';
 import { UserService } from '../../service/UserService'; // Import UserService
 
 @Component({

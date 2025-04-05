@@ -1,4 +1,4 @@
-package team.project.redboost.authentif;
+package team.project.redboost.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;

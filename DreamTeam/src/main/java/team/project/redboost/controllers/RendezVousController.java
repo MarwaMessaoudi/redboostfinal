@@ -46,69 +46,8 @@ public class RendezVousController {
             @ApiResponse(responseCode = "404", description = "Rendez-vous non trouvé"),
             @ApiResponse(responseCode = "500", description = "Erreur lors de la mise à jour ou de l’ajout à Google Calendar")
     })
-  /*  @PatchMapping("/update-status/{id}")
-    public ResponseEntity<ResponseMessage> updateRendezVousStatus(
-            @PathVariable Long id,
-            @RequestBody RendezVous.Status status,
-            Authentication authentication) { // Ajouter Authentication comme paramètre
-        try {
-            Optional<RendezVous> optionalRendezVous = rendezVousService.getRendezVousById(id);
-            if (optionalRendezVous.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
 
-            RendezVous rendezVous = optionalRendezVous.get();
-            rendezVous.setStatus(status);
-            rendezVousService.updateRendezVousStatus(id, status); // Correction : passer status au lieu de rendezVous
 
-            boolean success = true;
-            String message;
-
-            if (RendezVous.Status.ACCEPTED.equals(status)) {
-                try {
-                    googleCalendarService.ajouterRendezVous(rendezVous, authentication); // Passer authentication
-                    message = "Rendez-vous approuvé et ajouté avec succès à Google Calendar";
-                } catch (Exception e) {
-                    success = false;
-                    message = "Erreur lors de l’ajout à Google Calendar : " + e.getMessage();
-                    return ResponseEntity.status(500).body(new ResponseMessage(message, false));
-                }
-            } else {
-                message = "Statut du rendez-vous mis à jour avec succès";
-            }
-
-            return ResponseEntity.ok(new ResponseMessage(message, success));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(new ResponseMessage("Erreur lors de la mise à jour du statut : " + e.getMessage(), false));
-        }
-
-    }*/
-    /*@PatchMapping("/update-status/{id}")
-    public ResponseEntity<ResponseMessage> updateRendezVousStatus(@PathVariable Long id, @RequestBody RendezVous.Status status) {
-        try {
-            Optional<RendezVous> optionalRendezVous = rendezVousService.getRendezVousById(id);
-            if (optionalRendezVous.isEmpty()) {
-                return ResponseEntity.status(404).body(new ResponseMessage("Rendez-vous non trouvé", false));
-            }
-
-            RendezVous rendezVous = optionalRendezVous.get();
-            rendezVous.setStatus(status);
-            rendezVousService.updateRendezVousStatus(id, status);
-
-            String message = "Statut du rendez-vous mis à jour avec succès";
-            boolean success = true;
-
-            if (RendezVous.Status.ACCEPTED.equals(status)) {
-                // Désactiver temporairement pour tester sans Google Calendar
-                googleCalendarService.ajouterRendezVous(rendezVous);
-                message += " (ajout à Google Calendar désactivé)";
-            }
-
-            return ResponseEntity.ok(new ResponseMessage(message, success));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(new ResponseMessage("Erreur: " + e.getMessage(), false));
-        }
-    }*/
     @PatchMapping("/update-status/{id}")
     public ResponseEntity<ResponseMessage> updateRendezVousStatus(@PathVariable Long id, @RequestBody RendezVous.Status status) {
         try {
@@ -278,21 +217,6 @@ public class RendezVousController {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     // Inner class for error responses
     public static class ErrorResponse {
         private String message;
@@ -309,6 +233,8 @@ public class RendezVousController {
             this.message = message;
         }
     }
+
+
     @GetMapping("/all")
     public ResponseEntity<List<RendezVous>> getAllRendezVous() {
         logger.info("Fetching all rendezvous");
@@ -324,6 +250,8 @@ public class RendezVousController {
             return ResponseEntity.notFound().build();
         });
     }
+
+
 
     @PutMapping("/update/{id}")
     public ResponseEntity<?> updateRendezVous(@PathVariable Long id, @RequestBody RendezVous rendezVous) {
@@ -395,7 +323,21 @@ public class RendezVousController {
         return ResponseEntity.ok(rendezVous);
     }
 
-
+    // Endpoint to fetch the list of coaches
+    @GetMapping("api/coachlist")
+    @Operation(summary = "Récupérer la liste dynamique des coachs")
+    public ResponseEntity<List<Coach>> getCoachList() {
+        List<Coach> coaches = coachRepository.findAll(); // Fetch all coaches
+        return ResponseEntity.ok(coaches);
+    }
+    // Endpoint to fetch a coach by ID
+    @GetMapping("api/coachlist/{id}")
+    @Operation(summary = "Récupérer un coach par son ID")
+    public ResponseEntity<Coach> getCoachById(@PathVariable Long id) {
+        Optional<Coach> coach = coachRepository.findById(id);
+        return coach.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
     @GetMapping("/joinable/entrepreneur/{entrepreneurId}")
     public ResponseEntity<RendezVousDTO> getJoinableRendezVousForEntrepreneur(@PathVariable Long entrepreneurId) {

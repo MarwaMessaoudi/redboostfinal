@@ -101,7 +101,7 @@ export class AppMenu implements OnInit {
           break;
           case 'ADMIN':
             roleMenu = this.getAdminMenu();
-            break;
+          break;
 
           
       default:
@@ -116,12 +116,14 @@ export class AppMenu implements OnInit {
     // Append Profile item to all menus
     this.model = [...roleMenu, this.getProfileMenuItem()];
   }
+
   getSuperAdminMenu(): MenuItem[] {
 
 return [
  { label: 'Home',
   items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }],
  },
+
  { label: 'coach requests',
   items: [{ label: 'Coach Requests', icon: 'pi pi-fw pi-home', routerLink: ['/all-coach-requests'] }],
  }
@@ -145,10 +147,10 @@ return [
           { label: 'All Reclamations', icon: 'pi pi-fw pi-file', routerLink: ['/all-reclamations'] },  // Link to admin reclamations
         ],
       },
-       {
-        label: 'Les Documents',
+      {
+        label: 'Documents',
         items: [
-          { label: 'Docs', icon: 'pi pi-fw pi-file', routerLink: ['/gestion-docs'] },
+          { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
         ],
       },
     ];
@@ -181,12 +183,8 @@ return [
           { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
         ],
       },
-      {
-        label: 'Marketplace',
-        items: [
-          { label: 'Marketplace', icon: 'pi pi-fw pi-home', routerLink: ['marketplace/v1'] },
-        ],
-      },
+     
+      
       {
         label: 'Rendez-vous',
         items: [
@@ -195,12 +193,7 @@ return [
           { label: 'My Meetings List', icon: 'pi pi-fw pi-calendar', routerLink: ['/meetinglist'] },
         ],
       },
-      {
-        label: 'Mes Documents',
-        items: [
-          { label: 'Docs', icon: 'pi pi-fw pi-file', routerLink: ['/gestion-docs'] },
-        ],
-      },
+      
       {
         label: 'Mes Reclamations',
         items: [
@@ -240,9 +233,9 @@ return [
         ],
       },
       {
-        label: 'Les Documents',
+        label: 'Documents',
         items: [
-          { label: 'Docs', icon: 'pi pi-fw pi-file', routerLink: ['/gestion-docs'] },
+          { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
         ],
       },
       {
@@ -263,16 +256,16 @@ return [
       },
       {
         label: 'Marketplace',
-        items: [{ label: 'Marketplace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace/v1'] }],
+        items: [{ label: 'Marketplace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace'] }],
       },
       {
         label: 'Startups',
         items: [{ label: 'My Startups', icon: 'pi pi-fw pi-briefcase', routerLink: ['/investor/v1'] }],
       },
       {
-        label: 'Les Documents',
+        label: 'Documents',
         items: [
-          { label: 'Docs', icon: 'pi pi-fw pi-file', routerLink: ['/gestion-docs'] },
+          { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
         ],
       },
       {

@@ -2,6 +2,7 @@ package team.project.redboost.controllers;
 
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,11 +10,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +30,7 @@ import team.project.redboost.services.EmailService;
 import team.project.redboost.services.FirebaseService;
 import team.project.redboost.services.UserService;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -162,8 +166,6 @@ public class AuthController {
         }
     }
 
-
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginRequest, HttpServletResponse response) {
         String email = loginRequest.get("email");
@@ -171,15 +173,8 @@ public class AuthController {
         log.info("Authenticating user with email: {}", email);
 
         try {
-            // Authenticate user
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
-
-            // Load user details (which includes authorities/roles)
-            final UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-
-            // Fetch user entity from DB
+            // Check if user exists before authentication
             User user = userService.findByEmail(email);
-
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                         "message", "User not found with email: " + email,
@@ -187,11 +182,15 @@ public class AuthController {
                 ));
             }
 
+            // Authenticate user
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, password));
+
+            // Load user details (which includes authorities/roles)
+            final UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
             // Generate JWT token
-
             final String accessToken = jwtUtil.generateToken(userDetails.getUsername(), String.valueOf(user.getId()), userDetails.getAuthorities());
-            final String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername(),  String.valueOf(user.getId()), userDetails.getAuthorities());
-
+            final String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername(), String.valueOf(user.getId()), userDetails.getAuthorities());
 
             // Set tokens as HTTP-only cookies
             Cookie accessTokenCookie = new Cookie("accessToken", accessToken);
@@ -205,7 +204,7 @@ public class AuthController {
             refreshTokenCookie.setHttpOnly(true);
             refreshTokenCookie.setSecure(true); // Use HTTPS
             refreshTokenCookie.setPath("/");
-            refreshTokenCookie.setMaxAge(30 * 24 * 60 * 60); // 7 days
+            refreshTokenCookie.setMaxAge(30 * 24 * 60 * 60); // 30 days
             response.addCookie(refreshTokenCookie);
 
             // Return the tokens in the response body
@@ -216,7 +215,14 @@ public class AuthController {
                     "message", "Login successful"
             ));
 
+        } catch (BadCredentialsException e) {
+            // Specific case for incorrect password
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "message", "Password incorrect",
+                    "errorCode", "AUTH010"
+            ));
         } catch (AuthenticationException e) {
+            // Other authentication errors (e.g., account locked, disabled)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                     "message", e.getMessage(),
                     "errorCode", "AUTH009"
@@ -225,14 +231,11 @@ public class AuthController {
     }
 
 
-
-
-
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(
-            @RequestBody(required = false) Map<String, String> refreshRequest, // Optional request body
-            HttpServletRequest request, // For cookies
-            HttpServletResponse response // For setting cookies
+            @RequestBody(required = false) Map<String, String> refreshRequest,
+            HttpServletRequest request,
+            HttpServletResponse response
     ) {
         String refreshToken = null;
 
@@ -241,7 +244,7 @@ public class AuthController {
             refreshToken = refreshRequest.get("refreshToken");
         }
 
-        // 2. If not found in the body, check for refresh token in cookies
+        // 2. Check for refresh token in cookies if not in body
         if (refreshToken == null) {
             Cookie[] cookies = request.getCookies();
             if (cookies != null) {
@@ -254,7 +257,7 @@ public class AuthController {
             }
         }
 
-        // 3. If refresh token is still not found, return an error
+        // 3. Return error if no refresh token is found
         if (refreshToken == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                     "message", "Refresh token not found",
@@ -262,32 +265,66 @@ public class AuthController {
             ));
         }
 
-        // 4. Validate the refresh token
-        if (!jwtUtil.validateToken(refreshToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "message", "Invalid or expired refresh token",
-                    "errorCode", "AUTH005"
+        try {
+            // 4. Validate refresh token (ensure it’s a refresh token)
+            if (!jwtUtil.validateToken(refreshToken)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "message", "Invalid or expired refresh token",
+                        "errorCode", "AUTH005"
+                ));
+            }
+
+            // 5. Extract email and userId
+            String email = jwtUtil.extractEmail(refreshToken);
+            String userId = jwtUtil.extractUserId(refreshToken);
+
+            // 6. Load user details
+            UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserByUsername(email);
+            } catch (UsernameNotFoundException e) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                        "message", "User not found",
+                        "errorCode", "AUTH008"
+                ));
+            }
+
+            // 7. Generate new access token
+            String newAccessToken = jwtUtil.generateToken(email, userId, userDetails.getAuthorities());
+
+            // 8. Rotate refresh token (generate a new one)
+            String newRefreshToken = jwtUtil.generateRefreshToken(email, userId, userDetails.getAuthorities());
+
+            // 9. Set new access token as HTTP-only cookie
+            Cookie accessTokenCookie = new Cookie("accessToken", newAccessToken);
+            accessTokenCookie.setHttpOnly(true);
+            accessTokenCookie.setSecure(true);
+            accessTokenCookie.setPath("/");
+            accessTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
+            response.addCookie(accessTokenCookie);
+
+            // 10. Set new refresh token as HTTP-only cookie
+            Cookie refreshTokenCookie = new Cookie("refreshToken", newRefreshToken);
+            refreshTokenCookie.setHttpOnly(true);
+            refreshTokenCookie.setSecure(true);
+            refreshTokenCookie.setPath("/");
+            refreshTokenCookie.setMaxAge(30 * 24 * 60 * 60); // 30 days
+            response.addCookie(refreshTokenCookie);
+
+            // 11. Return new tokens
+            return ResponseEntity.ok(Map.of(
+                    "accessToken", newAccessToken,
+                    "refreshToken", newRefreshToken,
+                    "message", "Token refreshed successfully"
+            ));
+
+        } catch (Exception e) {
+            log.error("Error refreshing token: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Failed to refresh token",
+                    "errorCode", "AUTH007"
             ));
         }
-
-        // 5. Extract email from the refresh token
-        String email = jwtUtil.extractEmail(refreshToken);
-        String userId = jwtUtil.extractUserId(refreshToken);
-        String newAccessToken = jwtUtil.generateToken(email, userId, userDetailsService.loadUserByUsername(email).getAuthorities());
-
-        // 7. Set the new access token as an HTTP-only cookie (optional)
-        Cookie accessTokenCookie = new Cookie("accessToken", newAccessToken);
-        accessTokenCookie.setHttpOnly(true);
-        accessTokenCookie.setSecure(true); // Use HTTPS
-        accessTokenCookie.setPath("/");
-        accessTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
-        response.addCookie(accessTokenCookie);
-
-        // 8. Return the new access token in the response body
-        return ResponseEntity.ok(Map.of(
-                "accessToken", newAccessToken,
-                "message", "Token refreshed successfully"
-        ));
     }
 
 
@@ -513,4 +550,90 @@ public class AuthController {
     }
 
 
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email");
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "message", "Email is required",
+                        "errorCode", "AUTH015"
+                ));
+            }
+
+            User user = userService.findByEmail(email);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                        "message", "User not found",
+                        "errorCode", "AUTH013"
+                ));
+            }
+
+            String resetToken = userService.generatePasswordResetToken(user);
+            String resetLink = "http://localhost:4200"+ "/reset-password?token=" + resetToken;
+            String subject = "Password Reset Request";
+            String body = "Hello " + user.getFirstName() + ",\n\n" +
+                    "You requested to reset your password. Please click the link below to reset your password:\n\n" +
+                    resetLink + "\n\n" +
+                    "If you didn't request this, please ignore this email.\n\n" +
+                    "Best regards,\nRedboost Team";
+
+            emailService.sendEmail(email, subject, body);
+
+            return ResponseEntity.ok(Map.of("message", "Password reset email sent successfully"));
+
+        } catch (IOException | MessagingException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Failed to send reset email. Please try again later.",
+                    "errorCode", "AUTH018",
+                    "error", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Failed to process password reset request",
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        try {
+            String token = request.get("token");
+            String newPassword = request.get("newPassword");
+
+            if (token == null || token.isEmpty() || newPassword == null || newPassword.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "message", "Token and new password are required",
+                        "errorCode", "AUTH016"
+                ));
+            }
+
+            // Validate token and get user
+            User user = userService.findByResetToken(token);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                        "message", "Invalid or expired token",
+                        "errorCode", "AUTH017"
+                ));
+            }
+
+            // Update password
+            userService.updatePassword(user, newPassword);
+
+            return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
+
+        } catch (UserService.InvalidTokenException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "message", e.getMessage(),
+                    "errorCode", "AUTH017"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Failed to reset password",
+                    "error", e.getMessage()
+            ));
+        }
+    }
 }

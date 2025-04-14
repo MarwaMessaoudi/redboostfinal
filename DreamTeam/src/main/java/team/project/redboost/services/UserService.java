@@ -8,6 +8,9 @@ import team.project.redboost.entities.User;
 import team.project.redboost.repositories.UserRepository;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService { // No need to implement an interface
@@ -40,6 +43,51 @@ public class UserService { // No need to implement an interface
     public User updateUser(User user) {
         return userRepository.save(user);
     }
+
+
+
+
+
+
+    public String generatePasswordResetToken(User user) {
+        String token = UUID.randomUUID().toString();
+        user.setResetToken(token);
+        user.setResetTokenExpiry(LocalDateTime.now().plusHours(24)); // Token valid for 24 hours
+        userRepository.save(user);
+        return token;
+    }
+
+
+    public class InvalidTokenException extends RuntimeException {
+        public InvalidTokenException(String message) {
+            super(message);
+        }
+    }
+    public User findByResetToken(String token) throws InvalidTokenException {
+        Optional<User> userOptional = userRepository.findByResetToken(token);
+
+        if (userOptional.isEmpty()) {
+            throw new InvalidTokenException("Invalid reset token");
+        }
+
+        User user = userOptional.get();
+        if (user.getResetTokenExpiry() == null ||
+                user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new InvalidTokenException("Reset token has expired");
+        }
+
+        return user;
+    }
+
+    public void updatePassword(User user, String newPassword) {
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        userRepository.save(user);
+    }
+
+
+
 
 
     @Autowired

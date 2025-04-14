@@ -1,13 +1,6 @@
 package team.project.redboost.services;
 
 import com.google.api.client.auth.oauth2.Credential;
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
-import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
-import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.gmail.Gmail;
 import com.google.api.services.gmail.model.Message;
 import jakarta.mail.MessagingException;
@@ -16,104 +9,34 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.StringReader;
-import java.security.GeneralSecurityException;
-import java.util.Base64;
-import java.util.Collections;
 import java.util.Properties;
 
 @Service
 public class EmailService {
 
-    private static final String CLIENT_ID = "717073407944-pmbmhmhpdg3jove9da1582o9ihl2itat.apps.googleusercontent.com";
-    private static final String CLIENT_SECRET = "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";
-    private static final String REFRESH_TOKEN = "1//04wlhZI1aBvKZCgYIARAAGAQSNwF-L9IrS56Bo5a4BpDwyfEbb9j4umpp8OWxZGKL5UNYXyqsxNcnSmLeQvUIHNYCHzqlU_9Z6A0";
     private static final String USER_EMAIL = "messaoudimarwa75@gmail.com";
-    private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
     private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
-    private final HttpTransport httpTransport;
-    private Credential credential;
+    private final Gmail gmail;
+    private final Credential credential;
 
-    public EmailService() throws GeneralSecurityException, IOException {
-        this.httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        this.credential = getCredentials();
+    @Autowired
+    public EmailService(Gmail gmail, Credential credential) {
+        this.gmail = gmail;
+        this.credential = credential;
     }
 
     /**
-     * Generates a Credential object using the Refresh Token with retry logic
+     * Sends an email via Gmail API with proactive token refresh
      */
-    private Credential getCredentials() throws IOException {
-        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(
-                JSON_FACTORY,
-                new StringReader("{\"installed\":{\"client_id\":\"" + CLIENT_ID + "\",\"client_secret\":\"" + CLIENT_SECRET + "\"}}")
-        );
-
-        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                httpTransport, JSON_FACTORY, clientSecrets,
-                Collections.singletonList("https://www.googleapis.com/auth/gmail.send")
-        ).build();
-
-        Credential credential = flow.createAndStoreCredential(new GoogleTokenResponse().setRefreshToken(REFRESH_TOKEN), null);
-        refreshCredentialWithRetry(credential, 3, 1000); // Retry 3 times with 1-second initial delay
-        return credential;
-    }
-
-    /**
-     * Refreshes the credential with retry logic and exponential backoff
-     */
-    private void refreshCredentialWithRetry(Credential credential, int maxRetries, long initialDelay) throws IOException {
-        int attempt = 0;
-        while (attempt < maxRetries) {
-            try {
-                if (credential.refreshToken()) {
-                    logger.info("Token refreshed successfully on attempt {}", attempt + 1);
-                    return;
-                }
-            } catch (IOException e) {
-                if (e.getMessage().contains("invalid_grant")) {
-                    logger.warn("Refresh token expired or revoked on attempt {}: {}", attempt + 1, e.getMessage());
-                } else {
-                    logger.error("Unexpected error refreshing token on attempt {}: {}", attempt + 1, e.getMessage());
-                }
-                attempt++;
-                if (attempt < maxRetries) {
-                    long delay = initialDelay * (long) Math.pow(2, attempt - 1); // Exponential backoff
-                    try {
-                        Thread.sleep(delay);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new IOException("Interrupted during retry delay", ie);
-                    }
-                }
-            }
-        }
-        logger.error("Failed to refresh token after {} attempts. Email service will operate in degraded mode.", maxRetries);
-        this.credential = null; // Set to null to indicate failure
-    }
-
-    /**
-     * Creates the Gmail service
-     */
-    private Gmail getGmailService() throws IOException {
-        if (credential == null) {
-            throw new IOException("Credential is unavailable due to repeated refresh failures.");
-        }
-        return new Gmail.Builder(httpTransport, JSON_FACTORY, credential)
-                .setApplicationName("MyApp")
-                .build();
-    }
-
-    /**
-     * Sends an email via Gmail API with fallback handling
-     */
-    public void sendEmail(String to, String subject, String body) throws MessagingException {
+    public void sendEmail(String to, String subject, String body) throws MessagingException, IOException {
+        ensureValidCredential(); // Proactively refresh token
         try {
-            Gmail gmail = getGmailService();
             MimeMessage mimeMessage = createEmail(to, USER_EMAIL, subject, body);
             Message message = createMessageWithEmail(mimeMessage);
             gmail.users().messages().send(USER_EMAIL, message).execute();
@@ -121,31 +44,33 @@ public class EmailService {
         } catch (IOException e) {
             logger.error("Failed to send email to {}: {}", to, e.getMessage());
             if (e.getMessage().contains("invalid_grant")) {
-                try {
-                    refreshCredentialWithRetry(credential, 3, 1000); // Retry refreshing token
-                    Gmail gmail = getGmailService();
-                    MimeMessage mimeMessage = createEmail(to, USER_EMAIL, subject, body);
-                    Message message = createMessageWithEmail(mimeMessage);
-                    gmail.users().messages().send(USER_EMAIL, message).execute();
-                    logger.info("Email sent successfully to {} after token refresh", to);
-                } catch (IOException ex) {
-                    logger.error("Failed to send email after retrying token refresh: {}. Operating in degraded mode.", ex.getMessage());
-                    // Fallback: Log the email instead of crashing
-                    logEmailFailure(to, subject, body);
-                }
-            } else {
-                logger.error("Unexpected error sending email: {}", e.getMessage());
-                logEmailFailure(to, subject, body);
+                logger.error("Refresh token is invalid or revoked. Re-authentication required.");
+                throw new IOException("Invalid refresh token. Please re-authenticate via OAuth2.", e);
             }
+            // Retry once for transient errors
+            ensureValidCredential();
+            MimeMessage mimeMessage = createEmail(to, USER_EMAIL, subject, body);
+            Message message = createMessageWithEmail(mimeMessage);
+            gmail.users().messages().send(USER_EMAIL, message).execute();
+            logger.info("Email sent successfully to {} after retry", to);
         }
     }
 
     /**
-     * Logs email failure as a fallback mechanism
+     * Ensures the credential is valid, refreshing it proactively if nearing expiry
      */
-    private void logEmailFailure(String to, String subject, String body) {
-        logger.warn("Email could not be sent. Details logged instead: To={}, Subject={}, Body={}", to, subject, body);
-        // Optionally, save to a database or file for later retry
+    private void ensureValidCredential() throws IOException {
+        synchronized (credential) { // Thread-safe refresh
+            if (credential.getExpiresInSeconds() == null || credential.getExpiresInSeconds() <= 60) {
+                logger.info("Access token nearing expiry ({} seconds remaining), refreshing proactively.",
+                        credential.getExpiresInSeconds());
+                if (!credential.refreshToken()) {
+                    logger.error("Failed to refresh token. Check refresh token validity in application.properties.");
+                    throw new IOException("Unable to refresh token.");
+                }
+                logger.info("Token refreshed successfully.");
+            }
+        }
     }
 
     /**
@@ -163,13 +88,13 @@ public class EmailService {
     }
 
     /**
-     * Encodes a MIME email in base64
+     * Encodes a MIME email in base64 for Gmail API
      */
     private Message createMessageWithEmail(MimeMessage email) throws MessagingException, IOException {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         email.writeTo(buffer);
         byte[] bytes = buffer.toByteArray();
-        String encodedEmail = Base64.getUrlEncoder().encodeToString(bytes);
+        String encodedEmail = java.util.Base64.getUrlEncoder().encodeToString(bytes);
         Message message = new Message();
         message.setRaw(encodedEmail);
         return message;

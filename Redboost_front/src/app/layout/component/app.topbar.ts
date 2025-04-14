@@ -241,6 +241,8 @@ export class AppTopbar implements OnInit, OnDestroy {
             },
             (error) => {
                 console.error('Logout failed:', error);
+                this.router.navigate(['/landing']);
+
             }
         );
     }

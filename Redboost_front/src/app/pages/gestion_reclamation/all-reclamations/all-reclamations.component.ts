@@ -4,10 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule, HttpErrorResponse } from '@angular/common/http';
 import { ReclamationService, Reclamation, ReponseReclamation, Role } from '../../service/reclamation.service';
 import { StatutReclamation } from '../../../models/statut-reclamation.model';
+import { CategorieReclamation } from '../../../models/categorie-reclamation.model';
 import { jwtDecode } from 'jwt-decode'; // Import the jwt_decode library
 import { ToastModule } from 'primeng/toast'; // PrimeNG Toast
 import { MessageService } from 'primeng/api';  // PrimeNG MessageService for Toasts
 
+type CategorieLibelles = {
+  [key in CategorieReclamation]: string;
+};
 @Component({
   selector: 'app-all-reclamations',
   templateUrl: './all-reclamations.component.html',
@@ -20,17 +24,33 @@ import { MessageService } from 'primeng/api';  // PrimeNG MessageService for Toa
 export class AllReclamationsComponent implements OnInit {
 
   public StatutReclamation = StatutReclamation;
+  public CategorieReclamation = CategorieReclamation;
   reclamations: Reclamation[] = [];
   reclamationSelectionnee: Reclamation | null = null;
   nouveauMessage: string = '';
   chargement: boolean = false;
   erreur: string | null = null;
   fichiersSelectionnes: File[] = [];
-  statutOptions: StatutReclamation[] = [StatutReclamation.NOUVELLE, StatutReclamation.EN_ATTENTE, StatutReclamation.TRAITE, StatutReclamation.FERMEE];
+  
+  statutOptions: StatutReclamation[] = [
+    StatutReclamation.NOUVELLE, 
+    StatutReclamation.EN_ATTENTE, 
+    StatutReclamation.TRAITE, 
+    StatutReclamation.FERMEE
+  ];
+  
+  categorieOptions: CategorieReclamation[] = [
+    CategorieReclamation.SUPPORT_ET_ACCOMPAGNEMENT,
+    CategorieReclamation.FINANCEMENT_ET_OPPORTUNITES,
+    CategorieReclamation.RELATIONS_ET_PARTENARIATS,
+    CategorieReclamation.ADMINISTRATION_ET_SERVICE_CLIENT
+  ];
   nouveauStatut: StatutReclamation | null = null;
   retourListeReclamations: boolean = false;
   reponses: ReponseReclamation[] = [];
   messageSucces: string = '';
+  selectedCategorie: CategorieReclamation | null = null;
+
 
   //Search and filter params added.
   searchTerm: string = '';
@@ -104,6 +124,19 @@ export class AllReclamationsComponent implements OnInit {
       [StatutReclamation.FERMEE]: 'Fermée'
     };
     return libelles[statut] || statut;
+  }
+
+  getCategorieLibelle(categorie: CategorieReclamation): string {
+    const libelles: CategorieLibelles = {
+      [CategorieReclamation.SUPPORT_ET_ACCOMPAGNEMENT]: 'Support et accompagnement',
+      [CategorieReclamation.FINANCEMENT_ET_OPPORTUNITES]: 'Financement et opportunités',
+      [CategorieReclamation.RELATIONS_ET_PARTENARIATS]: 'Relations et partenariats',
+      [CategorieReclamation.ADMINISTRATION_ET_SERVICE_CLIENT]: 'Administration et service client'
+    };
+    return libelles[categorie] || categorie.toString();
+  }
+  onCategorieChange(): void {
+    this.filterReclamations();
   }
 
   envoyerMessage(): void {
@@ -199,8 +232,9 @@ export class AllReclamationsComponent implements OnInit {
         reclamation.description.toLowerCase().includes(this.searchTerm.toLowerCase());
 
       const statutMatch = !this.selectedStatut || reclamation.statut === this.selectedStatut;
+      const categorieMatch = !this.selectedCategorie || reclamation.categorie === this.selectedCategorie;
 
-      return searchMatch && statutMatch;
+      return searchMatch && statutMatch && categorieMatch;
     });
   }
 

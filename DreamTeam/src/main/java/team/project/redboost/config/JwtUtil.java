@@ -4,9 +4,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
+import team.project.redboost.controllers.RendezVousController;
 import team.project.redboost.entities.Role;
 
 import java.security.Key;
@@ -21,6 +24,7 @@ public class JwtUtil {
     @Value("${jwt.secret.key}")
     private String secretKey;
 
+    private static final Logger logger = LoggerFactory.getLogger(RendezVousController.class);
 
     private static final long ACCESS_TOKEN_EXPIRATION = 7 * 24 * 60 * 60 * 1000; // 7 days
     private static final long REFRESH_TOKEN_EXPIRATION = 30L * 24 * 60 * 60 * 1000; // 30 days
@@ -162,4 +166,5 @@ public class JwtUtil {
         String roleName = claims.get("role", String.class); // Extract the role as a string
         return Role.valueOf(roleName); // Convert the string to the Role enum
     }
+
 }

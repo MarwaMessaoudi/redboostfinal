@@ -365,4 +365,12 @@ input:focus {
   :host ::ng-deep .p-dialog {
     width: 90vw !important;
   }
+
+
+  .google-logo {
+    width: 20px; /* Adjust size as needed */
+    height: 20px;
+    margin-right: 8px; /* Space between logo and text */
+    vertical-align: middle; /* Align with text */
+}
 }

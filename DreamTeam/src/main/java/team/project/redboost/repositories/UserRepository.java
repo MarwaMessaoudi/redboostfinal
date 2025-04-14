@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import team.project.redboost.entities.User;
 
+import java.util.Optional;
+
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -23,5 +25,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Transactional
     @Query("UPDATE User u SET u.refreshToken = :refreshToken WHERE u.id = :userId")
     void updateRefreshToken(@Param("userId") Long userId, @Param("refreshToken") String refreshToken);
-}
+
+    Optional<User> findByResetToken(String resetToken);}
 

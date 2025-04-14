@@ -51,7 +51,7 @@ import { UserService } from '../../service/UserService'; // Import UserService
                         <button pButton pRipple label="S'inscrire" routerLink="/auth/register" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
                     </ng-container>
                     <ng-template #loggedInMobile>
-                        <a routerLink="/profile" class="profile-picture-container">
+                        <a routerLink="/dashboard" class="profile-picture-container">
                             <img *ngIf="user?.profile_pictureurl" [src]="user.profile_pictureurl" alt="Profile Picture" class="profile-picture" />
                             <i *ngIf="!user?.profile_pictureurl" class="pi pi-user text-2xl hover:scale-110 transition-transform duration-300"></i>
                         </a>
@@ -80,7 +80,7 @@ import { UserService } from '../../service/UserService'; // Import UserService
                         <button pButton pRipple label="Register" routerLink="/signup" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
                     </ng-container>
                     <ng-template #loggedInDesktop>
-                        <a routerLink="/profile" class="profile-picture-container">
+                        <a routerLink="/dashboard" class="profile-picture-container">
                             <img *ngIf="user?.profile_pictureurl" [src]="user.profile_pictureurl" alt="Profile Picture" class="profile-picture" />
                             <i *ngIf="!user?.profile_pictureurl" class="pi pi-user text-2xl hover:scale-110 transition-transform duration-300"></i>
                         </a>

@@ -8,6 +8,8 @@ import {
 import { Observable, throwError, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { StatutReclamation } from '../../models/statut-reclamation.model';
+import { CategorieReclamation } from '../../models/categorie-reclamation.model';
+
 import { jwtDecode } from 'jwt-decode'; // Correct import
 
 export interface ReponseReclamation {
@@ -35,7 +37,9 @@ export interface Fichier {
   url?: string;
 }
 
+
 export interface Reclamation {
+  categorie: CategorieReclamation;
   idReclamation: number;
   sujet: string;
   description: string;

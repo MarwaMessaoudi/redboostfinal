@@ -144,24 +144,16 @@ getUserId(): string | null {
 
 
     // auth.service.ts
-logout(): Observable<any> {
-  // Clear tokens from localStorage
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
-
-  // Call the backend logout endpoint to clear cookies
-  return this.http.post(`${this.API_URL}/logout`, {}, { withCredentials: true })
-    .pipe(
-      tap(() => {
-        // Redirect to the landing page after logout
-        this.router.navigate(['/landing']);
-      }),
-      catchError((error) => {
-        console.error('Logout failed:', error);
-        return throwError(error);
-      })
-    );
-}
+    logout(): Observable<any> {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      return this.http.post(`${this.API_URL}/logout`, {}, { withCredentials: true }).pipe(
+        catchError((error) => {
+          console.error('Logout failed:', error);
+          return throwError(error);
+        })
+      );
+    }
 
 // Nouvelle méthode pour récupérer l'ID et le rôle de l'utilisateur connecté
 getCurrentUser(): Observable<{ id: number; role: string } | null> {

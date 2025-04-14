@@ -147,6 +147,7 @@ return [
           { label: 'All Reclamations', icon: 'pi pi-fw pi-file', routerLink: ['/all-reclamations'] },  // Link to admin reclamations
         ],
       },
+      
       {
         label: 'Documents',
         items: [

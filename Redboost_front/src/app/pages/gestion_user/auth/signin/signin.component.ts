@@ -9,6 +9,7 @@ import { RippleModule } from 'primeng/ripple';
 import { AuthService } from '../../../service/auth.service';
 import { MessageService } from 'primeng/api';
 import { environment } from '../../../../../environment';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-signin',
@@ -21,14 +22,17 @@ import { environment } from '../../../../../environment';
     FormsModule,
     RouterModule,
     RippleModule,
+    CommonModule,
   ],
-  templateUrl: './signin.component.html', // Reference the external HTML file
+  templateUrl: './signin.component.html',
   styleUrls: ['./signin.component.scss'],
 })
 export class SigninComponent {
   email: string = '';
   password: string = '';
   selectedRole: string = '';
+  isSubmitted: boolean = false;
+  loginError: string | null = null;
 
   constructor(
     private authService: AuthService,
@@ -36,61 +40,88 @@ export class SigninComponent {
     private messageService: MessageService
   ) {}
 
- // signin.component.ts
-onLogin() {
-  console.log('Attempting login with email:', this.email);
-  this.authService.login(this.email, this.password).subscribe({
-    next: (response) => {
-      console.log('Login successful:', response);
-      const accessToken = response.accessToken;
-      const refreshToken = response.refreshToken;
+  onLogin() {
+    this.isSubmitted = true;
+    this.loginError = null; // Reset error state
+    if (!this.email || !this.password) {
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Email et mot de passe requis' });
+      return;
+    }
 
-      if (accessToken) {
-        // Store the tokens in localStorage
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-      }
+    console.log('Attempting login with email:', this.email);
+    this.authService.login(this.email, this.password).subscribe({
+      next: (response) => {
+        console.log('Login successful:', response);
+        const accessToken = response.accessToken;
+        const refreshToken = response.refreshToken;
 
-      this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Login successful' });
-      this.router.navigate(['profile']);
-    },
-    error: (error) => {
-      console.error('Login failed:', error);
-      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Login failed' });
-    },
-  });
-}
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('refreshToken', refreshToken);
+        }
 
-  // signin.component.ts
-async onGoogleLogin() {
-  if (!this.selectedRole) {
-    alert('Please select a role before continuing.');
-    return;
+        this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Connexion réussie' });
+        this.router.navigate(['dashboard']);
+      },
+      error: (error) => {
+        console.error('Login failed:', error);
+        let errorMessage = 'Échec de la connexion';
+        this.loginError = null; // Reset by default
+
+        if (error.error && typeof error.error === 'object') {
+          this.loginError = error.error.errorCode;
+          switch (error.error.errorCode) {
+            case 'AUTH008':
+              errorMessage = 'Utilisateur non trouvé avec cet email';
+              break;
+            case 'AUTH010':
+              errorMessage = 'Mot de passe incorrect';
+              break;
+            case 'AUTH009':
+              errorMessage = error.error.message || 'Échec de l’authentification';
+              break;
+            default:
+              errorMessage = 'Une erreur inattendue s’est produite';
+          }
+        } else {
+          // Handle non-JSON or unexpected errors
+          errorMessage = 'Erreur serveur ou réseau';
+          console.error('Unexpected error format:', error);
+        }
+
+        this.messageService.add({ severity: 'error', summary: 'Erreur', detail: errorMessage });
+      },
+    });
   }
 
-  console.log('Firebase initialized with config:', environment.firebaseConfig);
+  async onGoogleLogin() {
+    this.isSubmitted = true;
+    this.loginError = null; // Reset error state
+    if (!this.selectedRole) {
+      this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Veuillez sélectionner un rôle' });
+      return;
+    }
 
-  (await this.authService.googleLogin(this.selectedRole)).subscribe({
-    next: (response: any) => {
-      const accessToken = response.accessToken;
-      const refreshToken = response.refreshToken;
+    console.log('Firebase initialized with config:', environment.firebaseConfig);
 
-      console.log('Google login successful:', response);
-      if (accessToken) {
-        // Store the tokens in localStorage
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
-      }
+    (await this.authService.googleLogin(this.selectedRole)).subscribe({
+      next: (response: any) => {
+        console.log('Google login successful:', response);
+        const accessToken = response.accessToken;
+        const refreshToken = response.refreshToken;
 
-      this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Google login successful' });
-      this.router.navigate(['profile']);
-    },
-    error: (error: any) => {
-      console.error('Google login failed:', error);
-      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Google login failed' });
-    },
-  });
-}
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('refreshToken', refreshToken);
+        }
 
-  
+        this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Connexion Google réussie' });
+        this.router.navigate(['dashboard']);
+      },
+      error: (error: any) => {
+        console.error('Google login failed:', error);
+        this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de la connexion Google' });
+      },
+    });
+  }
 }

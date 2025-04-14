@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { jwtDecode } from 'jwt-decode'; // Correction de l'import
+import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
   providedIn: 'root',
@@ -22,16 +22,8 @@ export class GoogleDriveService {
   }
 
   // Fetch list of folders
-  getFolders(): Observable<any[]> {
-    const userId = this.getCurrentUserId();
-    if (!userId) {
-      return throwError(() => new Error('User ID not found in token'));
-    }
-
-    // You might need to adjust the backend to have a dedicated endpoint for listing folders
-    //  This assumes you'll create a `/api/drive/folders` endpoint on the backend.
+  getFolders(userId: number): Observable<any[]> {
     const params = new HttpParams().set('userId', userId.toString());
-
     return this.http.get<any[]>(`${this.apiUrl}/folders`, { params }).pipe(
       catchError((error) => {
         console.error('Failed to fetch folders:', error);
@@ -41,12 +33,7 @@ export class GoogleDriveService {
   }
 
   // Create a folder in Google Drive
-  createFolder(folderName: string): Observable<string> {
-    const userId = this.getCurrentUserId();
-    if (!userId) {
-      return throwError(() => new Error('User ID not found in token'));
-    }
-
+  createFolder(folderName: string, userId: number): Observable<string> {
     const params = new HttpParams()
       .set('folderName', folderName)
       .set('userId', userId.toString());
@@ -59,16 +46,25 @@ export class GoogleDriveService {
     );
   }
 
-  // Upload a file to Google Drive
-  uploadFile(folderId: string, fileName: string, file: File): Observable<string> {
-    const userId = this.getCurrentUserId();
-    if (!userId) {
-      return throwError(() => new Error('User ID not found in token'));
-    }
+  // Create a subfolder in Google Drive
+  createSubFolder(parentFolderId: string, subFolderName: string, userId: number): Observable<string> {
+    const params = new HttpParams()
+      .set('parentFolderId', parentFolderId)
+      .set('subFolderName', subFolderName)
+      .set('userId', userId.toString());
 
+    return this.http.post<string>(`${this.apiUrl}/create-subfolder`, null, { params }).pipe(
+      catchError((error) => {
+        console.error('Failed to create subfolder:', error);
+        return throwError(() => new Error('Failed to create subfolder'));
+      })
+    );
+  }
+
+  // Upload a file to Google Drive
+  uploadFile(folderId: string, file: File, userId: number): Observable<string> {
     const formData = new FormData();
     formData.append('folderId', folderId);
-    formData.append('fileName', fileName);
     formData.append('file', file);
     formData.append('userId', userId.toString());
 
@@ -80,8 +76,22 @@ export class GoogleDriveService {
     );
   }
 
+  // Ajoutez cette mÃ©thode
+getSubFolders(parentFolderId: string, userId: number): Observable<any[]> {
+  const params = new HttpParams()
+    .set('parentFolderId', parentFolderId)
+    .set('userId', userId.toString());
+
+  return this.http.get<any[]>(`${this.apiUrl}/subfolders`, { params }).pipe(
+    catchError((error) => {
+      console.error('Failed to fetch subfolders:', error);
+      return throwError(() => new Error('Failed to fetch subfolders'));
+    })
+  );
+}
+
   // Get the current logged-in user's ID from the JWT token
-  private getCurrentUserId(): number | null {
+  getCurrentUserId(): number | null {
     const accessToken = localStorage.getItem('accessToken');
     if (!accessToken) {
       console.error('Access token not found in localStorage');
@@ -94,7 +104,7 @@ export class GoogleDriveService {
         console.error('User ID not found in token payload');
         return null;
       }
-      return decodedToken.userId; // Extract userId from the token payload
+      return decodedToken.userId;
     } catch (error) {
       console.error('Error decoding JWT:', error);
       return null;

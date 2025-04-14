@@ -17,6 +17,7 @@ import team.project.redboost.repositories.UserRepository;
 import team.project.redboost.services.ReclamationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import team.project.redboost.dto.StatutUpdateRequest;
 
 import java.util.Date;
 import java.util.List;
@@ -210,18 +211,5 @@ public class ReclamationController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(null); // Invalid enum value
         }
-    }
-}
-
-// Inner class for status update request
-class StatutUpdateRequest {
-    private StatutReclamation statut;
-
-    public StatutReclamation getStatut() {
-        return statut;
-    }
-
-    public void setStatut(StatutReclamation statut) {
-        this.statut = statut;
     }
 }

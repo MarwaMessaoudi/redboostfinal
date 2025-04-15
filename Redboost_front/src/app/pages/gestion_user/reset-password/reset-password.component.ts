@@ -10,7 +10,7 @@ import { catchError, of } from 'rxjs';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, HttpClientModule, RouterModule],
   templateUrl: './reset-password.component.html',
-  styleUrls: ['./reset-password.component.css']
+  styleUrls: ['./reset-password.component.scss']
 })
 export class ResetPasswordComponent implements OnInit {
   resetForm: FormGroup;

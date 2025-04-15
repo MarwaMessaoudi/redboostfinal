@@ -33,7 +33,8 @@ import { Dashboard } from './app/pages/dashboard/entrepredashboard/dashboard';
 import { AppointmentListComponent } from './app/pages/gestion_rendez-vous/appointment-list/appointment-list.component';
 import { ForgotPasswordComponent } from './app/pages/gestion_user/forgotpassword/forgotpassword.component';
 import { ResetPasswordComponent } from './app/pages/gestion_user/reset-password/reset-password.component';
-
+import { ChatComponent } from './app/pages/chat/chat.component';
+import { GestionCommunicationComponent } from './app/pages/gestion-communication/gestion-communication.component';
 export const pagesRoutes: Routes = [
   { path: 'addprojet', component: AddProjetComponent },
   { path: 'GetProjet', component: AfficheProjetComponent },
@@ -45,6 +46,9 @@ export const pagesRoutes: Routes = [
   { path: 'profile', component: UserProfileComponent },
   { path: 'documents', component: DocumentsComponent },
   { path: 'marketlanding', component: MarketLandingComponent },
+  {path:'chat',component:ChatComponent},
+  {path:'gestion_comm', component:GestionCommunicationComponent},
+  
 ];
 
 export const appRoutes: Routes = [
@@ -56,6 +60,8 @@ export const appRoutes: Routes = [
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },
+ 
+  
   {
     path: '',
     component: AppLayout,

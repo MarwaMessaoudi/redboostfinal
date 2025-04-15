@@ -20,8 +20,8 @@ import team.project.redboost.services.CloudinaryService;
 import team.project.redboost.services.UserService;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
@@ -183,4 +183,134 @@ public class UserController {
     }
 
 
+
+
+
+
+
+
+
+
+    // New endpoint: Get all users with roles ENTREPRENEUR, COACH, or INVESTOR
+    @GetMapping("/role-specific")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getUsersByRoles() {
+        try {
+            // Define the roles to filter
+            List<Role> targetRoles = Arrays.asList(Role.ENTREPRENEUR, Role.COACH, Role.INVESTOR);
+
+            // Fetch users with the specified roles
+            List<User> users = userRepository.findByRoleIn(targetRoles);
+            if (users.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                        "message", "No users found with roles ENTREPRENEUR, COACH, or INVESTOR"
+                ));
+            }
+
+            // Map users to response format
+            List<Map<String, Object>> response = users.stream().map(user -> {
+                Map<String, Object> userData = new HashMap<>();
+                userData.put("id", user.getId());
+                userData.put("firstName", user.getFirstName());
+                userData.put("lastName", user.getLastName());
+                userData.put("email", user.getEmail());
+                userData.put("phoneNumber", user.getPhoneNumber());
+                userData.put("role", user.getRole());
+                userData.put("isActive", user.getisActive());
+                userData.put("profile_pictureurl", user.getProfilePictureUrl());
+
+                // Add role-specific fields
+                if (user.getRole() == Role.COACH) {
+                    Coach coach = coachRepository.findById(user.getId()).orElse(null);
+                    if (coach != null) {
+                        userData.put("specialization", coach.getSpecialization());
+                        userData.put("yearsOfExperience", coach.getYearsOfExperience());
+                    }
+                } else if (user.getRole() == Role.ENTREPRENEUR) {
+                    Entrepreneur entrepreneur = entrepreneurRepository.findById(user.getId()).orElse(null);
+                    if (entrepreneur != null) {
+                        userData.put("StartupName", entrepreneur.getStartupName());
+                        userData.put("Industry", entrepreneur.getIndustry());
+                    }
+                } else if (user.getRole() == Role.INVESTOR) {
+                    // Add Investor-specific fields if applicable (assuming no InvestorRepository yet)
+                    // For now, no additional fields
+                }
+
+                return userData;
+            }).collect(Collectors.toList());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Failed to fetch users",
+                    "error", e.getMessage()
+            ));
+        }
+    }
+
+    // New endpoint: Get user by ID
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            // Fetch the user by ID
+            Optional<User> userOptional = userRepository.findById(id);
+            if (!userOptional.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                        "message", "User not found with ID: " + id,
+                        "errorCode", "USER002"
+                ));
+            }
+
+            User user = userOptional.get();
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
+            response.put("firstName", user.getFirstName());
+            response.put("lastName", user.getLastName());
+            response.put("email", user.getEmail());
+            response.put("phoneNumber", user.getPhoneNumber());
+            response.put("role", user.getRole());
+            response.put("isActive", user.getisActive());
+            response.put("profile_pictureurl", user.getProfilePictureUrl());
+
+            // Add role-specific fields
+            if (user.getRole() == Role.COACH) {
+                Coach coach = coachRepository.findById(user.getId()).orElse(null);
+                if (coach != null) {
+                    response.put("specialization", coach.getSpecialization());
+                    response.put("yearsOfExperience", coach.getYearsOfExperience());
+                }
+            } else if (user.getRole() == Role.ENTREPRENEUR) {
+                Entrepreneur entrepreneur = entrepreneurRepository.findById(user.getId()).orElse(null);
+                if (entrepreneur != null) {
+                    response.put("StartupName", entrepreneur.getStartupName());
+                    response.put("Industry", entrepreneur.getIndustry());
+                }
+            } else if (user.getRole() == Role.INVESTOR) {
+                // Add Investor-specific fields if applicable
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Failed to fetch user",
+                    "error", e.getMessage()
+            ));
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -6,8 +6,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import team.project.redboost.entities.Role;
 import team.project.redboost.entities.User;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -19,7 +21,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Method to find the refresh token by user ID
     @Query("SELECT u.refreshToken FROM User u WHERE u.id = :userId")
     String findRefreshTokenById(@Param("userId") Long userId);
-
+    List<User> findByRoleIn(List<Role> roles);
     // Method to update the refresh token for a user
     @Modifying
     @Transactional

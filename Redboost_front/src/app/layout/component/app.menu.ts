@@ -179,6 +179,18 @@ return [
         ],
       },
       {
+        label: 'Chat',
+        items: [
+          { label: 'chat', icon: 'pi pi-fw pi-home', routerLink: ['/chat'] },
+        ],
+      },
+      {
+        label: 'gestioncoom',
+        items: [
+          { label: 'communication', icon: 'pi pi-fw pi-home', routerLink: ['/gestion_comm'] },
+        ],
+      },
+      {
         label: 'Documents',
         items: [
           { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
@@ -243,6 +255,18 @@ return [
         label: 'Mes Reclamations',
         items: [
           { label: 'Reclamation', icon: 'pi pi-fw pi-file', routerLink: ['/messagerie-reclamation'] },
+        ],
+      },
+      {
+        label: 'Chat',
+        items: [
+          { label: 'chat', icon: 'pi pi-fw pi-home', routerLink: ['/chat'] },
+        ],
+      },
+      {
+        label: 'gestioncoom',
+        items: [
+          { label: 'communication', icon: 'pi pi-fw pi-home', routerLink: ['/gestion_comm'] },
         ],
       },
     ];

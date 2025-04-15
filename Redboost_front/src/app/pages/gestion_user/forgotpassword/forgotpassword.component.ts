@@ -10,7 +10,7 @@ import { catchError, of } from 'rxjs';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, HttpClientModule, RouterModule],
   templateUrl: './forgotpassword.component.html',
-  styleUrls: ['./forgotpassword.component.css']
+  styleUrls: ['./forgotpassword.component.scss']
 })
 export class ForgotPasswordComponent {
   forgotForm: FormGroup;

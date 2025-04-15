@@ -147,6 +147,7 @@ public class MessageController {
                 .isRead(message.isEstLu())
                 .senderId(message.getSender().getId())
                 .senderName(message.getSender().getUsername())
+                .senderAvatar(message.getSender().getProfilePictureUrl())
                 .recipientId(message.getRecipient() != null ? message.getRecipient().getId() : null)
                 .conversationId(message.getConversation() != null ? message.getConversation().getId() : null)
                 .build();

@@ -101,8 +101,8 @@
             <div class="user-options">
               <button class="options-button" (click)="toggleUserOptions(user.id)">⋮</button>
               <div class="options-dropdown" *ngIf="user.showOptions">
-                <button (click)="startPrivateChat(user)">Envoyer un message privé</button>
-                <button (click)="startGroupChat(user)">Créer un chat de groupe</button>
+                <button class="private-chat-btn" (click)="startPrivateChat(user)">Envoyer un message privé</button>
+                <button class="group-chat-btn" (click)="startGroupChat(user)">Créer un chat de groupe</button>
               </div>
             </div>
             <div class="user-content" (click)="startChatWithUser(user)">

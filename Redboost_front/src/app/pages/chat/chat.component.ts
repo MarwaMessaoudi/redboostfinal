@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../service/auth.service';
-
+import { UserService } from '../service/UserService'; // Import UserService
 interface ChatItem {
   id: number;
   name: string;
@@ -23,6 +23,7 @@ interface User {
   avatar: string;
 }
 
+// chat.component.ts
 interface Message {
   id?: number;
   text: string;
@@ -35,6 +36,7 @@ interface Message {
     url: string;
   };
   showOptions: boolean;
+  senderAvatar?: string; // Sender's profile picture URL
 }
 
 interface MessageDTO {
@@ -47,8 +49,8 @@ interface MessageDTO {
   conversationId?: number;
   groupId?: number;
   isRead: boolean;
+  senderAvatar?: string; // Optional, in case backend includes it later
 }
-
 interface PrivateMessageRequest {
   senderId: number;
   recipientId: number;
@@ -91,6 +93,7 @@ export class ChatComponent implements OnInit, OnDestroy {
   constructor(
     private http: HttpClient,
     private authService: AuthService,
+    private userService: UserService, // Inject UserService
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -162,8 +165,7 @@ export class ChatComponent implements OnInit, OnDestroy {
               ((message.senderId === this.currentUserId && message.recipientId === this.currentChat.id) ||
                (message.recipientId === this.currentUserId && message.senderId === this.currentChat.id)))
           ) {
-            this.messages.push(this.mapToMessage(message));
-            this.scrollToBottom();
+            this.fetchAndMapMessage(message);
           }
         },
         error: err => console.error('Erreur WebSocket:', err),
@@ -188,23 +190,59 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.http.get<MessageDTO[]>(`http://localhost:8085/api/messages/conversation/${this.currentChat.conversationId}`).subscribe({
       next: messages => {
-        this.messages = messages.map(this.mapToMessage.bind(this));
-        this.scrollToBottom();
-        const unreadMessageIds = messages
-          .filter(m => !m.isRead && m.recipientId === this.currentUserId)
-          .map(m => m.id!);
-        if (unreadMessageIds.length > 0) {
-          this.http.put('http://localhost:8085/api/messages/mark-as-read', unreadMessageIds, {
-            params: { userId: this.currentUserId!.toString() }
-          }).subscribe();
-        }
-        this.isLoading = false;
+        // Fetch avatars for all messages
+        Promise.all(messages.map(dto => this.fetchAndMapMessage(dto))).then(mappedMessages => {
+          this.messages = mappedMessages.filter(msg => msg !== null) as Message[];
+          this.scrollToBottom();
+          const unreadMessageIds = messages
+            .filter(m => !m.isRead && m.recipientId === this.currentUserId)
+            .map(m => m.id!);
+          if (unreadMessageIds.length > 0) {
+            this.http.put('http://localhost:8085/api/messages/mark-as-read', unreadMessageIds, {
+              params: { userId: this.currentUserId!.toString() }
+            }).subscribe();
+          }
+          this.isLoading = false;
+        });
       },
       error: err => {
         console.error(`Erreur lors du chargement des messages pour la conversation ${this.currentChat.conversationId}:`, err);
         this.isLoading = false;
       }
     });
+  }
+
+  private fetchAndMapMessage(dto: MessageDTO): Promise<Message | null> {
+    return new Promise((resolve) => {
+      // If senderAvatar is already in MessageDTO, use it (future-proofing)
+      if (dto.senderAvatar) {
+        resolve(this.mapToMessage(dto));
+        return;
+      }
+
+      // Fetch sender's profile to get profile_pictureurl
+      this.userService.getUserById(dto.senderId).subscribe({
+        next: (user) => {
+          const avatar = user?.profile_pictureurl || 'assets/default-avatar.png';
+          resolve(this.mapToMessage({ ...dto, senderAvatar: avatar }));
+        },
+        error: () => {
+          resolve(this.mapToMessage({ ...dto, senderAvatar: 'assets/default-avatar.png' }));
+        }
+      });
+    });
+  }
+
+  private mapToMessage(dto: MessageDTO): Message {
+    return {
+      id: dto.id,
+      text: dto.content,
+      time: new Date(dto.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      sent: dto.senderId === this.currentUserId,
+      read: dto.isRead,
+      showOptions: false,
+      senderAvatar: dto.senderAvatar || 'assets/default-avatar.png' // Use provided or fallback
+    };
   }
 
   sendMessage(): void {
@@ -219,7 +257,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
     if (this.selectedFile) {
       console.warn('Téléchargement de fichier non implémenté dans le backend');
-      this.removeSelectedFile();
+      console.warn('Selected file:', this.selectedFile);
     }
   }
 
@@ -238,10 +276,14 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     this.http.post<MessageDTO>('http://localhost:8085/api/messages/private', request).subscribe({
       next: (response) => {
-        this.messages.push(this.mapToMessage(response));
-        this.scrollToBottom();
-        this.newMessage = '';
-        this.isLoading = false;
+        this.fetchAndMapMessage(response).then(message => {
+          if (message) {
+            this.messages.push(message);
+            this.scrollToBottom();
+            this.newMessage = '';
+            this.isLoading = false;
+          }
+        });
       },
       error: (error) => {
         console.error('Erreur lors de l’envoi du message privé:', error);
@@ -265,44 +307,20 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     this.http.post<MessageDTO>('http://localhost:8085/api/messages/group', request).subscribe({
       next: (response) => {
-        this.messages.push(this.mapToMessage(response));
-        this.scrollToBottom();
-        this.newMessage = '';
-        this.isLoading = false;
+        this.fetchAndMapMessage(response).then(message => {
+          if (message) {
+            this.messages.push(message);
+            this.scrollToBottom();
+            this.newMessage = '';
+            this.isLoading = false;
+          }
+        });
       },
       error: (error) => {
         console.error('Erreur lors de l’envoi du message de groupe:', error);
         this.isLoading = false;
       }
     });
-  }
-
-  handleFileUpload(event: any): void {
-    const files = event.target.files;
-    if (files.length > 0) {
-      this.selectedFile = files[0];
-    }
-  }
-
-  removeSelectedFile(): void {
-    this.selectedFile = null;
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-    if (fileInput) fileInput.value = '';
-  }
-
-  back(): void {
-    this.goBack.emit();
-  }
-
-  private mapToMessage(dto: MessageDTO): Message {
-    return {
-      id: dto.id,
-      text: dto.content,
-      time: new Date(dto.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      sent: dto.senderId === this.currentUserId,
-      read: dto.isRead,
-      showOptions: false
-    };
   }
 
   private scrollToBottom(): void {
@@ -357,12 +375,16 @@ export class ChatComponent implements OnInit, OnDestroy {
 
     this.http.put<MessageDTO>(`http://localhost:8085/api/messages/${messageToUpdate.id}`, request).subscribe({
       next: (response) => {
-        this.messages[this.editingMessageIndex] = this.mapToMessage(response);
-        this.isEditing = false;
-        this.editingMessageIndex = -1;
-        this.newMessage = '';
-        this.isLoading = false;
-        this.cdr.detectChanges();
+        this.fetchAndMapMessage(response).then(message => {
+          if (message) {
+            this.messages[this.editingMessageIndex] = message;
+            this.isEditing = false;
+            this.editingMessageIndex = -1;
+            this.newMessage = '';
+            this.isLoading = false;
+            this.cdr.detectChanges();
+          }
+        });
       },
       error: (error) => {
         console.error('Erreur lors de la mise à jour du message:', error);

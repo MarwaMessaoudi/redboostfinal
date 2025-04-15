@@ -487,6 +487,56 @@
   cursor: not-allowed;
 }
 
+
+.private-chat-btn {
+  background-color: #bfbfe7;
+  border: 2px solid #568086;
+  color: white; 
+  padding: 8px 16px;
+  border-radius: 20px; 
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px; 
+  box-shadow: 0 2px 4px rgba(75, 78, 217, 0.1);
+
+}
+
+.private-chat-btn:hover {
+ 
+  transform: translateY(-1px);
+}
+
+.group-chat-btn {
+  background-color: #bfbfe7;
+  border: 2px solid #568086;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(75, 78, 217, 0.1);
+}
+
+.group-chat-btn:hover {
+ 
+  transform: translateY(-1px);
+}
+
+.private-chat-btn::before {
+  content: "✉️"; 
+}
+
+.group-chat-btn::before {
+  content: "👥"; 
+}
 @media screen and (min-width: 768px) {
   .chat-list-panel {
     width: 350px;

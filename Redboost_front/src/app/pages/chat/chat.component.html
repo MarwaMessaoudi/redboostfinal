@@ -1,9 +1,13 @@
+<!-- chat.component.html -->
 <div class="chat-container">
   <div class="chat-messages">
     <div *ngFor="let message of messages; let i = index"
          class="message"
          [class.sent]="message.sent"
          [class.received]="!message.sent">
+      <!-- Profile Picture for Received Messages -->
+      <img *ngIf="!message.sent" class="profile-picture received" [src]="message.senderAvatar" alt="Sender Avatar" />
+      <!-- Message Options for Sent Messages -->
       <div class="message-options" *ngIf="message.sent">
         <button class="options-button" (click)="toggleMessageOptions(i); $event.stopPropagation()">⋮</button>
         <div class="options-dropdown" *ngIf="message.showOptions">
@@ -11,10 +15,13 @@
           <button (click)="deleteMessage(i)">Supprimer le message</button>
         </div>
       </div>
+      <!-- Message Content -->
       <div class="message-content">
         <p>{{ message.text }}</p>
         <span class="message-time">{{ message.time }}</span>
       </div>
+      <!-- Profile Picture for Sent Messages -->
+      <img *ngIf="message.sent" class="profile-picture sent" [src]="message.senderAvatar" alt="Sender Avatar" />
     </div>
   </div>
   <div class="message-input">

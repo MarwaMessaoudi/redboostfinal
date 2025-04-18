@@ -22,6 +22,7 @@ import team.project.redboost.services.GoogleCalendarService;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -352,4 +353,35 @@ public class RendezVousController {
         Optional<RendezVousDTO> rendezVous = rendezVousService.getJoinableRendezVousForCoach(coachId);
         return rendezVous.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
+
+
+
+
+
+    @GetMapping("/history/{userId}")
+    public ResponseEntity<List<RendezVous>> getUserAppointmentHistory(@PathVariable Long userId) {
+        logger.info("Fetching appointment history for user ID: {}", userId);
+        try {
+            List<RendezVous> rendezVous = rendezVousService.getRendezVousByUserId(userId);
+            return ResponseEntity.ok(rendezVous);
+        } catch (RuntimeException e) {
+            logger.warn("No appointments found for user ID: {}", userId);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            logger.error("Error fetching appointment history for user ID {}: {}", userId, e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    @GetMapping("/stats/{userId}")
+    public ResponseEntity<Map<String, Long>> getStatsByUser(@PathVariable Long userId) {
+        Map<String, Long> stats = rendezVousService.getStatsByUser(userId);
+        return ResponseEntity.ok(stats);
+    }
+
+
+
+
+
+
 }

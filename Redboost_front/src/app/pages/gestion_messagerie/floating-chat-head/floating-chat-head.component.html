@@ -1,0 +1,4 @@
+<div class="chat-head" *ngFor="let head of chatHeads" (click)="openChat(head.conversationId)">
+    <img [src]="head.avatar" [alt]="head.name" class="chat-head-img" />
+    <span class="unread-badge" *ngIf="head.unreadCount > 0">{{ head.unreadCount }}</span>
+  </div>

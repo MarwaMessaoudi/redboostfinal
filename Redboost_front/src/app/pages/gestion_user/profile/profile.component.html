@@ -1,153 +1,196 @@
-<div class="container-fluid">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card card-profile">
-        <!-- Profile Header -->
-        <div class="profile-header">
-          <div class="text-center pt-5 pb-3">
-            <div class="profile-img-container">
-              <img [src]="user?.profile_pictureurl" 
-                   class="profile-img" 
-                   alt="Photo de profil">
-              <button (click)="triggerFileInput()" class="edit-btn profile-edit-btn">
-                <i class="fas fa-edit"></i>
-              </button>
-            </div>
-            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;" />
-            <h3 class="profile-name">{{ user?.firstName }} {{ user?.lastName }}
-              <span class="profile-badge">{{ user?.role === 'COACH' ? 'Coach' : 'Entrepreneur' }}</span>
-            </h3>
-            <div class="social-links mt-3">
-              <a href="https://twitter.com" target="_blank" class="social-icon"><i class="fab fa-twitter"></i></a>
-              <a href="https://linkedin.com" target="_blank" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
-              <a href="https://instagram.com" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
-            </div>
-            <div class="profile-stats mt-3">
-              <div class="stat-item">
-                <span class="stat-number">1.2K</span>
-                <span class="stat-label">Connexions</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-number">850</span>
-                <span class="stat-label">Abonnés</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-number">45</span>
-                <span class="stat-label">Publications</span>
-              </div>
-            </div>
+<div class="profile-container">
+  <div class="profile-card">
+    <!-- Profile Header with Animated Background -->
+    <div class="profile-header">
+      <div class="header-bg"></div>
+      <div class="profile-content">
+        <!-- Profile Image with Floating Animation -->
+        <div class="profile-img-container" (mouseenter)="hoverProfileImg(true)" (mouseleave)="hoverProfileImg(false)">
+          <img [src]="user?.profile_pictureurl || 'assets/default-profile.png'" 
+               class="profile-img" 
+               alt="Profile photo">
+          <div class="img-overlay">
+            <button class="edit-icon" (click)="triggerFileInput()">
+              <i class="fas fa-camera"></i>
+            </button>
           </div>
+          <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/*" style="display: none;" />
         </div>
-
-        <!-- Main Content -->
-        <div class="card-body">
-          <!-- User Info -->
-          <div class="info mt-4">
-            <div class="info-item">
-              <span class="label">Prénom :</span> 
-              <span class="value">{{ user?.firstName || 'N/A' }}</span>
-              <button (click)="toggleEditMode('firstName')" class="edit-btn"><i class="fas fa-edit"></i></button>
-              <div *ngIf="editMode['firstName']" class="edit-container">
-                <input type="text" [(ngModel)]="user.firstName" class="form-control">
-                <button class="btn save-btn" (click)="saveField('firstName')">Enregistrer</button>
-              </div>
-            </div>
-            <div class="info-item">
-              <span class="label">Nom :</span> 
-              <span class="value">{{ user?.lastName || 'N/A' }}</span>
-              <button (click)="toggleEditMode('lastName')" class="edit-btn"><i class="fas fa-edit"></i></button>
-              <div *ngIf="editMode['lastName']" class="edit-container">
-                <input type="text" [(ngModel)]="user.lastName" class="form-control">
-                <button class="btn save-btn" (click)="saveField('lastName')">Enregistrer</button>
-              </div>
-            </div>
-            <div class="info-item">
-              <span class="label">Email :</span> 
-              <span class="value">{{ user?.email || 'N/A' }}</span>
-              <button (click)="toggleEditMode('email')" class="edit-btn"><i class="fas fa-edit"></i></button>
-              <div *ngIf="editMode['email']" class="edit-container">
-                <input type="email" [(ngModel)]="user.email" class="form-control">
-                <button class="btn save-btn" (click)="saveField('email')">Enregistrer</button>
-              </div>
-            </div>
-            <div class="info-item">
-              <span class="label">Numéro de téléphone :</span> 
-              <span class="value">{{ user?.phoneNumber || 'N/A' }}</span>
-              <button (click)="toggleEditMode('phoneNumber')" class="edit-btn"><i class="fas fa-edit"></i></button>
-              <div *ngIf="editMode['phoneNumber']" class="edit-container">
-                <input type="text" [(ngModel)]="user.phoneNumber" class="form-control">
-                <button class="btn save-btn" (click)="saveField('phoneNumber')">Enregistrer</button>
-              </div>
-            </div>
-
-            <!-- Role-specific Fields -->
-            <div *ngIf="user?.role === 'COACH'" class="info-item">
-              <span class="label">Spécialisation :</span> 
-              <span class="value">{{ user?.specialization || 'N/A' }}</span>
-              <button (click)="toggleEditMode('specialization')" class="edit-btn"><i class="fas fa-edit"></i></button>
-              <div *ngIf="editMode['specialization']" class="edit-container">
-                <input type="text" [(ngModel)]="user.specialization" class="form-control">
-                <button class="btn save-btn" (click)="saveField('specialization')">Enregistrer</button>
-              </div>
-            </div>
-            <div *ngIf="user?.role === 'COACH'" class="info-item">
-              <span class="label">Années d'expérience :</span> 
-              <span class="value">{{ user?.yearsOfExperience || 'N/A' }}</span>
-              <button (click)="toggleEditMode('yearsOfExperience')" class="edit-btn"><i class="fas fa-edit"></i></button>
-              <div *ngIf="editMode['yearsOfExperience']" class="edit-container">
-                <input type="number" [(ngModel)]="user.yearsOfExperience" class="form-control">
-                <button class="btn save-btn" (click)="saveField('yearsOfExperience')">Enregistrer</button>
-              </div>
-            </div>
-            <div *ngIf="user?.role === 'ENTREPRENEUR'" class="info-item">
-              <span class="label">Startup :</span> 
-              <span class="value">{{ user?.StartupName || 'N/A' }}</span>
-              <button (click)="toggleEditMode('StartupName')" class="edit-btn"><i class="fas fa-edit"></i></button>
-              <div *ngIf="editMode['StartupName']" class="edit-container">
-                <input type="text" [(ngModel)]="user.StartupName" class="form-control">
-                <button class="btn save-btn" (click)="saveField('StartupName')">Enregistrer</button>
-              </div>
-            </div>
-            <div *ngIf="user?.role === 'ENTREPRENEUR'" class="info-item">
-              <span class="label">Industrie :</span> 
-              <span class="value">{{ user?.Industry || 'N/A' }}</span>
-              <button (click)="toggleEditMode('Industry')" class="edit-btn"><i class="fas fa-edit"></i></button>
-              <div *ngIf="editMode['Industry']" class="edit-container">
-                <input type="text" [(ngModel)]="user.Industry" class="form-control">
-                <button class="btn save-btn" (click)="saveField('Industry')">Enregistrer</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Progress Bar -->
-          <div class="progress-section mt-4">
-            <h4 class="progress-title">Niveau d'expérience</h4>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: 75%;"></div>
-            </div>
-          </div>
-
-          <!-- Skills Section -->
-          <div class="skills-section mt-4">
-            <h4 class="skills-title">Compétences</h4>
-            <div class="skills-list">
-              <span class="skill-tag">Leadership</span>
-              <span class="skill-tag">Entrepreneuriat</span>
-              <span class="skill-tag">Marketing</span>
-              <span class="skill-tag">Coaching</span>
-            </div>
-          </div>
-
-          <!-- Bio -->
-          <p class="bio mt-4">{{ user?.bio || 'Aucune biographie disponible.' }}</p>
-
-          <!-- Buttons -->
-          <div class="text-center mt-4 pb-4">
-            <a href="javascript:void(0)" class="btn action-btn connect-btn">Se connecter</a>
-            <a href="javascript:void(0)" class="btn action-btn message-btn">Message</a>
+        
+        <!-- Profile Info -->
+        <div class="profile-info">
+          <h1 class="profile-name">
+            <span *ngIf="!editingName" class="name-text">
+              {{ user?.firstName }} {{ user?.lastName }}
+              <i class="fas fa-pencil-alt edit-name-icon" (click)="toggleNameEdit()"></i>
+            </span>
+            <span *ngIf="editingName" class="name-edit">
+              <input type="text" [(ngModel)]="user.firstName" class="name-input">
+              <input type="text" [(ngModel)]="user.lastName" class="name-input">
+              <i class="fas fa-check save-name-icon" (click)="toggleNameEdit()"></i>
+            </span>
+            <span class="profile-badge">{{ user?.role === 'COACH' ? 'Coach' : 'Entrepreneur' }}</span>
+          </h1>
+          <p class="profile-title">{{ user?.role === 'COACH' ? user?.specialization : user?.StartupName }}</p>
+          
+          <!-- Social Links -->
+          <div class="social-links">
+            <a *ngFor="let link of socialLinks" [href]="link.href" class="social-link">
+              <i [class]="link.icon"></i>
+            </a>
           </div>
         </div>
       </div>
     </div>
+    
+    <!-- Profile Details -->
+    <div class="profile-details">
+      <!-- Stats -->
+      <div class="profile-stats">
+        <div class="stat-item" *ngFor="let stat of stats">
+          <div class="stat-number">{{ stat.currentValue }}</div>
+          <div class="stat-label">{{ stat.label }}</div>
+        </div>
+      </div>
+      
+      <!-- Personal Information Section -->
+      <div class="detail-section">
+        <div class="section-header">
+          <h3 class="section-title"><i class="fas fa-user"></i> Personal Information</h3>
+          <button class="edit-section-btn" (click)="openEditModal('personal')">
+            <i class="fas fa-pencil-alt"></i> Edit
+          </button>
+        </div>
+        <div class="info-grid">
+          <div class="info-item">
+            <label>Email</label>
+            <p>{{ user?.email || 'Not specified' }}</p>
+          </div>
+          <div class="info-item">
+            <label>Phone</label>
+            <p>{{ user?.phoneNumber || 'Not specified' }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Professional Information Section -->
+      <div class="detail-section">
+        <div class="section-header">
+          <h3 class="section-title">
+            <i *ngIf="user?.role === 'COACH'" class="fas fa-graduation-cap"></i>
+            <i *ngIf="user?.role === 'ENTREPRENEUR'" class="fas fa-briefcase"></i>
+            {{ user?.role === 'COACH' ? 'Coaching' : 'Business' }} Information
+          </h3>
+          <button class="edit-section-btn" (click)="openEditModal('professional')">
+            <i class="fas fa-pencil-alt"></i> Edit
+          </button>
+        </div>
+        <div class="info-grid">
+          <div *ngIf="user?.role === 'COACH'" class="info-item">
+            <label>Specialization</label>
+            <p>{{ user?.specialization || 'Not specified' }}</p>
+          </div>
+          <div *ngIf="user?.role === 'COACH'" class="info-item">
+            <label>Experience</label>
+            <p>{{ user?.yearsOfExperience || '0' }} years</p>
+          </div>
+          <div *ngIf="user?.role === 'ENTREPRENEUR'" class="info-item">
+            <label>Startup Name</label>
+            <p>{{ user?.startupName || 'Not specified' }}</p>
+          </div>
+          <div *ngIf="user?.role === 'ENTREPRENEUR'" class="info-item">
+            <label>Industry</label>
+            <p>{{ user?.industry || 'Not specified' }}</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Skills -->
+      <div class="detail-section">
+        <h3 class="section-title"><i class="fas fa-star"></i> Skills & Expertise</h3>
+        <div class="skills-container">
+          <div class="skill-item" *ngFor="let skill of skills">
+            <div class="skill-info">
+              <span class="skill-name">{{ skill.name }}</span>
+              <span class="skill-percent">{{ skill.level }}%</span>
+            </div>
+            <div class="skill-bar">
+              <div class="skill-progress" [style.width.%]="skill.level"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Bio Section -->
+      <div class="detail-section bio-section">
+        <h3 class="section-title"><i class="fas fa-quote-left"></i> About Me</h3>
+        <div class="bio-content">
+          <p>{{ user?.bio || 'No bio available' }}</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="action-btn primary">
+        <i class="fas fa-paper-plane"></i> Send Message
+      </button>
+      <button class="action-btn secondary">
+        <i class="fas fa-calendar-alt"></i> Schedule Meeting
+      </button>
+    </div>
   </div>
 </div>
+
+<!-- Edit Modal -->
+<p-dialog [(visible)]="displayEditModal" [modal]="true" [style]="{width: '50vw'}" 
+          [baseZIndex]="10000" [draggable]="false" [resizable]="false" [transitionOptions]="'150ms cubic-bezier(0.34, 1.56, 0.64, 1)'">
+  <ng-template pTemplate="header">
+    <div class="dialog-header-content">
+      <i class="pi" [ngClass]="editMode === 'personal' ? 'pi-user-edit' : 'pi-briefcase'"></i>
+      <h3>{{ editMode === 'personal' ? 'Edit Personal Information' : 'Edit Professional Information' }}</h3>
+    </div>
+  </ng-template>
+  
+  <div class="edit-modal-content">
+    <div *ngIf="editMode === 'personal'" class="edit-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="tempUserData.email" class="form-input" pInputText>
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="tel" [(ngModel)]="tempUserData.phoneNumber" class="form-input" pInputText>
+      </div>
+    </div>
+    
+    <div *ngIf="editMode === 'professional' && user?.role === 'COACH'" class="edit-form">
+      <div class="form-group">
+        <label>Specialization</label>
+        <input type="text" [(ngModel)]="tempUserData.specialization" class="form-input" pInputText>
+      </div>
+      <div class="form-group">
+        <label>Years of Experience</label>
+        <input type="number" [(ngModel)]="tempUserData.yearsOfExperience" class="form-input" pInputText>
+      </div>
+    </div>
+    
+    <div *ngIf="editMode === 'professional' && user?.role === 'ENTREPRENEUR'" class="edit-form">
+      <div class="form-group">
+        <label>Startup Name</label>
+        <input type="text" [(ngModel)]="tempUserData.startupName" class="form-input" pInputText>
+      </div>
+      <div class="form-group">
+        <label>Industry</label>
+        <input type="text" [(ngModel)]="tempUserData.industry" class="form-input" pInputText>
+      </div>
+    </div>
+  </div>
+  
+  <ng-template pTemplate="footer">
+    <button pButton type="button" label="Cancel" icon="pi pi-times" 
+            (click)="displayEditModal=false" class="p-button-text"></button>
+            <button pButton type="button" label="Save" icon="pi pi-check" 
+            (click)="saveProfile()" styleClass="p-button-success"></button>
+  </ng-template>
+</p-dialog>

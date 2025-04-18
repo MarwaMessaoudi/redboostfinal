@@ -17,16 +17,18 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     User findByEmail(String email);
     User findByProviderId(String providerId); // Add this method
-
+    List<User> findByRole(Role roleEnum);
     // Method to find the refresh token by user ID
     @Query("SELECT u.refreshToken FROM User u WHERE u.id = :userId")
     String findRefreshTokenById(@Param("userId") Long userId);
     List<User> findByRoleIn(List<Role> roles);
+
     // Method to update the refresh token for a user
     @Modifying
     @Transactional
     @Query("UPDATE User u SET u.refreshToken = :refreshToken WHERE u.id = :userId")
     void updateRefreshToken(@Param("userId") Long userId, @Param("refreshToken") String refreshToken);
 
-    Optional<User> findByResetToken(String resetToken);}
+    Optional<User> findByResetToken(String resetToken);
+}
 

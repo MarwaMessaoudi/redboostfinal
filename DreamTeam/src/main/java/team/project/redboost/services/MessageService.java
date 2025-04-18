@@ -1,8 +1,11 @@
 package team.project.redboost.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import team.project.redboost.dto.MessageDTO;
+import team.project.redboost.dto.ReactionMessageDTO;
 import team.project.redboost.entities.*;
 import team.project.redboost.repositories.*;
 
@@ -12,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +24,12 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final ConversationRepository conversationRepository;
+
+    @Autowired
+    private ReactionMessageRepository reactionMessageRepository;
+
+    // List of valid emojis for reactions
+    private static final List<String> VALID_EMOJIS = List.of("👍", "❤️", "😂", "😮", "😢", "😡");
 
     @Transactional
     public Message sendPrivateMessage(Long senderId, Long recipientId, String content) {
@@ -119,16 +129,16 @@ public class MessageService {
     }
 
     @Transactional
-    public void deleteMessage(Long messageId, Long userId) {
+    public Message deleteMessage(Long messageId, Long userId) {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Message not found"));
 
-        if (!message.getSender().getId().equals(userId)) {
-            throw new RuntimeException("User not authorized to delete this message");
+        if (userId != null && !message.getSender().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized to delete this message");
         }
 
-        message.setDeleted(true);
-        messageRepository.save(message);
+        message.setContent("Message retiré");
+        return messageRepository.save(message);
     }
 
     public Optional<Message> getMessageById(Long messageId) {
@@ -136,36 +146,18 @@ public class MessageService {
                 .filter(message -> !message.isDeleted());
     }
 
-    /**
-     * Get all non-deleted messages for a conversation (ordered by date ascending)
-     * @param conversationId The ID of the conversation
-     * @return List of messages
-     */
     public List<Message> getAllMessagesByConversationId(Long conversationId) {
         return messageRepository.findNonDeletedByConversationId(conversationId, Sort.by("dateEnvoi").ascending());
     }
 
-    /**
-     * Get paginated messages for a conversation
-     * @param conversationId The ID of the conversation
-     * @param pageable Pagination and sorting information
-     * @return List of messages for the requested page
-     */
     public List<Message> getAllMessagesByConversationId(Long conversationId, Pageable pageable) {
         return messageRepository.findNonDeletedByConversationId(conversationId, pageable);
     }
 
-    /**
-     * Get all messages with custom sorting
-     * @param conversationId The ID of the conversation
-     * @param sort Sorting criteria
-     * @return List of messages sorted as requested
-     */
     public List<Message> getAllMessagesByConversationId(Long conversationId, Sort sort) {
         return messageRepository.findNonDeletedByConversationId(conversationId, sort);
     }
 
-    // Deprecated methods - kept for backward compatibility
     @Deprecated
     public List<Message> getAllMessages() {
         return messageRepository.findAllNonDeleted();
@@ -174,5 +166,86 @@ public class MessageService {
     @Deprecated
     public List<Message> getAllMessages(Pageable pageable) {
         return messageRepository.findAllNonDeleted(pageable);
+    }
+
+    @Transactional
+    public MessageDTO addReaction(Long messageId, Long userId, String emoji) {
+        Message message = messageRepository.findByIdWithReactionMessages(messageId)
+                .orElseThrow(() -> new RuntimeException("Message non trouvé"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (message.isDeleted()) {
+            throw new RuntimeException("Impossible d'ajouter une réaction à un message supprimé");
+        }
+
+        // Validate emoji
+        if (emoji == null || emoji.trim().isEmpty()) {
+            throw new IllegalArgumentException("L'emoji ne peut pas être vide");
+        }
+        if (!VALID_EMOJIS.contains(emoji)) {
+            throw new IllegalArgumentException("Emoji non valide");
+        }
+
+        // Check if user already reacted
+        Optional<ReactionMessage> existingReaction = reactionMessageRepository.findByMessageIdAndUserId(messageId, userId);
+        if (existingReaction.isPresent()) {
+            // Update existing reaction
+            ReactionMessage reaction = existingReaction.get();
+            reaction.setEmoji(emoji);
+            reactionMessageRepository.save(reaction);
+        } else {
+            // Add new reaction
+            ReactionMessage reaction = new ReactionMessage();
+            reaction.setMessage(message);
+            reaction.setUser(user);
+            reaction.setEmoji(emoji);
+            reactionMessageRepository.save(reaction);
+        }
+
+        return convertToDTO(message);
+    }
+
+    @Transactional
+    public MessageDTO removeReaction(Long messageId, Long userId) {
+        Message message = messageRepository.findByIdWithReactionMessages(messageId)
+                .orElseThrow(() -> new RuntimeException("Message non trouvé"));
+
+        if (message.isDeleted()) {
+            throw new RuntimeException("Impossible de supprimer une réaction d'un message supprimé");
+        }
+
+        reactionMessageRepository.deleteByMessageIdAndUserId(messageId, userId);
+        return convertToDTO(message);
+    }
+
+    private MessageDTO convertToDTO(Message message) {
+        MessageDTO.MessageDTOBuilder builder = MessageDTO.builder()
+                .id(message.getId())
+                .content(message.getContent())
+                .timestamp(message.getDateEnvoi())
+                .isRead(message.isEstLu())
+                .senderId(message.getSender().getId())
+                .senderName(message.getSender().getUsername())
+                .conversationId(message.getConversation().getId())
+                .dateEnvoi(message.getDateEnvoi())
+                .reactionMessages(message.getReactionMessages().stream()
+                        .map(r -> ReactionMessageDTO.builder()
+                                .id(r.getId())
+                                .userId(r.getUser().getId())
+                                .username(r.getUser().getUsername())
+                                .emoji(r.getEmoji())
+                                .build())
+                        .collect(Collectors.toList()));
+
+        if (message.getRecipient() != null) {
+            builder.recipientId(message.getRecipient().getId());
+        }
+
+        if (message.getConversation().isEstGroupe()) {
+            builder.groupId(message.getConversation().getId());
+        }
+
+        return builder.build();
     }
 }

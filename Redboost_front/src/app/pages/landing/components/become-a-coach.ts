@@ -14,7 +14,7 @@ import { trigger, state, style, animate, transition, keyframes, query, stagger }
         <!-- Texte et contenu -->
         <div class="space-y-8 text-left">
           <h1 class="text-5xl font-bold text-[#034A55] leading-tight">
-            Become a 
+            Devenez 
             <span class="text-[#C8223A] relative inline-block">
               Coach
               <span class="absolute -bottom-2 left-0 w-full h-1 bg-[#C8223A]" 
@@ -24,9 +24,10 @@ import { trigger, state, style, animate, transition, keyframes, query, stagger }
 
           <p class="text-lg text-gray-600 leading-relaxed max-w-xl" 
              [@itemAnimation]="isVisible ? 'visible' : 'hidden'">
-            Are you a passionate coach ready to guide entrepreneurs and investors? 
-            Join our platform to share your expertise, gain visibility, and connect 
-            with a dynamic community.
+            Partagez Votre Expertise et Faites la Différence
+    Vous êtes un coach passionné et expérimenté ? 
+    <br> Rejoignez notre plateforme pour connecter avec des entrepreneurs motivés, gagner en visibilité grâce à un profil détaillé et des recommandations personnalisées, et utilisez des outils digitaux pour simplifier vos interactions et suivre les progrès de vos clients
+
           </p>
 
           <!-- Cards avec icônes -->
@@ -50,7 +51,7 @@ import { trigger, state, style, animate, transition, keyframes, query, stagger }
               [@buttonAnimation]="buttonState"
               (mouseenter)="onButtonMouseEnter()"
               (mouseleave)="onButtonMouseLeave()">
-        Start Now
+        Commencer Maintenant
         <span class="button-glow absolute inset-0 bg-gradient-to-r from-[#C8223A] to-[#034A55]"
               [@glowAnimation]="buttonState"></span>
       </button>

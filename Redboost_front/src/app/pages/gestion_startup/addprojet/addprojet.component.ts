@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { RippleModule } from 'primeng/ripple';
-import { ProjetService } from '../../service/projet-service.service';
+import { ProjetService } from '../../service/projet-service.service'; 
 import { Objectives, Projet, Statut } from '../../../models/Projet'; 
 import Swal from 'sweetalert2';
 
@@ -123,10 +123,7 @@ export class AddProjetComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       this.logoFile = input.files[0];
-      console.log('File selected:', this.logoFile); // Log the entire File object
-    } else {
-      console.warn('No file selected');
-      this.logoFile = null;
+      console.log('Fichier sélectionné:', this.logoFile?.name);
     }
   }
 

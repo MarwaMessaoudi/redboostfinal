@@ -3,6 +3,8 @@ package team.project.redboost.entities;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter @Setter
@@ -25,7 +27,7 @@ public class Message {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
-    private User sender; // Expéditeur
+    private User sender; // ExpÃ©diteur
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recipient_id", nullable = true)
@@ -38,4 +40,7 @@ public class Message {
     // Pour soft delete
     @Column(nullable = false)
     private boolean deleted = false;
+
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReactionMessage> reactionMessages = new ArrayList<>();
 }

@@ -1,24 +1,24 @@
-<!-- Main Content -->
+<!-- Contenu Principal -->
 <main class="main-content" *ngIf="projet; else noProject">
-  <!-- Hero Section -->
+  <!-- Section Héros -->
   <section class="hero-section">
     <div class="hero-overlay"></div>
     <div class="hero-content container">
       <div class="hero-text">
-        <span class="pre-title">Featured Project</span>
+        <span class="pre-title">Projet en Vedette</span>
         <h1>{{ projet.name || 'Nom non disponible' }}</h1>
         <p class="subtitle">{{ projet.description || 'Aucune description' }}</p>
         <div class="hero-cta">
-          <a [href]="projet.websiteUrl || '#'" target="_blank" class="cta-button primary" aria-label="Explore Project">
-            <span>Explore Project</span>
+          <a [href]="projet.websiteUrl || '#'" target="_blank" class="cta-button primary" aria-label="Explorer le Projet">
+            <span>Explorer le Projet</span>
             <span class="material-icons">east</span>
           </a>
-          <a href="#products-services" class="cta-button secondary" aria-label="Learn More">Learn More</a>
+          <a href="#products-services" class="cta-button secondary" aria-label="En Savoir Plus">En Savoir Plus</a>
         </div>
       </div>
       <div class="hero-image">
         <div class="image-wrapper">
-          <img [src]="sanitizedImageUrl(projet.logoUrl)" alt="Project Logo" (error)="onImageError($event)">
+          <img [src]="sanitizedImageUrl(projet.logoUrl)" alt="Logo du Projet" (error)="onImageError($event)">
         </div>
       </div>
     </div>
@@ -27,23 +27,23 @@
     <div class="hero-decor decor-middle-right"></div>
   </section>
 
-  <!-- Edit Controls -->
+  <!-- Contrôles d'Édition -->
   <div class="edit-controls">
-    <span class="material-icons edit-button" (click)="toggleEdit()" *ngIf="!isEditing" title="Modifier" aria-label="Edit Project">edit</span>
+    <span class="material-icons edit-button" (click)="toggleEdit()" *ngIf="!isEditing" title="Modifier" aria-label="Modifier le Projet">edit</span>
     <div class="edit-actions" *ngIf="isEditing">
-      <span class="material-icons edit-button save" (click)="saveChanges()" [ngClass]="{'disabled': isSaving}" title="Sauvegarder" aria-label="Save Changes">check</span>
-      <span class="material-icons edit-button cancel" (click)="cancelEdit()" title="Annuler" aria-label="Cancel Edit">close</span>
+      <span class="material-icons edit-button save" (click)="saveChanges()" [ngClass]="{'disabled': isSaving}" title="Sauvegarder" aria-label="Sauvegarder les Modifications">check</span>
+      <span class="material-icons edit-button cancel" (click)="cancelEdit()" title="Annuler" aria-label="Annuler l'Édition">close</span>
       <span *ngIf="isSaving" class="spinner"></span>
       <div *ngIf="updateMessage" class="update-message">{{ updateMessage }}</div>
     </div>
   </div>
 
-  <!-- Products & Services Section -->
+  <!-- Section Produits & Services -->
   <section class="products-services-section" id="products-services">
     <div class="container">
       <div class="section-header">
-        <span class="section-subtitle">Discover Our Offerings</span>
-        <h2>Products & Services</h2>
+        <span class="section-subtitle">Découvrez Nos Offres</span>
+        <h2>Produits & Services</h2>
         <div class="header-decor">
           <span class="decor-line"></span>
           <span class="decor-dot"></span>
@@ -51,36 +51,44 @@
         </div>
       </div>
       <div class="products-services-grid">
-        <a href="ShowProd" class="product-service-card" 
-           (mouseenter)="hoveredItem = 1" 
-           (mouseleave)="hoveredItem = null" 
-           [ngClass]="{'hovered': hoveredItem === 1}" 
-           aria-label="Explore Products">
+        <div class="product-service-card" 
+             (mouseenter)="hoveredItem = 1" 
+             (mouseleave)="hoveredItem = null" 
+             [ngClass]="{'hovered': hoveredItem === 1}" 
+             [routerLink]="['/ShowProd']" 
+             role="link" 
+             tabindex="0" 
+             aria-label="Explorer les Produits"
+             (keydown.enter)="navigateTo('/ShowProd')">
           <div class="card-icon">
             <span class="material-icons">shopping_cart</span>
           </div>
-          <h3>Products</h3>
-          <p>Explore our curated marketplace of innovative products.</p>
+          <h3>Produits</h3>
+          <p>Explorez notre marché soigneusement sélectionné de produits innovants.</p>
           <div class="card-cta">
-            <span>Shop Now</span>
+            <span>Acheter Maintenant</span>
             <span class="material-icons">arrow_forward</span>
           </div>
-        </a>
-        <a href="#marketplace-services" class="product-service-card" 
-           (mouseenter)="hoveredItem = 2" 
-           (mouseleave)="hoveredItem = null" 
-           [ngClass]="{'hovered': hoveredItem === 2}" 
-           aria-label="Explore Services">
+        </div>
+        <div class="product-service-card" 
+             (mouseenter)="hoveredItem = 2" 
+             (mouseleave)="hoveredItem = null" 
+             [ngClass]="{'hovered': hoveredItem === 2}" 
+             [routerLink]="['/ShowService']" 
+             role="link" 
+             tabindex="0" 
+             aria-label="Explorer les Services"
+             (keydown.enter)="navigateTo('/ShowService')">
           <div class="card-icon">
             <span class="material-icons">build</span>
           </div>
           <h3>Services</h3>
-          <p>Find expert services tailored to your needs.</p>
+          <p>Trouvez des services experts adaptés à vos besoins.</p>
           <div class="card-cta">
-            <span>Learn More</span>
+            <span>En Savoir Plus</span>
             <span class="material-icons">arrow_forward</span>
           </div>
-        </a>
+        </div>
       </div>
     </div>
     <div class="section-decor decor-top-left"></div>
@@ -88,12 +96,12 @@
     <div class="section-decor decor-middle-center"></div>
   </section>
 
-  <!-- Project Highlights (Features Section) -->
+  <!-- Section Points Forts du Projet -->
   <section class="products-services-section features-section">
     <div class="container">
       <div class="section-header">
-        <span class="section-subtitle">Project Details</span>
-        <h2>Project Highlights</h2>
+        <span class="section-subtitle">Détails du Projet</span>
+        <h2>Points Forts du Projet</h2>
         <div class="header-decor">
           <span class="decor-line"></span>
           <span class="decor-dot"></span>
@@ -108,11 +116,11 @@
           <div class="card-icon">
             <span class="material-icons">flag</span>
           </div>
-          <h3>Objectives</h3>
+          <h3>Objectifs</h3>
           <p *ngIf="!isEditing">{{ projet?.objectives || 'Non spécifiés' }}</p>
-          <input *ngIf="isEditing" [(ngModel)]="projet!.objectives" name="objectives" required aria-label="Project Objectives">
+          <input *ngIf="isEditing" [(ngModel)]="projet!.objectives" name="objectives" required aria-label="Objectifs du Projet">
           <div class="card-cta" *ngIf="isEditing">
-            <span>Edit</span>
+            <span>Modifier</span>
             <span class="material-icons">edit</span>
           </div>
         </div>
@@ -123,11 +131,11 @@
           <div class="card-icon">
             <span class="material-icons">trending_up</span>
           </div>
-          <h3>Status</h3>
+          <h3>Statut</h3>
           <p *ngIf="!isEditing">{{ projet?.status || 'Non défini' }}</p>
-          <input *ngIf="isEditing" [(ngModel)]="projet!.status" name="status" required aria-label="Project Status">
+          <input *ngIf="isEditing" [(ngModel)]="projet!.status" name="status" required aria-label="Statut du Projet">
           <div class="card-cta" *ngIf="isEditing">
-            <span>Edit</span>
+            <span>Modifier</span>
             <span class="material-icons">edit</span>
           </div>
         </div>
@@ -138,11 +146,11 @@
           <div class="card-icon">
             <span class="material-icons">score</span>
           </div>
-          <h3>Global Score</h3>
+          <h3>Score Global</h3>
           <p *ngIf="!isEditing">{{ projet?.globalScore || 'Non calculé' }}</p>
-          <input *ngIf="isEditing" type="number" [(ngModel)]="projet!.globalScore" name="globalScore" aria-label="Project Global Score">
+          <input *ngIf="isEditing" type="number" [(ngModel)]="projet!.globalScore" name="globalScore" aria-label="Score Global du Projet">
           <div class="card-cta" *ngIf="isEditing">
-            <span>Edit</span>
+            <span>Modifier</span>
             <span class="material-icons">edit</span>
           </div>
         </div>
@@ -153,15 +161,15 @@
     <div class="section-decor decor-middle-center"></div>
   </section>
 
-  <!-- Static CTA Section 1 (Get Started) -->
+  <!-- Section Appel à l'Action 1 (Commencer) -->
   <section class="cta-section get-started">
     <div class="cta-overlay"></div>
     <div class="cta-content container">
-      <span class="cta-subtitle">Launch Your Journey</span>
-      <h2>Begin Your Project Today</h2>
-      <p>Start building your future with our comprehensive support and resources.</p>
-      <a href="#get-started" class="cta-button primary" aria-label="Start Now">
-        <span>Start Now</span>
+      <span class="cta-subtitle">Lancez Votre Aventure</span>
+      <h2>Commencez Votre Projet Aujourd'hui</h2>
+      <p>Commencez à construire votre avenir avec notre soutien complet et nos ressources.</p>
+      <a href="#get-started" class="cta-button primary" aria-label="Commencer Maintenant">
+        <span>Commencer Maintenant</span>
         <span class="material-icons">rocket_launch</span>
       </a>
     </div>
@@ -170,15 +178,15 @@
     <div class="cta-decor decor-middle-right"></div>
   </section>
 
-  <!-- Static CTA Section 2 (Need Help) -->
+  <!-- Section Appel à l'Action 2 (Besoin d'Aide) -->
   <section class="cta-section need-help">
     <div class="cta-overlay"></div>
     <div class="cta-content container">
-      <span class="cta-subtitle">We’re Here for You</span>
-      <h2>Need Assistance?</h2>
-      <p>Reach out to our friendly team for personalized guidance.</p>
-      <a href="#contact-us" class="cta-button primary" aria-label="Get Help">
-        <span>Get Help</span>
+      <span class="cta-subtitle">Nous Sommes Là pour Vous</span>
+      <h2>Besoin d'Assistance ?</h2>
+      <p>Contactez notre équipe amicale pour un accompagnement personnalisé.</p>
+      <a href="#contact-us" class="cta-button primary" aria-label="Obtenir de l'Aide">
+        <span>Obtenir de l'Aide</span>
         <span class="material-icons">support_agent</span>
       </a>
     </div>
@@ -189,5 +197,5 @@
 </main>
 
 <ng-template #noProject>
-  <div class="alert">No project found or error loading data.</div>
+  <div class="alert">Aucun projet trouvé ou erreur lors du chargement des données.</div>
 </ng-template>

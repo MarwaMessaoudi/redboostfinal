@@ -8,6 +8,20 @@ export interface RendezVous {
   email?: string; // Optionnel
   title: string; // Requis
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED'; // Requis
-  coach?: { id: number }; // Optionnel, pour compatibilité avec le frontend
-  entrepreneur?: { id: number }; // Optionnel, pour compatibilité avec le frontend
-}
+  coach?: { id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber?: string;
+    linkedin?: string | null;
+    profilePictureUrl?: string | null;
+  }; // Optionnel, pour compatibilité avec le frontend
+  entrepreneur?: { id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber?: string;
+    linkedin?: string | null;
+    profilePictureUrl?: string | null;
+   }; // Optionnel, pour compatibilité avec le frontend
+  }

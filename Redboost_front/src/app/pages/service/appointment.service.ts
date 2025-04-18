@@ -111,4 +111,24 @@ getAppointmentsByCoach(): Observable<RendezVous[]> {
   getAcceptedAppointmentsByDate(date: string): Observable<RendezVous[]> {
     return this.http.get<RendezVous[]>(`${this.apiUrl}/accepted?date=${date}&status=ACCEPTED`);
   }
+
+  getUserAppointmentHistory(): Observable<RendezVous[]> {
+    const currentUser = this.authService.getCurrentUser();
+  
+    return new Observable((observer) => {
+      currentUser.subscribe((user) => {
+        if (user?.id) {
+          this.http.get<RendezVous[]>(`${this.apiUrl}/history/${user.id}`).subscribe({
+            next: (appointments) => observer.next(appointments),
+            error: (err) => observer.error(err),
+          });
+        } else {
+          observer.error('Utilisateur non connecté');
+        }
+      });
+    });
+  }
+  getStats(userId: number): Observable<{ [key: string]: number }> {
+    return this.http.get<{ [key: string]: number }>(`${this.apiUrl}/stats/${userId}`);
+  }
 }

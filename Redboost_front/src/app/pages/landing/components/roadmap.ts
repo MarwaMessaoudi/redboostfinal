@@ -46,7 +46,7 @@ import { faRocket, faUsers, faNetworkWired } from '@fortawesome/free-solid-svg-i
 
                 <div class="roadmap-cta text-center mt-60" [@fadeInUp]="ctaState">
                     <button class="learn-more-button">
-                        Learn More About Our Vision
+                        En savoir plus sur notre vision
                         <span class="button-arrow">→</span>
                     </button>
                 </div>
@@ -390,8 +390,8 @@ export class RoadmapWidget implements OnInit {
             date: 'Launch: July 2024',
             icon: faRocket,
             phase: 'Phase 1',
-            title: 'Platform Launch',
-            description: 'Internal platform for program management and tracking'
+            title: 'Lancement ',
+            description: 'Lancement de la plateforme avec des fonctionnalités de base pour le matching et la communication'
         },
         {
             status: 'current',
@@ -399,7 +399,7 @@ export class RoadmapWidget implements OnInit {
             icon: faUsers,
             phase: 'Phase 2',
             title: 'Expansion',
-            description: 'Open access for entrepreneurs, investors, and partners'
+            description: 'Ouverture à un plus grand nombre d entrepreneurs et de coachs, avec des outils de suivi avancés.'
         },
         {
             status: 'upcoming',
@@ -407,7 +407,7 @@ export class RoadmapWidget implements OnInit {
             icon: faNetworkWired,
             phase: 'Phase 3',
             title: 'Integration',
-            description: 'Integrate with external systems and expand networking features'
+            description: 'Intégration avec d autres systèmes et ajout de fonctionnalités de networking étendu.'
         }
     ];
 

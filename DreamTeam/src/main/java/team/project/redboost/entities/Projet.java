@@ -2,6 +2,7 @@ package team.project.redboost.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -21,6 +22,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties({"entrepreneurs", "produits", "services", "founder", "pendingCollaborator"})
 public class Projet {
 
@@ -79,7 +81,6 @@ public class Projet {
             joinColumns = @JoinColumn(name = "projet_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
-
     @JsonIgnoreProperties("projets")
     private List<User> entrepreneurs = new ArrayList<>();
 
@@ -122,5 +123,11 @@ public class Projet {
 
     public enum Objectives {
         COURT_TERME, MOYEN_TERME, LONG_TERME
+    }
+    public Projet(String name, String logoUrl, String websiteUrl, LocalDate creationDate) {
+        this.name = name;
+        this.logoUrl = logoUrl;
+        this.websiteUrl = websiteUrl;
+        this.creationDate = creationDate;
     }
 }

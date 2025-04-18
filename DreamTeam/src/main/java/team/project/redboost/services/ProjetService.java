@@ -1,6 +1,7 @@
 package team.project.redboost.services;
 
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -13,17 +14,23 @@ import team.project.redboost.repositories.UserRepository;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjetService {
     private final ProjetRepository projetRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    public ProjetService(ProjetRepository projetRepository, UserRepository userRepository) {
+    @Autowired
+    public ProjetService(ProjetRepository projetRepository, UserRepository userRepository, NotificationService notificationService) {
         this.projetRepository = projetRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     public Projet createProjet(Projet projet, String imageUrl, Long creatorId) {
@@ -46,8 +53,7 @@ public class ProjetService {
         projet.setFounder(founder);
         projet.getEntrepreneurs().add(founder);
 
-        Projet savedProjet = projetRepository.save(projet);
-        return savedProjet;
+        return projetRepository.save(projet);
     }
 
     public Projet updateProjet(Long id, Projet updatedProjet, String imageUrl) {
@@ -121,10 +127,15 @@ public class ProjetService {
         }
 
         projet.setPendingCollaborator(collaborator);
-        return projetRepository.save(projet);
+        Projet updatedProjet = projetRepository.save(projet);
+
+        String message = "You’ve been invited to collaborate on '" + projet.getName() + "' by " + founder.getFirstName();
+        System.out.println("Invite saved and notification about to be sent at: " + java.time.Instant.now() + " for user: " + userId);
+        notificationService.notifyUser(collaborator.getId().toString(), message);
+
+        return updatedProjet;
     }
 
-    // In ProjetService.java
     @Transactional
     public Projet acceptInvitation(Long projetId, Long userId) {
         Projet projet = projetRepository.findById(projetId)
@@ -213,5 +224,23 @@ public class ProjetService {
             System.err.println("No user found with email: " + email);
         }
         return user;
+    }
+
+    // NEW METHOD: Fetch project contacts directly as a map of User lists
+    @Transactional
+    public Map<String, Object> getProjectContacts(Long projetId) {
+        Projet projet = projetRepository.findById(projetId)
+                .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
+
+        Map<String, Object> contacts = new HashMap<>();
+        contacts.put("founder", projet.getFounder());
+        contacts.put("entrepreneurs", projet.getEntrepreneurs());
+        contacts.put("coaches", projet.getCoaches());
+        contacts.put("investors", projet.getInvestors());
+
+        return contacts;
+    }
+    public List<Projet> getAllProjectsLimited() {
+        return projetRepository.findAllProjectsLimited();
     }
 }

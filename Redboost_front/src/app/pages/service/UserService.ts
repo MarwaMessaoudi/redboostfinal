@@ -50,4 +50,16 @@ export class UserService {
   submitCoachRequest(request: any): Observable<any> {
     return this.http.post(`http://localhost:8085/api/coach/request`, request);
   }
+
+
+
+  getUsers(): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:8085/users/ByRoles`);
+  }
+
+
+
+
+
+
 }

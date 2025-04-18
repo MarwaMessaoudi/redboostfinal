@@ -11,7 +11,7 @@ import { CommonModule } from '@angular/common';
                 <div class="grid grid-cols-12 my-20 pt-2 md:pt-20">
                     <div class="col-span-12 lg:col-span-6 my-auto flex flex-col text-center lg:text-left lg:items-start gap-4">
                         <div class="leading-none text-[#0A4955] text-5xl font-extrabold animate-fade-in">
-                            Built for Startups, Designed for Efficiency
+                            Une Plateforme Tout-en-Un pour Votre Succès
                         </div>
                         <ul #featureList class="my-8 list-none p-0 flex text-[#333] flex-col gap-2">
                             <li *ngFor="let feature of features; let i = index" #featureItem
@@ -85,15 +85,13 @@ export class HighlightsWidget implements AfterViewInit {
     imageInView: boolean = false;
 
     features: string[] = [
-        "Track activities, KPIs, Milestones—all in one place",
-        "Centralized Data Management",
-        "Access critical data securely, with backup and history tracking",
-        "Customized Interactions",
+        "Matching Intelligent : Trouvez le coach parfait en fonction de vos besoins et objectifs.",
+        "Centralisation des Données : Accédez à toutes vos informations et interactions en un seul endroit.",
+        "Communication Digitale : Échangez facilement avec votre coach via des outils intégrés.",
+        "Suivi et Reporting : Visualisez vos progrès grâce à des rapports automatiques et des indicateurs clés",
         "Engage seamlessly with stakeholders, including entrepreneurs, investors, and government entities.",
-        "Automated Reporting",
-        "Save time with reports that generate themselves.",
-        "Secure and Scalable",
-        "Built on trusted technologies like React.js and Node.js for a future-proof solution."
+        "Sécurité et Évolutivité : Une plateforme sécurisée, conçue pour grandir avec vous.",
+        
     ];
 
     constructor(private cdRef: ChangeDetectorRef) {}

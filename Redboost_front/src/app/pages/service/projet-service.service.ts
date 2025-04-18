@@ -19,6 +19,13 @@ interface PendingInvitation {
   invitorName: string;
 }
 
+interface ProjectContacts {
+  founder: User | null;
+  entrepreneurs: User[];
+  coaches: User[];
+  investors: User[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -103,6 +110,7 @@ export class ProjetService {
       return null;
     }
   }
+
   getUserProjects(): Observable<Projet[]> {
     return this.currentUserId$.pipe(
       tap(userId => {
@@ -150,26 +158,44 @@ export class ProjetService {
   createProjet(projet: Projet, logoFile: File | null): Observable<Projet> {
     const url = `${this.apiUrl}/AddProjet`;
     const formData = new FormData();
-    const projetToSend = { ...projet, founder: undefined };
+    // Only include fields the backend expects
+    const projetToSend = {
+      name: projet.name,
+      sector: projet.sector,
+      type: projet.type || '',
+      creationDate: projet.creationDate,
+      description: projet.description || '',
+      objectives: projet.objectives || 'COURT_TERME',
+      status: projet.status || 'EN_DEVELOPPEMENT',
+      globalScore: projet.globalScore || 0,
+      location: projet.location || '',
+      logoUrl: projet.logoUrl || '',
+      websiteUrl: projet.websiteUrl || '',
+      revenue: projet.revenue || 0,
+      numberOfEmployees: projet.numberOfEmployees || 0,
+      nbFemaleEmployees: projet.nbFemaleEmployees || 0,
+      lastUpdated: projet.lastUpdated || '',
+      associatedSectors: projet.associatedSectors || '',
+      technologiesUsed: projet.technologiesUsed || '',
+      fundingGoal: projet.fundingGoal || 0,
+      lastEvaluationDate: projet.lastEvaluationDate || ''
+    };
+    console.log('Sending projet JSON:', JSON.stringify(projetToSend, null, 2));
     formData.append('projet', JSON.stringify(projetToSend));
     if (logoFile) {
+      console.log('Logo file:', logoFile?.name, 'Size:', logoFile?.size, 'Type:', logoFile?.type);
       formData.append('logourl', logoFile);
-      console.log('FormData with file:', {
-        projet: JSON.stringify(projetToSend),
-        logourl: logoFile
-      });
     } else {
-      console.log('FormData without file:', {
-        projet: JSON.stringify(projetToSend)
-      });
+      console.log('No logo file provided');
     }
-  
     return this.http.post<Projet>(url, formData, { headers: this.getHeaders(false) }).pipe(
-      tap(response => console.log('Backend response:', response)),
-      catchError(this.handleError)
+      tap(response => console.log('Create project response:', response)),
+      catchError(error => {
+        console.error('Create project error:', error);
+        return this.handleError(error);
+      })
     );
   }
-
   getProjetById(id: number): Observable<Projet> {
     const url = `${this.apiUrl}/GetProjet/${id}`;
     return this.http.get<Projet>(url, { headers: this.getHeaders() }).pipe(
@@ -233,6 +259,14 @@ export class ProjetService {
     );
   }
 
+  getProjectContacts(projectId: number): Observable<ProjectContacts> {
+    const url = `${this.apiUrl}/${projectId}/contacts`;
+    return this.http.get<ProjectContacts>(url, { headers: this.getHeaders() }).pipe(
+      tap(response => console.log(`Project ${projectId} contacts:`, response)), // Debug log
+      catchError(this.handleError)
+    );
+  }
+
   private handleError(error: HttpErrorResponse): Observable<never> {
     let errorMessage = 'Une erreur est survenue. Veuillez réessayer plus tard.';
     if (error.status === 401) {
@@ -246,6 +280,6 @@ export class ProjetService {
     } else if (error.status === 500) {
       errorMessage = 'Erreur serveur interne.';
     }
-    return throwError(() => new Error(errorMessage)); // Line ~203
+    return throwError(() => new Error(errorMessage));
   }
 }

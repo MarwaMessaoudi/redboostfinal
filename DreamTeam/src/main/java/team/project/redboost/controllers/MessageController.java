@@ -9,6 +9,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import team.project.redboost.dto.MessageDTO;
+import team.project.redboost.dto.ReactionMessageDTO;
 import team.project.redboost.entities.Message;
 import team.project.redboost.services.MessageService;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +24,6 @@ public class MessageController {
 
     private final MessageService messageService;
 
-    // DTO pour les requêtes d'envoi de message privé
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -33,7 +33,6 @@ public class MessageController {
         private String content;
     }
 
-    // DTO pour les requêtes d'envoi de message de groupe
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -43,7 +42,6 @@ public class MessageController {
         private String content;
     }
 
-    // DTO pour la mise à jour de message
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
@@ -55,7 +53,6 @@ public class MessageController {
     @PostMapping("/private")
     public ResponseEntity<MessageDTO> sendPrivateMessage(
             @RequestBody PrivateMessageRequest request) {
-
         Message message = messageService.sendPrivateMessage(
                 request.getSenderId(),
                 request.getRecipientId(),
@@ -67,7 +64,6 @@ public class MessageController {
     @PostMapping("/group")
     public ResponseEntity<MessageDTO> sendGroupMessage(
             @RequestBody GroupMessageRequest request) {
-
         Message message = messageService.sendGroupMessage(
                 request.getSenderId(),
                 request.getConversationId(),
@@ -80,7 +76,6 @@ public class MessageController {
     public ResponseEntity<List<MessageDTO>> getPrivateConversation(
             @RequestParam Long user1Id,
             @RequestParam Long user2Id) {
-
         List<Message> messages = messageService.getPrivateConversation(user1Id, user2Id);
         return ResponseEntity.ok(messages.stream()
                 .map(this::convertToDTO)
@@ -90,7 +85,6 @@ public class MessageController {
     @GetMapping("/group/{conversationId}")
     public ResponseEntity<List<MessageDTO>> getGroupConversation(
             @PathVariable Long conversationId) {
-
         List<Message> messages = messageService.getGroupConversation(conversationId);
         return ResponseEntity.ok(messages.stream()
                 .map(this::convertToDTO)
@@ -101,7 +95,6 @@ public class MessageController {
     public ResponseEntity<Void> markMessagesAsRead(
             @RequestBody List<Long> messageIds,
             @RequestParam Long userId) {
-
         messageService.markMessagesAsRead(messageIds, userId);
         return ResponseEntity.ok().build();
     }
@@ -109,19 +102,16 @@ public class MessageController {
     @GetMapping("/unread/{userId}")
     public ResponseEntity<List<MessageDTO>> getUnreadMessages(
             @PathVariable Long userId) {
-
         List<Message> messages = messageService.getUnreadMessages(userId);
         return ResponseEntity.ok(messages.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList()));
     }
 
-
     @PutMapping("/{messageId}")
     public ResponseEntity<MessageDTO> updateMessage(
             @PathVariable Long messageId,
             @RequestBody UpdateMessageRequest request) {
-
         Message updatedMessage = messageService.updateMessage(
                 messageId,
                 request.getUserId(),
@@ -131,16 +121,15 @@ public class MessageController {
     }
 
     @DeleteMapping("/{messageId}")
-    public ResponseEntity<Void> deleteMessage(
+    public ResponseEntity<MessageDTO> deleteMessage(
             @PathVariable Long messageId,
             @RequestParam Long userId) {
-
-        messageService.deleteMessage(messageId, userId);
-        return ResponseEntity.ok().build();
+        Message updatedMessage = messageService.deleteMessage(messageId, userId);
+        return ResponseEntity.ok(convertToDTO(updatedMessage));
     }
 
     private MessageDTO convertToDTO(Message message) {
-        return MessageDTO.builder()
+        MessageDTO.MessageDTOBuilder builder = MessageDTO.builder()
                 .id(message.getId())
                 .content(message.getContent())
                 .timestamp(message.getDateEnvoi())
@@ -148,18 +137,33 @@ public class MessageController {
                 .senderId(message.getSender().getId())
                 .senderName(message.getSender().getUsername())
                 .senderAvatar(message.getSender().getProfilePictureUrl())
-                .recipientId(message.getRecipient() != null ? message.getRecipient().getId() : null)
-                .conversationId(message.getConversation() != null ? message.getConversation().getId() : null)
-                .build();
+                .conversationId(message.getConversation().getId())
+                .dateEnvoi(message.getDateEnvoi())
+                .reactionMessages(message.getReactionMessages().stream()
+                        .map(r -> ReactionMessageDTO.builder()
+                                .id(r.getId())
+                                .userId(r.getUser().getId())
+                                .username(r.getUser().getUsername())
+                                .emoji(r.getEmoji())
+                                .build())
+                        .collect(Collectors.toList()));
+
+        if (message.getRecipient() != null) {
+            builder.recipientId(message.getRecipient().getId());
+        }
+
+        if (message.getConversation().isEstGroupe()) {
+            builder.groupId(message.getConversation().getId());
+        }
+
+        return builder.build();
     }
 
     @GetMapping("/{messageId}")
     public ResponseEntity<MessageDTO> getMessageById(
             @PathVariable Long messageId) {
-
         Message message = messageService.getMessageById(messageId)
-                .orElseThrow(() -> new RuntimeException("Message non trouvé"));
-
+                .orElseThrow(() -> new RuntimeException("Message non trouvÃ©"));
         return ResponseEntity.ok(convertToDTO(message));
     }
 
@@ -168,9 +172,7 @@ public class MessageController {
             @PathVariable Long conversationId,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size) {
-
         List<Message> messages;
-
         if (page != null && size != null) {
             messages = messageService.getAllMessagesByConversationId(
                     conversationId,
@@ -179,10 +181,25 @@ public class MessageController {
         } else {
             messages = messageService.getAllMessagesByConversationId(conversationId);
         }
-
         return ResponseEntity.ok(messages.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList()));
     }
 
+    @PostMapping("/{messageId}/reactions")
+    public ResponseEntity<MessageDTO> addReaction(
+            @PathVariable Long messageId,
+            @RequestParam Long userId,
+            @RequestParam String emoji) {
+        MessageDTO updatedMessage = messageService.addReaction(messageId, userId, emoji);
+        return ResponseEntity.ok(updatedMessage);
+    }
+
+    @DeleteMapping("/{messageId}/reactions")
+    public ResponseEntity<MessageDTO> removeReaction(
+            @PathVariable Long messageId,
+            @RequestParam Long userId) {
+        MessageDTO updatedMessage = messageService.removeReaction(messageId, userId);
+        return ResponseEntity.ok(updatedMessage);
+    }
 }

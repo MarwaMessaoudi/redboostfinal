@@ -1,0 +1,41 @@
+<div class="container">
+    <p-toast></p-toast>
+    <div class="page-header">
+        <h2>Filter Staff</h2>
+        <p>Select staff types and attributes to filter the staff data.</p>
+    </div>
+
+    <div class="filter-section">
+        <div class="p-field">
+            <label for="staffTypes">Select Staff Types</label>
+            <p-multiSelect id="staffTypes" [options]="staffTypes" [(ngModel)]="selectedTypeIds" optionLabel="typeName" optionValue="id" placeholder="Select Staff Types"></p-multiSelect>
+        </div>
+
+        <div class="p-field">
+            <label for="attributes">Select Attributes</label>
+            <p-multiSelect id="attributes" [options]="attributes" [(ngModel)]="selectedAttributeIds" optionLabel="attributeName" optionValue="id" placeholder="Select Attributes"></p-multiSelect>
+        </div>
+
+        <button pButton type="button" label="Filter" icon="pi pi-filter" (click)="filterStaff()" [disabled]="selectedTypeIds.length === 0 || selectedAttributeIds.length === 0"></button>
+    </div>
+
+    <p-table [value]="staffList" styleClass="p-datatable-gridlines" [loading]="loading">
+        <ng-template pTemplate="header">
+            <tr>
+                <th>Staff Type</th>
+                <th *ngFor="let attr of filteredAttributes">{{ attr.attributeName }}</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-staff>
+            <tr>
+                <td>{{ staff.staffType.typeName }}</td>
+                <td *ngFor="let attr of filteredAttributes">{{ getAttributeValue(staff, attr.id) }}</td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td [attr.colspan]="filteredAttributes.length + 1">No staff found.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+</div>

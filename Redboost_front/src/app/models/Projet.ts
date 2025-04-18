@@ -10,7 +10,8 @@ export enum Statut {
   EN_RECHERCHE_FINANCEMENT = 'EN_RECHERCHE_FINANCEMENT',
   TERMINE = 'TERMINE',
 }
-import { Produit } from "./Produit";
+import { Produit } from './Produit';
+import { ServiceP } from './ServiceP'; 
 export class Projet {
   id?: number;
   name: string;
@@ -33,7 +34,7 @@ export class Projet {
   fundingGoal: number;
   lastEvaluationDate: string;
   produits: Produit[];
-  services: any[];
+  services: ServiceP[];
   folders: any[];
   phases: any[];
   founder: number | null; // Changed from User to number
@@ -63,7 +64,7 @@ export class Projet {
     fundingGoal: number = 0,
     lastEvaluationDate: string = '',
     produits: Produit[] = [],
-    services: any[] = [],
+    services: ServiceP[] = [],
     folders: any[] = [],
     phases: any[] = [],
     founder: number | null = null, // Changed from User to number

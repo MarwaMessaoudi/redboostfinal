@@ -9,9 +9,10 @@ import { DropdownModule } from 'primeng/dropdown';
 import { CalendarModule } from 'primeng/calendar';
 import { MessagesModule } from 'primeng/messages';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { ProjetService } from '../../service/projet-service.service';
+import { ProjetService } from '../../service/projet-service.service'; 
 import { Objectives, Projet, Statut } from '../../../models/Projet';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
+
 
 interface ProductService {
   id: number;
@@ -52,18 +53,18 @@ export class DetailsProjetComponent implements OnInit {
   productServices: ProductService[] = [
     {
       id: 1,
-      title: "Products",
-      description: "Explore our curated marketplace of innovative products.",
-      icon: "shopping_cart",
-      color: "#245C67"
+      title: 'Products',
+      description: 'Explore our curated marketplace of innovative products.',
+      icon: 'shopping_cart',
+      color: '#245C67',
     },
     {
       id: 2,
-      title: "Services",
-      description: "Find expert services tailored to your needs.",
-      icon: "build",
-      color: "#DB1E37"
-    }
+      title: 'Services',
+      description: 'Find expert services tailored to your needs.',
+      icon: 'build',
+      color: '#DB1E37',
+    },
   ];
 
   constructor(
@@ -195,5 +196,9 @@ export class DetailsProjetComponent implements OnInit {
         },
       });
     }
+  }
+
+  navigateTo(route: string): void {
+    this.router.navigate([route]);
   }
 }

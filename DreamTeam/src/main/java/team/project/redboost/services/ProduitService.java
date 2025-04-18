@@ -10,6 +10,7 @@ import team.project.redboost.repositories.ProjetRepository;
 
 import java.util.List;
 import java.util.Optional;
+
 @Service
 public class ProduitService {
 
@@ -20,9 +21,10 @@ public class ProduitService {
     private ProjetRepository projetRepository;
 
     @Transactional
-    public Produit createProduit(Produit produit, Long projetId) {
+    public Produit createProduit(Produit produit, Long projetId, String base64Image) {
         Projet projet = projetRepository.findById(projetId)
                 .orElseThrow(() -> new RuntimeException("Projet not found with id: " + projetId));
+        produit.setImage(base64Image);
         projet.getProduits().add(produit);
         projetRepository.save(projet);
         return produit;
@@ -37,7 +39,7 @@ public class ProduitService {
     }
 
     @Transactional
-    public Produit updateProduit(Long id, Produit produitDetails) {
+    public Produit updateProduit(Long id, Produit produitDetails, String base64Image) {
         Produit produit = produitRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Produit not found with id: " + id));
         produit.setName(produitDetails.getName());
@@ -48,7 +50,9 @@ public class ProduitService {
         produit.setPoids(produitDetails.getPoids());
         produit.setCategorie(produitDetails.getCategorie());
         produit.setDateExpiration(produitDetails.getDateExpiration());
-        produit.setImage(produitDetails.getImage());
+        if (base64Image != null && !base64Image.isEmpty()) {
+            produit.setImage(base64Image);
+        }
         return produitRepository.save(produit);
     }
 

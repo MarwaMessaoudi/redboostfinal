@@ -4,7 +4,7 @@
 /* Container */
 .container {
   width: 100%;
-  max-width: 1200px; /* Reverted to original max-width */
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   background: #ffffff;
@@ -62,7 +62,7 @@
 .separator-breadcrumb {
   border-top: 2px solid #e1e8f0;
   margin: 20px 0;
-  width: 100%; /* Already spans the full container */
+  width: 100%;
 }
 
 /* App Header */
@@ -80,6 +80,13 @@
 
 .header-content {
   margin-bottom: 10px;
+}
+
+.header-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .title {
@@ -102,6 +109,28 @@
   background: linear-gradient(90deg, #DB1E37, #0A4955);
   margin: 8px auto 0;
   border-radius: 2px;
+}
+
+.add-project-button {
+  color: #ffffff;
+  background: linear-gradient(135deg, #0A4955, #DB1E37);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  transition: all 0.3s ease;
+}
+
+.add-project-button:hover {
+  background: linear-gradient(135deg, #DB1E37, #0A4955);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.add-project-button mat-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
 }
 
 /* Filter Section */
@@ -226,7 +255,7 @@
 
 /* Tab Group */
 .tab-group {
-  width: 100%; /* Ensure the tab group spans the full container */
+  width: 100%;
 }
 
 /* Style the tab header to stretch tabs */
@@ -237,15 +266,15 @@
 /* Style the tab labels to stretch across the container */
 .tab-group ::ng-deep .mat-tab-labels {
   display: flex;
-  justify-content: space-around; /* Distribute tabs evenly across the container */
+  justify-content: space-around;
   width: 100%;
 }
 
 /* Style individual tab labels */
 .tab-group ::ng-deep .mat-tab-label {
-  flex: 1; /* Make each tab take equal space */
-  min-width: 0; /* Allow tabs to shrink if needed */
-  padding: 0 10px; /* Add some padding for spacing */
+  flex: 1;
+  min-width: 0;
+  padding: 0 10px;
   font-family: 'Poppins', sans-serif;
   font-weight: 600;
   font-size: 16px;
@@ -278,8 +307,8 @@
 
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Reverted to original size */
-  gap: 15px; /* Reverted to original gap */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
   justify-content: center;
 }
 
@@ -300,7 +329,7 @@
 
 .card-content {
   position: relative;
-  padding: 15px; /* Reverted to original padding */
+  padding: 15px;
   z-index: 1;
 }
 
@@ -361,7 +390,7 @@
 }
 
 .project-title {
-  font-size: 20px; /* Reverted to original font size */
+  font-size: 20px;
   font-weight: 600;
   margin: 0 0 5px 0;
   color: #ffffff;
@@ -372,12 +401,24 @@
   max-width: 100%;
 }
 
+/* Specific styling for project title in Contacts tab */
+.project-title-header {
+  font-size: 22px;
+  color: #0A4955;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  padding: 10px 15px;
+  border-radius: 8px 8px 0 0;
+  margin: -15px -15px 15px -15px;
+  border-bottom: 2px solid #DB1E37;
+  text-align: center;
+}
+
 .price-tag {
-  font-size: 18px; /* Reverted to original font size */
+  font-size: 18px;
   font-weight: 600;
   color: #0A4955;
   background: #ffffff;
-  padding: 5px 15px; /* Reverted to original padding */
+  padding: 5px 15px;
   border-radius: 25px;
   display: inline-flex;
   align-items: center;
@@ -401,12 +442,12 @@
 }
 
 .star-icon {
-  font-size: 14px; /* Reverted to original size */
+  font-size: 14px;
   color: #0A4955;
 }
 
 .project-sector {
-  font-size: 14px; /* Reverted to original font size */
+  font-size: 14px;
   color: #ffffff;
   margin-bottom: 10px;
   opacity: 0.8;
@@ -416,11 +457,11 @@
   position: relative;
   display: flex;
   justify-content: center;
-  margin: 10px 0; /* Reverted to original margin */
+  margin: 10px 0;
 }
 
 .project-image {
-  width: 150px; /* Reverted to original size */
+  width: 150px;
   height: 150px;
   object-fit: cover;
   border-radius: 50%;
@@ -436,7 +477,7 @@
 .detail-item-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 5px; /* Reverted to original gap */
+  gap: 5px;
   width: 100%;
   margin-left: 0;
   padding-left: 0;
@@ -445,10 +486,10 @@
 .project-card .detail-item {
   display: flex;
   align-items: center;
-  gap: 8px; /* Reverted to original gap */
-  font-size: 13px; /* Reverted to original font size */
+  gap: 8px;
+  font-size: 13px;
   background: #ffffff;
-  padding: 10px 15px; /* Reverted to original padding */
+  padding: 10px 15px;
   border-radius: 12px;
   color: #0A4955;
   font-family: 'Poppins', sans-serif;
@@ -473,7 +514,7 @@
 }
 
 .project-card .detail-item mat-icon {
-  font-size: 16px; /* Reverted to original size */
+  font-size: 16px;
   color: #0A4955;
   width: 16px;
   height: 16px;
@@ -494,17 +535,17 @@
 .card-actions {
   display: flex;
   justify-content: center;
-  padding-top: 15px; /* Reverted to original padding */
+  padding-top: 15px;
   gap: 10px;
 }
 
 .view-button {
   background: #0A4955;
   color: #ffffff;
-  padding: 10px 25px; /* Reverted to original padding */
+  padding: 10px 25px;
   border-radius: 25px;
   font-weight: 600;
-  font-size: 14px; /* Reverted to original font size */
+  font-size: 14px;
   transition: background 0.3s ease, transform 0.2s ease;
   text-transform: uppercase;
   border: none;
@@ -526,7 +567,7 @@
 }
 
 .section-title {
-  font-size: 22px; /* Reverted to original font size */
+  font-size: 22px;
   font-weight: 600;
   color: #0A4955;
   margin-bottom: 15px;
@@ -534,15 +575,15 @@
 
 .invitations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Reverted to original size */
-  gap: 15px; /* Reverted to original gap */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
 }
 
 .invitation-card {
   background: #ffffff;
   border-radius: 15px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 15px; /* Reverted to original padding */
+  padding: 15px;
   transition: transform 0.3s ease;
 }
 
@@ -555,29 +596,29 @@
 }
 
 .invitation-title {
-  font-size: 18px; /* Reverted to original font size */
+  font-size: 18px;
   font-weight: 600;
   margin: 0 0 10px 0;
 }
 
-.invitation-founder {
-  font-size: 14px; /* Reverted to original font size */
+.invitation-email {
+  font-size: 14px;
   margin-bottom: 10px;
   opacity: 0.8;
 }
 
 .invitation-actions {
   display: flex;
-  gap: 10px; /* Reverted to original gap */
+  gap: 10px;
 }
 
 .accept-button {
   background: #0A4955;
   color: #ffffff;
-  padding: 8px 20px; /* Reverted to original padding */
+  padding: 8px 20px;
   border-radius: 25px;
   font-weight: 500;
-  font-size: 14px; /* Reverted to original font size */
+  font-size: 14px;
   transition: background 0.3s ease, transform 0.2s ease;
 }
 
@@ -589,10 +630,10 @@
 .decline-button {
   background: #DB1E37;
   color: #ffffff;
-  padding: 8px 20px; /* Reverted to original padding */
+  padding: 8px 20px;
   border-radius: 25px;
   font-weight: 500;
-  font-size: 14px; /* Reverted to original font size */
+  font-size: 14px;
   transition: background 0.3s ease, transform 0.2s ease;
 }
 
@@ -615,7 +656,7 @@
 }
 
 .no-results p {
-  font-size: 14px; /* Reverted to original font size */
+  font-size: 14px;
   margin: 0;
 }
 
@@ -629,7 +670,7 @@
 }
 
 .loading-message {
-  font-size: 14px; /* Reverted to original font size */
+  font-size: 14px;
   color: #0A4955;
   margin-top: 10px;
 }
@@ -716,6 +757,95 @@
   background: #ffffff;
 }
 
+/* New Styles for Contacts Tab */
+.contact-section {
+  margin-bottom: 20px;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 15px;
+}
+
+.user-card {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.user-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.user-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+  border: 2px solid #0A4955;
+}
+
+.user-info {
+  margin-bottom: 10px;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0A4955;
+  margin: 0 0 5px 0;
+}
+
+.user-role {
+  font-size: 14px;
+  color: #DB1E37;
+  margin: 0 0 5px 0;
+  font-weight: 500;
+}
+
+.user-email {
+  font-size: 12px;
+  color: #6c757d;
+  margin: 0;
+  word-break: break-all;
+}
+
+.user-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.message-button {
+  background: #0A4955;
+  color: #ffffff;
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.message-button:hover {
+  background: #DB1E37;
+  transform: scale(1.05);
+}
+
+.contact-empty {
+  font-size: 14px;
+  color: #6c757d;
+  margin: 0;
+  font-style: italic;
+  opacity: 0.7;
+  text-align: center;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 1024px) {
   .projects-grid {
@@ -724,6 +854,9 @@
   .project-image {
     width: 130px;
     height: 130px;
+  }
+  .contact-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 
@@ -749,6 +882,9 @@
     height: 120px;
   }
   .invitations-grid {
+    grid-template-columns: 1fr;
+  }
+  .contact-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -783,5 +919,22 @@
   .decline-button {
     padding: 6px 15px;
     font-size: 12px;
+  }
+  .user-avatar {
+    width: 60px;
+    height: 60px;
+  }
+  .user-name {
+    font-size: 14px;
+  }
+  .user-role {
+    font-size: 12px;
+  }
+  .user-email {
+    font-size: 11px;
+  }
+  .message-button {
+    padding: 5px 10px;
+    font-size: 11px;
   }
 }

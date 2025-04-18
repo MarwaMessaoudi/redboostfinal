@@ -3,6 +3,7 @@ package team.project.redboost.dto;
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder // Add this annotation at the class level
@@ -12,7 +13,7 @@ public class MessageDTO {
     private LocalDateTime timestamp;
     private boolean isRead;
     private String senderAvatar; // Add this field
-    // Pour les messages privés
+    // Pour les messages privÃ©s
     private Long senderId;
     private String senderName;
     private Long recipientId;
@@ -23,16 +24,17 @@ public class MessageDTO {
 
     private Long conversationId;
 
+    private List<ReactionMessageDTO> reactionMessages;
 
     @Builder.Default
     private LocalDateTime dateEnvoi = LocalDateTime.now();
 
- public String getSenderAvatar() {
-return senderAvatar;
-}
+    public String getSenderAvatar() {
+        return senderAvatar;
+    }
 
-public void setSenderAvatar(String senderAvatar) {
-    this.senderAvatar = senderAvatar;
-}
+    public void setSenderAvatar(String senderAvatar) {
+        this.senderAvatar = senderAvatar;
+    }
 
 }

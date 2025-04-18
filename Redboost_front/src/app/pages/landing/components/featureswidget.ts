@@ -13,9 +13,9 @@ import { faUsers, faCog, faChartLine, faShield } from '@fortawesome/free-solid-s
   template: `
     <section class="challenge-section" #sectionRef>
       <div class="challenge-content">
-        <h1 class="challenge-title" [@textAnimation]="isVisible ? 'in' : 'hidden'">The Challenge We Solve</h1>
-        <p class="challenge-description" [@textAnimation]="isVisible ? 'in' : 'hidden'">Managing entrepreneurial programs shouldn't be a maze. At RedBoost, we know the struggles of disjointed tools, scattered data, and inefficient processes.</p>
-        <h3 class="challenge-subtitle" [@textAnimation]="isVisible ? 'in' : 'hidden'">RedBoost is built to change that:</h3>
+        <h1 class="challenge-title" [@textAnimation]="isVisible ? 'in' : 'hidden'">Les défis que nous relevons</h1>
+        <p class="challenge-description" [@textAnimation]="isVisible ? 'in' : 'hidden'">gérer les échanges et suivre vos progrès peut être complexe et chronophage. Notre plateforme élimine ces obstacles en vous offrant.</p>
+        <h3 class="challenge-subtitle" [@textAnimation]="isVisible ? 'in' : 'hidden'">RedBoost est conçu pour changer cela :</h3>
         <div class="challenge-cards">
           <div *ngFor="let feature of features; let i = index"
                class="challenge-card"
@@ -32,7 +32,7 @@ import { faUsers, faCog, faChartLine, faShield } from '@fortawesome/free-solid-s
             <h3>{{ feature.text }}</h3>
           </div>
         </div>
-        <button pButton pRipple label="See RedBoost in Action" 
+        <button pButton pRipple label="Découvrez RedBoost en action" 
                 class="action-button" 
                 [@buttonHoverAnimation]="buttonHoverState"
                 (mouseenter)="onButtonMouseEnter()"
@@ -241,10 +241,10 @@ export class FeaturesWidget {
   @ViewChild('sectionRef', { static: false }) sectionRef!: ElementRef;
   isVisible: boolean = false;
   features = [
-    { icon: faUsers, text: "Streamline program management" },
-    { icon: faCog, text: "Automate repetitive tasks" },
-    { icon: faChartLine, text: "Provide real-time insights and performance tracking" },
-    { icon: faShield, text: "Ensure secure, centralized data management" }
+    { icon: faUsers, text: "Un matching intelligent entre entrepreneurs et coachs expérimentés" },
+    { icon: faCog, text: "Une centralisation des données pour un suivi clair et organisé." },
+    { icon: faChartLine, text: "Des outils de communication digitaux pour des échanges fluides et efficaces" },
+    { icon: faShield, text: "Un suivi personnalisé pour mesurer vos progrès et atteindre vos objectifs" }
   ];
 
   selectedFeatureIndex: number | null = null;

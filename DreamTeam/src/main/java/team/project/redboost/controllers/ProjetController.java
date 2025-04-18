@@ -17,6 +17,7 @@ import team.project.redboost.utils.FileStorageUtil;
 import jakarta.transaction.Transactional;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
@@ -255,6 +256,30 @@ public class ProjetController {
             System.err.println("Error fetching pending invitations: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error fetching pending invitations: " + e.getMessage());
+        }
+    }
+
+    // NEW ENDPOINT: Fetch project contacts
+    @GetMapping("/{projetId}/contacts")
+    @Transactional
+    public ResponseEntity<?> getProjectContacts(@PathVariable Long projetId) {
+        try {
+            Map<String, Object> contacts = projetService.getProjectContacts(projetId);
+            return ResponseEntity.ok(contacts);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Project not found with ID: " + projetId);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching project contacts: " + e.getMessage());
+        }
+    }
+    @GetMapping("/marketplace")
+    public ResponseEntity<List<Projet>> getMarketplaceProjects() {
+        try {
+            List<Projet> projects = projetService.getAllProjectsLimited();
+            return ResponseEntity.ok(projects);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

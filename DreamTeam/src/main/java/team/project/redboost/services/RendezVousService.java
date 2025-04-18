@@ -15,7 +15,9 @@ import java.net.http.HttpHeaders;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -231,4 +233,27 @@ public class RendezVousService {
                 .findFirst()
                 .map(this::toDTO);
     }
+
+    public List<RendezVous> getRendezVousByUserId(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("L'ID de l'utilisateur ne peut pas être null");
+        }
+        List<RendezVous> rendezVous = rendezVousRepository.findByUserId(userId);
+        if (rendezVous.isEmpty()) {
+            throw new RuntimeException("Aucun rendez-vous trouvé pour cet utilisateur");
+        }
+        return rendezVous;
+    }
+
+    public Map<String, Long> getStatsByUser(Long userId) {
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("total", rendezVousRepository.countAllByUser(userId));
+        stats.put("accepted", rendezVousRepository.countAcceptedByUser(userId));
+        stats.put("pending", rendezVousRepository.countPendingByUser(userId));
+        stats.put("rejected", rendezVousRepository.countRejectedByUser(userId));
+        return stats;
+    }
+
+
+
 }

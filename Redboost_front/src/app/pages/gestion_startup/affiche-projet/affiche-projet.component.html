@@ -4,7 +4,18 @@
   <!-- Header Section -->
   <header class="app-header">
     <div class="header-content">
-      <h1 class="title">Vos Projets</h1>
+      <div class="header-title-container">
+        <h1 class="title">Vos Projets</h1>
+        <button
+          mat-icon-button
+          class="add-project-button"
+          (click)="navigateToCreateProject()"
+          aria-label="Ajouter un nouveau projet"
+          matTooltip="Ajouter un projet"
+        >
+          <mat-icon>Ajouter</mat-icon>
+        </button>
+      </div>
       <div class="header-decoration"></div>
       <p class="subtitle">Gérez vos entreprises</p>
     </div>
@@ -95,13 +106,15 @@
                     {{ projet.globalScore | number:'1.2-2' }}
                   </div>
                   <p class="project-sector">{{ projet.sector }}</p>
-                  <div class="image-wrapper">
+                  <div class="image-wrapper" *ngIf="projet.logoUrl && projet.logoUrl !== 'null'">
                     <img
                       [src]="sanitizedImageUrl(projet.logoUrl)"
                       [attr.data-original-url]="projet.logoUrl || 'null'"
                       alt="{{ projet.name || 'Logo Projet' }}"
                       class="project-image"
+                      loading="lazy"
                       (error)="onImageError($event)"
+                      (load)="onImageLoad(projet.logoUrl)"
                     />
                   </div>
                   <div class="project-details">
@@ -196,10 +209,64 @@
                   class="project-details"
                   *ngIf="projet.id !== undefined && projet.id !== 0 && projetContacts[projet.id]"
                 >
-                  <p><strong>Founder:</strong> {{ getFounderEmail(projet.id) }}</p>
-                  <p><strong>Entrepreneurs:</strong> {{ getEntrepreneursEmails(projet.id) }}</p>
-                  <p><strong>Coaches:</strong> {{ getCoachesEmails(projet.id) }}</p>
-                  <p><strong>Investors:</strong> {{ getInvestorsEmails(projet.id) }}</p>
+                  <!-- Founder Section -->
+                  <div class="contact-category">
+                    <div class="contact-header">
+                      <mat-icon class="contact-icon">person</mat-icon>
+                      <span class="contact-label">Fondateur</span>
+                    </div>
+                    <div class="contact-content">
+                      <p class="contact-info">{{ getFounderEmail(projet.id) }}</p>
+                    </div>
+                  </div>
+
+                  <!-- Entrepreneurs Section -->
+                  <div class="contact-category">
+                    <div class="contact-header">
+                      <mat-icon class="contact-icon">group</mat-icon>
+                      <span class="contact-label">Entrepreneurs</span>
+                    </div>
+                    <div class="contact-content">
+                      <p class="contact-info" *ngIf="projetContacts[projet.id]?.entrepreneurs?.length; else noEntrepreneurs">
+                        {{ getEntrepreneursEmails(projet.id) }}
+                      </p>
+                      <ng-template #noEntrepreneurs>
+                        <p class="contact-empty">Aucun entrepreneur assigné</p>
+                      </ng-template>
+                    </div>
+                  </div>
+
+                  <!-- Coaches Section -->
+                  <div class="contact-category">
+                    <div class="contact-header">
+                      <mat-icon class="contact-icon">school</mat-icon>
+                      <span class="contact-label">Coaches</span>
+                    </div>
+                    <div class="contact-content">
+                      <p class="contact-info" *ngIf="projetContacts[projet.id]?.coaches?.length; else noCoaches">
+                        {{ getCoachesEmails(projet.id) }}
+                      </p>
+                      <ng-template #noCoaches>
+                        <p class="contact-empty">Aucun coach assigné</p>
+                      </ng-template>
+                    </div>
+                  </div>
+
+                  <!-- Investors Section -->
+                  <div class="contact-category">
+                    <div class="contact-header">
+                      <mat-icon class="contact-icon">monetization_on</mat-icon>
+                      <span class="contact-label">Investisseurs</span>
+                    </div>
+                    <div class="contact-content">
+                      <p class="contact-info" *ngIf="projetContacts[projet.id]?.investors?.length; else noInvestors">
+                        {{ getInvestorsEmails(projet.id) }}
+                      </p>
+                      <ng-template #noInvestors>
+                        <p class="contact-empty">Aucun investisseur assigné</p>
+                      </ng-template>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

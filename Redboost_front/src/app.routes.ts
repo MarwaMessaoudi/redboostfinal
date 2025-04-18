@@ -21,7 +21,6 @@ import { UserProfileComponent } from './app/pages/gestion_user/profile/profile.c
 import { DocumentsComponent } from './app/pages/documents/documents.component';
 import { ContactLandingComponent } from './app/pages/landing/components/contact-landing';
 import { MarketLandingComponent } from './app/pages/landing/components/market-landing';
-import { ShowProduitsComponent } from './app/pages/gestion_startup/Produit/show-produits/show-produits.component';
 import { CoachRequestComponent } from './app/pages/become_coach/coachrequest';
 import { AllCoachRequestsComponent } from './app/pages/become_coach/all-coach-requests.component';
 import { AllReclamationsComponent } from './app/pages/gestion_reclamation/all-reclamations/all-reclamations.component';
@@ -33,8 +32,26 @@ import { Dashboard } from './app/pages/dashboard/entrepredashboard/dashboard';
 import { AppointmentListComponent } from './app/pages/gestion_rendez-vous/appointment-list/appointment-list.component';
 import { ForgotPasswordComponent } from './app/pages/gestion_user/forgotpassword/forgotpassword.component';
 import { ResetPasswordComponent } from './app/pages/gestion_user/reset-password/reset-password.component';
-import { ChatComponent } from './app/pages/chat/chat.component';
-import { GestionCommunicationComponent } from './app/pages/gestion-communication/gestion-communication.component';
+import { ChatComponent } from './app/pages/gestion_messagerie/chat/chat.component';
+import { GestionCommunicationComponent } from './app/pages/gestion_messagerie/gestion-communication/gestion-communication.component';
+import {MeetingDetailsPopupComponent} from './app/pages/gestion_rendez-vous/meeting-detail-popup/meeting-detail-popup.component';
+import { MeetingListComponent } from './app/pages/gestion_rendez-vous/meetinglist/meeting-list.component';
+import { UserListComponent } from './app/pages/allUsers/user-list.component';
+
+import { StaffTypeListComponent } from './app/pages/database_management/staff-type-list/staff-type-list.component';
+import { StaffTypeDetailComponent } from './app/pages/database_management/staff-type-detail/staff-type-detail.component';
+import { StaffFilterComponent } from './app/pages/database_management/staff-filter/staff-filter.component';
+import { ResourcesLandingComponent } from './app/pages/resourses-landing/ResourcesLandingComponent';
+import {ResourcesComponent} from './app/pages/landing/components/resources.component';
+import { KanbanActivityComponent } from './app/pages/gestion_programmes/kanban-activity/kanban-activity.component';
+import { ProgramMonitoringComponent } from './app/pages/gestion_programmes/program-monitoring/program-monitoring.component';
+import { ProgramDetailComponent } from './app/pages/gestion_programmes/program-details/program-details.component';
+import { ShowProduitsComponent } from './app/pages/gestion_startup/Produit/show-produits/show-produits.component';
+import { ShowServicePComponent } from './app/pages/gestion_startup/ServiceP/show-service-p/show-service-p.component';
+
+
+
+
 export const pagesRoutes: Routes = [
   { path: 'addprojet', component: AddProjetComponent },
   { path: 'GetProjet', component: AfficheProjetComponent },
@@ -48,7 +65,33 @@ export const pagesRoutes: Routes = [
   { path: 'marketlanding', component: MarketLandingComponent },
   {path:'chat',component:ChatComponent},
   {path:'gestion_comm', component:GestionCommunicationComponent},
-  
+  {path:'meeting-list', component:MeetingListComponent},
+  {path:'meeting-details-popup', component:MeetingDetailsPopupComponent},
+  {path:'all-users', component:UserListComponent},
+  {path: 'staff-types',component: StaffTypeListComponent},
+{path: 'staff-types/:id',component: StaffTypeDetailComponent},
+{path: 'staff-filter', component: StaffFilterComponent},
+
+{ path: 'ShowProd', component: ShowProduitsComponent },
+  { path: 'ShowService', component:ShowServicePComponent  },
+
+    { path: 'all-resourses', component: ResourcesLandingComponent },
+
+    {
+      path: 'Activities',
+      children: [
+          { path: ':activityId', component: KanbanActivityComponent }
+      ]
+  },
+  { path: 'ProgramMonitoring', component: ProgramMonitoringComponent },
+  { path: 'programs/:id', component: ProgramDetailComponent },
+
+
+
+       { path: 'customers', loadChildren: () => import('./app/pages/backoffice/customers/customers.routes') },
+            { path: 'services', loadChildren: () => import('./app/pages/backoffice/services/services.routes') },
+            { path: 'inv', loadChildren: () => import('./app/pages/backoffice/invoices/invoice-quotations.routes') },
+
 ];
 
 export const appRoutes: Routes = [
@@ -60,7 +103,7 @@ export const appRoutes: Routes = [
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
   { path: 'confirm-email', component: ConfirmEmailComponent },
- 
+ {path:'resources', component: ResourcesComponent},
   
   {
     path: '',
@@ -78,6 +121,7 @@ export const appRoutes: Routes = [
         data: { expectedRole: 'COACH' },
         component: CoachDashboardComponent,
       },
+
       {
         path: 'entrepreneur-dashboard',
         canActivate: [RoleGuard],
@@ -95,7 +139,6 @@ export const appRoutes: Routes = [
       { path: 'sub-folder/:folderName/:folderMetadataId/:categoryName/:subFolderName', component: SubFolderComponent },
       { path: 'gestion-folder/folder-details/user-library/:folderName/:folderMetadataId', component: UserLibraryComponent },
       { path: 'messagerie-reclamation', component: MessagerieReclamationComponent },
-      { path: 'ShowProd', component: ShowProduitsComponent },
       { path: 'all-coach-requests', component: AllCoachRequestsComponent },
       { path: 'all-reclamations', component: AllReclamationsComponent },
       {

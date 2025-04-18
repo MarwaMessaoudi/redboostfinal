@@ -13,10 +13,10 @@ import { trigger, state, style, transition, animate, keyframes } from '@angular/
     <section class="services-section" #servicesSection  id="servicesSection">
       <div class="services-container">
         <div class="services-header">
-          <span class="section-subtitle">Services We Offer</span>
-          <h2 class="section-title">More Than Just a Platform</h2>
+          <span class="section-subtitle">Services que nous offrons</span>
+          <h2 class="section-title">Plus qu'une plateforme</h2>
           <p class="section-description">
-            Comprehensive solutions to help your business thrive in the digital age
+            Des solutions complètes pour aider votre entreprise à prospérer à l'ère numérique
           </p>
         </div>
 
@@ -39,7 +39,7 @@ import { trigger, state, style, transition, animate, keyframes } from '@angular/
 
         <div class="button-container">
           <button pButton class="discover-button">
-            Discover Our Services
+            Découvrez nos services
             <span class="button-arrow">→</span>
           </button>
         </div>
@@ -210,23 +210,23 @@ export class PricingWidget implements OnInit {
   services = [
     {
       icon: this.faCode,
-      title: "Web Development Services",
-      description: "Custom, scalable websites built to grow with you"
+      title: "Services de développement Web",
+      description: "Des sites Web personnalisés et évolutifs conçus pour évoluer avec vous"
     },
     {
       icon: this.faPalette,
-      title: "Communication and Design Solutions",
-      description: "Engaging content and visuals that amplify your brand"
+      title: "Solutions de communication et de conception",
+      description: "Un contenu attrayant qui amplifient votre marque"
     },
     {
       icon: this.faMobileAlt,
-      title: "Mobile App Development",
-      description: "Native and cross-platform mobile applications"
+      title: "Development App Mobile",
+      description: "Applications mobiles natives et multiplateformes"
     },
     {
       icon: this.faRocket,
-      title: "Digital Marketing",
-      description: "Strategic marketing solutions for business growth"
+      title: "Marketing Digital",
+      description: "Solutions marketing stratégiques pour la croissance des entreprises"
     }
   ];
 

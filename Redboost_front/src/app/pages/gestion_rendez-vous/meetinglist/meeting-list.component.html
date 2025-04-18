@@ -1,0 +1,62 @@
+<div class="meeting-list-container" @fadeInOut>
+  <div class="dashboard-cards">
+    <div
+      class="card"
+      *ngFor="let card of dashboardCards"
+      (click)="filterByStatus(card.key.toUpperCase())"
+      [class.card-selected]="selectedStatus === card.key.toUpperCase()"
+    >
+      <i class="card-icon fas {{ card.icon }}"></i>
+      <div class="card-content">
+        <span class="card-title">{{ card.title }}</span>
+        <span class="card-value">{{ card.value }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="meeting-list-header">
+    <h2>Your Rendezvous List:</h2>
+  </div>
+
+  <div class="meeting-table-container">
+    <table class="meeting-table">
+      <thead>
+        <tr>
+          <th class="title-column">Titre</th>
+          <th class="description-column">Description</th>
+          <th class="status-column">Statut</th>
+          <th class="date-column">Date</th>
+          
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let rendezvous of rendezvousList; let even = even"
+            [ngClass]="{'even-row': even}"
+           
+            class="meeting-row"
+            (click)="openDetailsPopup(rendezvous)">
+          <td class="title-column">
+            {{ rendezvous.title }}
+          </td>
+          <td class="description-column">
+            {{ rendezvous.description || '---' }}
+          </td>
+          <td class="status-column">
+            <span [ngClass]="{
+              'status-pending': rendezvous.status === 'PENDING',
+              'status-accepted': rendezvous.status === 'ACCEPTED',
+              'status-rejected': rendezvous.status === 'REJECTED'
+            }">{{ rendezvous.status }}</span>
+          </td>
+          <td class="date-column">
+            {{ formatDate(rendezvous.date) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+</div>
+
+
+

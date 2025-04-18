@@ -1,20 +1,20 @@
 package team.project.redboost.controllers;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import team.project.redboost.entities.Produit;
-import team.project.redboost.entities.Projet;
-import team.project.redboost.services.ProduitService;
 import org.springframework.web.multipart.MultipartFile;
+import team.project.redboost.entities.Produit;
+import team.project.redboost.services.ProduitService;
 
+import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
+
 @RestController
 @RequestMapping("/api/produits")
 public class ProduitController {
@@ -22,11 +22,22 @@ public class ProduitController {
     @Autowired
     private ProduitService produitService;
 
-    @PostMapping("/AddProduit/{projetId}")
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @PostMapping(value = "/AddProduit/{projetId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Produit> createProduit(
             @PathVariable Long projetId,
-            @RequestBody Produit produit) {
-        Produit createdProduit = produitService.createProduit(produit, projetId);
+            @RequestPart(name = "produit") String produitJson,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+        Produit produit = objectMapper.readValue(produitJson, Produit.class);
+
+        String base64Image = null;
+        if (image != null && !image.isEmpty()) {
+            base64Image = "data:" + image.getContentType() + ";base64," +
+                    Base64.getEncoder().encodeToString(image.getBytes());
+        }
+        Produit createdProduit = produitService.createProduit(produit, projetId, base64Image);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdProduit);
     }
 
@@ -43,9 +54,19 @@ public class ProduitController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/UpdateProd/{id}")
-    public ResponseEntity<Produit> updateProduit(@PathVariable Long id, @RequestBody Produit produitDetails) {
-        Produit updatedProduit = produitService.updateProduit(id, produitDetails);
+    @PutMapping(value = "/UpdateProd/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Produit> updateProduit(
+            @PathVariable Long id,
+            @RequestPart(name = "produit") String produitJson,
+            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
+        Produit produitDetails = objectMapper.readValue(produitJson, Produit.class);
+
+        String base64Image = null;
+        if (image != null && !image.isEmpty()) {
+            base64Image = "data:" + image.getContentType() + ";base64," +
+                    Base64.getEncoder().encodeToString(image.getBytes());
+        }
+        Produit updatedProduit = produitService.updateProduit(id, produitDetails, base64Image);
         return ResponseEntity.ok(updatedProduit);
     }
 

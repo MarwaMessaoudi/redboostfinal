@@ -9,4 +9,5 @@ public enum Role {
     INVESTOR,
     ADMIN,
     SUPERADMIN,
+    EMPLOYEE,
 }

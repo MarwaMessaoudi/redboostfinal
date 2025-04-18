@@ -80,6 +80,7 @@ export class AppMenu implements OnInit {
           }
         ]
       }
+
     ];
   }
 
@@ -117,6 +118,9 @@ export class AppMenu implements OnInit {
     this.model = [...roleMenu, this.getProfileMenuItem()];
   }
 
+  
+
+  
   getSuperAdminMenu(): MenuItem[] {
 
 return [
@@ -127,9 +131,22 @@ return [
  { label: 'coach requests',
   items: [{ label: 'Coach Requests', icon: 'pi pi-fw pi-home', routerLink: ['/all-coach-requests'] }],
  }
+,
+ { label: 'utulisateurs',
+  items: [{ label: 'tous les utulisateurs ', icon: 'pi pi-fw pi-user', routerLink: ['/all-users'] }],
+ },
+ { label: 'Manage Types',
+  items: [{ label: 'Manage Types ', icon: 'pi pi-fw pi-database', routerLink: ['/staff-types'] }],
+ },
+ { label: 'Filter Staff Data',
+  items: [{ label: 'Filter Staff Data ', icon: 'pi pi-fw pi-filter', routerLink: ['/staff-filter'] }],
+ },
+ { label: 'Gestion de programmes',
+  items: [{ label: 'Gestion de programmes', icon: 'pi pi-fw pi-home', routerLink: ['/ProgramMonitoring'] }],
+ },
 
- 
 ];
+
 }
 
 
@@ -154,6 +171,21 @@ return [
           { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
         ],
       },
+      { label: 'resourses',
+        items: [{ label: 'tous les resourses ', icon: 'pi pi-fw pi-user', routerLink: ['/all-resourses'] }],
+       },
+       {
+        label: 'Clients',
+        items: [{ label: 'Ajouter Un Client', icon: 'pi pi-fw pi-briefcase', routerLink: ['/customers'] }],
+      },
+      {
+        label: 'Services',
+        items: [{ label: 'Ajouter Un Service', icon: 'pi pi-fw pi-briefcase', routerLink: ['/services'] }],
+      },
+      {
+        label: 'Factures / Devis',
+        items: [{ label: 'Generer une Facture / Devis', icon: 'pi pi-fw pi-briefcase', routerLink: ['/inv'] }],
+      },
     ];
   }
   // Entrepreneur Menu
@@ -166,9 +198,12 @@ return [
       {
         label: 'Projet',
         items: [
-          { label: 'Projet', icon: 'pi pi-fw pi-home', routerLink: ['/addprojet'] },
+         // { label: 'Projet', icon: 'pi pi-fw pi-home', routerLink: ['/addprojet'] },
           { label: 'Projets', icon: 'pi pi-fw pi-home', routerLink: ['/GetProjet'] },
-        //  { label: 'produits', icon: 'pi pi-fw pi-home', routerLink: ['/ShowProd'] },
+          { label: 'MarketPlace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace'] },
+
+         // { label: 'produits', icon: 'pi pi-fw pi-home', routerLink: ['/ShowProd'] },
+         // { label: 'services', icon: 'pi pi-fw pi-home', routerLink: ['/ShowService'] }
         ],
       },
       
@@ -202,8 +237,7 @@ return [
         label: 'Rendez-vous',
         items: [
           { label: 'Rendez-vous', icon: 'pi pi-fw pi-calendar', routerLink: ['/appointments'] },
-          { label: 'Meeting', icon: 'pi pi-fw pi-calendar', routerLink: ['/meeting'] },
-          { label: 'My Meetings List', icon: 'pi pi-fw pi-calendar', routerLink: ['/meetinglist'] },
+          { label: 'My Meetings List', icon: 'pi pi-fw pi-calendar', routerLink: ['/meeting-list'] },
         ],
       },
       
@@ -240,9 +274,14 @@ return [
         ],
       },
       {
-        label: 'Mes Projets',
+        label: 'Projet',
         items: [
+         // { label: 'Projet', icon: 'pi pi-fw pi-home', routerLink: ['/addprojet'] },
           { label: 'Projets', icon: 'pi pi-fw pi-home', routerLink: ['/GetProjet'] },
+          { label: 'MarketPlace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace'] },
+
+         // { label: 'produits', icon: 'pi pi-fw pi-home', routerLink: ['/ShowProd'] },
+         // { label: 'services', icon: 'pi pi-fw pi-home', routerLink: ['/ShowService'] }
         ],
       },
       {

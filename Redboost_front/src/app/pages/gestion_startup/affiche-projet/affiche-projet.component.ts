@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { Observable, Subject, of } from 'rxjs';
 import { ProjetService } from '../../service/projet-service.service';
 import { CommonModule } from '@angular/common';
@@ -14,15 +14,23 @@ import { RouterModule, Router } from '@angular/router';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
-import { Projet } from '../../../models/Projet'; 
-import { catchError, debounceTime, map } from 'rxjs/operators';
+import { Projet } from '../../../models/Projet';
+import { catchError, debounceTime, map, shareReplay, tap } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 
 interface ProjectContacts {
-  founder: number | null;
-  entrepreneurs: number[];
-  coaches: number[];
-  investors: number[];
+  founder: User | null;
+  entrepreneurs: User[];
+  coaches: User[];
+  investors: User[];
+}
+
+interface User {
+  id: number;
+  email: string;
+  role: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface PendingInvitation {
@@ -51,6 +59,7 @@ interface PendingInvitation {
   ],
   templateUrl: './affiche-projet.component.html',
   styleUrls: ['./affiche-projet.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AfficheProjetComponent implements OnInit, OnDestroy {
   projets$!: Observable<Projet[]>;
@@ -67,11 +76,14 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
   projetContacts: { [key: number]: ProjectContacts } = {};
   private searchSubject = new Subject<string>();
   imageErrorCount: { [key: string]: number } = {};
+  imageLoadStatus: { [key: string]: 'loaded' | 'failed' | 'loading' } = {};
+  defaultImage = '/assets/images/default-logo.png'; // Ensure this file exists in src/assets/images
 
   constructor(
     private projetService: ProjetService,
     private sanitizer: DomSanitizer,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -87,33 +99,33 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
   setupSearchDebounce() {
     this.searchSubject.pipe(debounceTime(300)).subscribe(() => {
       this.applyFilters();
+      this.cdr.markForCheck();
     });
   }
+
   loadCurrentUserId() {
-    console.log('loadCurrentUserId - Starting');
     this.projetService.fetchCurrentUserId().subscribe({
-        next: (userId) => {
-            this.currentUserId = userId;
-            console.log('Loaded currentUserId:', this.currentUserId); // Should be 3
-            this.loadProjects(); // Load projects after userId is set
-        },
-        error: (error) => {
-            console.error('Error loading user ID:', error.message);
-            Swal.fire({
-                icon: 'error',
-                title: 'Erreur!',
-                text: 'Impossible de charger l\'ID utilisateur. Veuillez vous reconnecter.',
-            });
-            this.router.navigate(['/login']);
-        },
+      next: (userId) => {
+        this.currentUserId = userId;
+        this.loadProjects();
+      },
+      error: (error) => {
+        console.error('Error loading user ID:', error.message);
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur!',
+          text: 'Impossible de charger l\'ID utilisateur. Veuillez vous reconnecter.',
+        });
+        this.router.navigate(['/login']);
+      },
     });
-}
+  }
 
   loadProjects() {
     this.projets$ = this.projetService.getUserProjects().pipe(
       map((projets: Projet[]) => {
         return projets.map((projet, index) => {
-          if (!projet.id) projet.id = index + 1; // Fallback ID
+          if (!projet.id) projet.id = index + 1;
           return projet;
         });
       }),
@@ -122,7 +134,8 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
           this.router.navigate(['/login']);
         }
         return of([]);
-      })
+      }),
+      shareReplay(1)
     );
 
     this.projets$.subscribe({
@@ -131,6 +144,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
         this.uniqueLocations = [...new Set(projets.map(p => p.location).filter(Boolean))];
         this.applyFilters();
         this.loadProjectContacts(projets);
+        this.cdr.markForCheck();
       },
       error: (error) => {
         Swal.fire({
@@ -146,12 +160,27 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     projets.forEach(projet => {
       const projectId = projet.id ?? 0;
       if (projectId) {
-        this.projetContacts[projectId] = {
-          founder: projet.founder,
-          entrepreneurs: projet.entrepreneurs,
-          coaches: projet.coaches,
-          investors: projet.investors,
-        };
+        this.projetService.getProjectContacts(projectId).subscribe({
+          next: (contacts) => {
+            this.projetContacts[projectId] = {
+              founder: contacts.founder,
+              entrepreneurs: contacts.entrepreneurs || [],
+              coaches: contacts.coaches || [],
+              investors: contacts.investors || [],
+            };
+            this.cdr.markForCheck();
+          },
+          error: (error) => {
+            console.error(`Failed to load contacts for project ${projectId}:`, error);
+            this.projetContacts[projectId] = {
+              founder: null,
+              entrepreneurs: [],
+              coaches: [],
+              investors: [],
+            };
+            this.cdr.markForCheck();
+          },
+        });
       }
     });
   }
@@ -160,6 +189,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     this.projetService.getPendingInvitations().subscribe({
       next: (invitations) => {
         this.pendingInvitations = invitations;
+        this.cdr.markForCheck();
       },
       error: (error) => {
         this.pendingInvitations = [];
@@ -168,12 +198,14 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
           title: 'Erreur!',
           text: error.message || 'Impossible de charger les invitations en attente.',
         });
+        this.cdr.markForCheck();
       },
     });
   }
 
   applyFilters() {
     this.filteredProjets$ = this.projets$.pipe(
+      debounceTime(100),
       map(projets =>
         projets
           .filter(projet => {
@@ -191,7 +223,8 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
             const bValue = this.sortField === 'creationDate' ? b.creationDate || '' : b.globalScore || 0;
             return this.sortAscending ? (aValue > bValue ? 1 : -1) : (aValue < bValue ? 1 : -1);
           })
-      )
+      ),
+      tap(() => this.cdr.markForCheck())
     );
   }
 
@@ -204,23 +237,32 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  sanitizedImageUrl(url: string): SafeUrl {
+  sanitizedImageUrl(url: string | null | undefined): SafeUrl {
     const baseUrl = 'http://localhost:8085';
-    if (!url || url === 'null' || url.trim() === '') {
-      return this.sanitizer.bypassSecurityTrustUrl('assets/no-image.png');
+    if (!url || url === 'null' || url.trim() === '' || this.imageLoadStatus[url] === 'failed') {
+      return this.defaultImage;
     }
     const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
+    this.imageLoadStatus[fullUrl] = 'loading';
     return this.sanitizer.bypassSecurityTrustUrl(fullUrl);
   }
 
   onImageError(event: Event) {
     const img = event.target as HTMLImageElement;
-    const src = img.src;
-    this.imageErrorCount[src] = (this.imageErrorCount[src] || 0) + 1;
-    if (this.imageErrorCount[src] <= 1) {
-      img.src = 'assets/no-image.png';
+    const src = img.getAttribute('data-original-url') || img.src;
+    if (this.imageErrorCount[src]) {
+      return;
     }
+    this.imageErrorCount[src] = 1;
+    this.imageLoadStatus[src] = 'failed';
+    img.src = this.defaultImage;
     img.onerror = null;
+    this.cdr.markForCheck();
+  }
+
+  onImageLoad(logoUrl: string) {
+    this.imageLoadStatus[logoUrl] = 'loaded';
+    this.cdr.markForCheck();
   }
 
   deleteProjet(projectId: number | undefined) {
@@ -255,68 +297,66 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
 
   acceptInvitation(projetId: number | undefined) {
     if (!projetId || projetId === 0 || !this.currentUserId) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erreur!',
-            text: 'ID du projet ou utilisateur non valide.',
-        });
-        return;
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur!',
+        text: 'ID du projet ou utilisateur non valide.',
+      });
+      return;
     }
-    console.log('Accepting invitation for projetId:', projetId, 'userId:', this.currentUserId);
     this.projetService.acceptInvitation(projetId, this.currentUserId).subscribe({
-        next: (response) => {
-            console.log('Invitation accepted:', response);
-            Swal.fire({
-                icon: 'success',
-                title: 'Succès!',
-                text: 'Invitation acceptée avec succès!',
-            });
-            this.loadPendingInvitations();
-            this.loadProjects();
-        },
-        error: (error) => {
-            let errorMessage = typeof error.message === 'string' ? error.message : 
-                              error.error?.message || 'Échec de l\'acceptation de l\'invitation.';
-            if (error.status === 400) {
-                errorMessage = typeof error.error === 'string' ? error.error : 
-                               error.error?.message || 'Requête invalide. Vérifiez que vous êtes autorisé à accepter cette invitation.';
-            }
-            Swal.fire({
-                icon: 'error',
-                title: 'Erreur!',
-                text: errorMessage,
-            });
-        },
-    });
-}
-
-declineInvitation(projetId: number | undefined) {
-    if (!projetId || projetId === 0 || !this.currentUserId) {
+      next: (response) => {
         Swal.fire({
-            icon: 'error',
-            title: 'Erreur!',
-            text: 'ID du projet ou utilisateur non valide.',
+          icon: 'success',
+          title: 'Succès!',
+          text: 'Invitation acceptée avec succès!',
         });
-        return;
+        this.loadPendingInvitations();
+        this.loadProjects();
+      },
+      error: (error) => {
+        let errorMessage = typeof error.message === 'string' ? error.message :
+          error.error?.message || 'Échec de l\'acceptation de l\'invitation.';
+        if (error.status === 400) {
+          errorMessage = typeof error.error === 'string' ? error.error :
+            error.error?.message || 'Requête invalide. Vérifiez que vous êtes autorisé à accepter cette invitation.';
+        }
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur!',
+          text: errorMessage,
+        });
+      },
+    });
+  }
+
+  declineInvitation(projetId: number | undefined) {
+    if (!projetId || projetId === 0 || !this.currentUserId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erreur!',
+        text: 'ID du projet ou utilisateur non valide.',
+      });
+      return;
     }
     this.projetService.declineInvitation(projetId, this.currentUserId).subscribe({
-        next: () => {
-            Swal.fire({
-                icon: 'success',
-                title: 'Succès!',
-                text: 'Invitation refusée avec succès!',
-            });
-            this.loadPendingInvitations();
-        },
-        error: (error) => {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erreur!',
-                text: error.message || 'Échec du refus de l\'invitation.',
-            });
-        },
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Succès!',
+          text: 'Invitation refusée avec succès!',
+        });
+        this.loadPendingInvitations();
+      },
+      error: (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erreur!',
+          text: error.message || 'Échec du refus de l\'invitation.',
+        });
+      },
     });
-}
+  }
 
   inviteUser(projetId: number | undefined) {
     if (!projetId) {
@@ -367,9 +407,10 @@ declineInvitation(projetId: number | undefined) {
                 Swal.fire({
                   icon: 'success',
                   title: 'Succès!',
-                  text: 'Invitation envoyée avec succès!',
+                  text: 'Invitation envoyée avec succès! Le collaborateur sera notifié.',
                 });
                 this.loadProjects();
+                this.loadPendingInvitations();
               },
               error: (error) => {
                 Swal.fire({
@@ -397,24 +438,38 @@ declineInvitation(projetId: number | undefined) {
   }
 
   getFounderEmail(projectId: number | undefined): string {
-    return projectId && this.projetContacts[projectId]?.founder ? this.projetContacts[projectId].founder.toString() : 'N/A';
+    if (!projectId || !this.projetContacts[projectId]?.founder) return '';
+    const founder = this.projetContacts[projectId].founder;
+    return `${founder.firstName || ''} ${founder.lastName || ''} (${founder.email || ''})`.trim();
   }
 
   getEntrepreneursEmails(projectId: number | undefined): string {
-    if (!projectId) return 'N/A';
-    const entrepreneurs = this.projetContacts[projectId]?.entrepreneurs;
-    return entrepreneurs?.length ? entrepreneurs.join(', ') : 'N/A';
+    if (!projectId || !this.projetContacts[projectId]?.entrepreneurs?.length) return '';
+    return this.projetContacts[projectId].entrepreneurs
+      .map(u => `${u.firstName || ''} ${u.lastName || ''} (${u.email || ''})`.trim())
+      .join(', ');
   }
 
   getCoachesEmails(projectId: number | undefined): string {
-    if (!projectId) return 'N/A';
-    const coaches = this.projetContacts[projectId]?.coaches;
-    return coaches?.length ? coaches.join(', ') : 'N/A';
+    if (!projectId || !this.projetContacts[projectId]?.coaches?.length) return '';
+    return this.projetContacts[projectId].coaches
+      .map(u => `${u.firstName || ''} ${u.lastName || ''} (${u.email || ''})`.trim())
+      .join(', ');
   }
 
   getInvestorsEmails(projectId: number | undefined): string {
-    if (!projectId) return 'N/A';
-    const investors = this.projetContacts[projectId]?.investors;
-    return investors?.length ? investors.join(', ') : 'N/A';
+    if (!projectId || !this.projetContacts[projectId]?.investors?.length) return '';
+    return this.projetContacts[projectId].investors
+      .map(u => `${u.firstName || ''} ${u.lastName || ''} (${u.email || ''})`.trim())
+      .join(', ');
+  }
+
+  getUserName(user: User | null): string {
+    if (!user) return '';
+    return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email.split('@')[0];
+  }
+
+  navigateToCreateProject() {
+    this.router.navigate(['/addprojet']);
   }
 }

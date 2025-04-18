@@ -4,11 +4,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import team.project.redboost.entities.Role;
 import team.project.redboost.entities.User;
 import team.project.redboost.repositories.UserRepository;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,10 +47,6 @@ public class UserService { // No need to implement an interface
     }
 
 
-
-
-
-
     public String generatePasswordResetToken(User user) {
         String token = UUID.randomUUID().toString();
         user.setResetToken(token);
@@ -63,6 +61,7 @@ public class UserService { // No need to implement an interface
             super(message);
         }
     }
+
     public User findByResetToken(String token) throws InvalidTokenException {
         Optional<User> userOptional = userRepository.findByResetToken(token);
 
@@ -88,8 +87,6 @@ public class UserService { // No need to implement an interface
 
 
 
-
-
     @Autowired
     private CloudinaryService cloudinaryService;
 
@@ -104,5 +101,7 @@ public class UserService { // No need to implement an interface
         user.setProfilePictureUrl(imageUrl);
         userRepository.save(user);
     }
-
+    public List<User> getUsersByRoles(List<Role> roles) {
+        return userRepository.findByRoleIn(roles);
+    }
 }

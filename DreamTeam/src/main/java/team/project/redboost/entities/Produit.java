@@ -1,9 +1,6 @@
 package team.project.redboost.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +26,7 @@ public class Produit {
     private int ventes;
     private double poids;
     private String categorie;
-    private LocalDate dateExpiration; // Changed to LocalDate
-    private String image;
+    private LocalDate dateExpiration;
+    @Lob
+    private String image; // Will store base64 encoded string
 }

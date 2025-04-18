@@ -12,17 +12,18 @@ import { CommonModule } from '@angular/common'; // Required for ngClass and *ngF
         <div class="hero-text">
           <div class="hero-badge" style="text-align: left; margin-left: 0">Welcome to Reboost</div>
           <h1 class="hero-title" style="text-align: left">
-            Boost Your
+            Connectez-vous,
             <span class="highlight">{{ businessWord }}</span>
           </h1>
           <p class="hero-description">
-            Your All-in-One Platform for Efficient Program Management,
+            La plateforme qui révolutionne le lien entre entrepreneurs et coachs :
             <br />
-            Startup Support, and Seamless Communication
+            digitalisation fluide, suivi simplifié, résultats amplifiés.
+
           </p>
           <div class="cta-group">
             <button class="cta-button primary">
-              Get Started Today
+              Commencez dès aujourd'hui
               <i class="fi-arrow-right button-arrow"></i>
             </button>
           </div>
@@ -115,7 +116,7 @@ import { CommonModule } from '@angular/common'; // Required for ngClass and *ngF
     }
 
     .hero-title {
-      font-size: 60px;
+      font-size: 40px;
       line-height: 1.1;
       color: #1a1a1a;
       margin-bottom: 1.5rem;
@@ -394,7 +395,7 @@ import { CommonModule } from '@angular/common'; // Required for ngClass and *ngF
 export class HeroWidget implements OnInit, OnDestroy {
   currentImage: number = 0;
   isAnimating: boolean = false;
-  businessWord: string = 'Business';
+  businessWord: string = 'Progressez.';
 
   images: string[] = [
     'assets/images/comm.jpeg',
@@ -407,7 +408,7 @@ export class HeroWidget implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.imageInterval = setInterval(() => this.nextImage(), 5000);
-    const words = [' Business', ' Projet', ' Service', ' Solution'];
+    const words = [' Progressez.', ' Réussissez.'];
     let index = 0;
     this.wordInterval = setInterval(() => {
       index = (index + 1) % words.length;

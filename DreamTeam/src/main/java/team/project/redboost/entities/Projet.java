@@ -20,6 +20,7 @@ import java.util.List;
 @Entity
 @Getter
 @Setter
+@Table
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)

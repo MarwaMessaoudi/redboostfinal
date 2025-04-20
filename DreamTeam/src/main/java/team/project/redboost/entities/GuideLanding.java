@@ -8,6 +8,7 @@ import lombok.Setter;
 @Entity
 @Getter
 @Setter
+@Table
 public class GuideLanding {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -17,6 +17,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Table
 public class Reclamation {
 
     @Id

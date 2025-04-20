@@ -13,6 +13,7 @@ import team.project.redboost.entities.ProgramStatus;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table
 public class Program {
 
     @Id

@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Table
 public class Produit {
 
     @Id

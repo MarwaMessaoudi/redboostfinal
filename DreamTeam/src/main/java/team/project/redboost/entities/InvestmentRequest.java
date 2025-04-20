@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Setter
 @Getter
 @Entity
+@Table
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class InvestmentRequest {
     @Id

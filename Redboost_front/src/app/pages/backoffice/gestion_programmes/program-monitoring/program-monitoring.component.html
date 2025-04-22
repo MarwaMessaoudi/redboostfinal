@@ -1,0 +1,224 @@
+<!-- program-monitoring.component.html -->
+<div class="program-management-container">
+    <div class="header">
+        <h1>Gestion des programmes</h1>
+        <button class="add-btn" (click)="openAddProgramForm()"><i class="fas fa-plus"></i> Ajouter un programme</button>
+    </div>
+
+    <div class="filters">
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Rechercher un programme" (input)="searchPrograms($event)" />
+        </div>
+
+        <div class="filter-options">
+            <div class="filter-group">
+                <label>Statut :</label>
+                <select (change)="filterByStatus($event)">
+                    <option value="all">Tous</option>
+                    <option value="ACTIVE">Actif</option>
+                    <option value="ENATTENTE">En attente</option>
+                    <option value="TERMINE">Terminé</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Date :</label>
+                <select (change)="filterByDate($event)">
+                    <option value="all">Toutes</option>
+                    <option value="upcoming">Prochains</option>
+                    <option value="recent">Récents</option>
+                    <option value="distant">Lointains</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="programs-grid">
+        <div class="program-card" *ngFor="let program of filteredPrograms">
+            <div class="card-header">
+                <img [src]="program.logoUrl" alt="{{ program.name }}" />
+                <span class="status-badge" [ngClass]="program.status?.toLowerCase()">
+                    {{ getStatusLabel(program.status) }}
+                </span>
+            </div>
+
+            <div class="card-content">
+                <h3>{{ program.name }}</h3>
+                <p class="description">{{ program.description }}</p>
+                <div class="info-row">
+                    <div class="info-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>{{ program.startDate | date: 'dd/MM/yyyy' }} - {{ program.endDate | date: 'dd/MM/yyyy' }}</span>
+                    </div>
+                </div>
+                <div class="lead-info">
+                    <i class="fas fa-user-tie"></i>
+                    <span>{{ program.programLead?.firstName }} {{ program.programLead?.lastName }}</span>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button class="action-btn edit-btn" (click)="openEditProgramForm(program)">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn delete-btn" (click)="deleteProgram(program.id)">
+                    <i class="fas fa-trash"></i>
+                </button>
+                <button class="action-btn view-btn" (click)="viewProgram(program.id)">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="no-results" *ngIf="filteredPrograms.length === 0">
+        <i class="fas fa-search"></i>
+        <p>Aucun programme ne correspond à votre recherche</p>
+    </div>
+
+    <div class="loading-spinner" *ngIf="loading">
+        <div class="spinner"></div>
+        <p>Chargement des programmes...</p>
+    </div>
+
+    <!-- Modal d’ajout -->
+    <div *ngIf="showAddProgramForm" class="modal-overlay">
+        <div class="modal-box">
+            <button class="close-btn" (click)="closeAddProgramForm()" aria-label="Fermer">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <h2 class="modal-title">Ajouter un programme</h2>
+
+            <div *ngIf="showRequiredAlert" class="alert error"><i class="fas fa-exclamation-circle"></i> Tous les champs sont obligatoires !</div>
+
+            <form [formGroup]="programForm" (ngSubmit)="addProgram()" enctype="multipart/form-data" class="app-task-activity-form">
+                <div class="form-field">
+                    <label>Logo :</label>
+                    <input type="file" (change)="onFileSelected($event)" />
+                    <small class="error-msg" *ngIf="isFieldInvalid('logo')">Le logo est obligatoire</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Nom du programme :</label>
+                    <input type="text" formControlName="name" />
+                    <small class="error-msg" *ngIf="isFieldInvalid('name')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Description :</label>
+                    <textarea formControlName="description"></textarea>
+                    <small class="error-msg" *ngIf="isFieldInvalid('description')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Date de début :</label>
+                    <input type="date" formControlName="startDate" />
+                    <small class="error-msg" *ngIf="isFieldInvalid('startDate')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Date de fin :</label>
+                    <input type="date" formControlName="endDate" [min]="minEndDate" />
+                    <small class="error-msg" *ngIf="isFieldInvalid('endDate')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Budget :</label>
+                    <input type="number" formControlName="budget" />
+                    <small class="error-msg" *ngIf="isFieldInvalid('budget')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Leader :</label>
+                    <select formControlName="programLeadId">
+                        <option value="">-- Sélectionner --</option>
+                        <option *ngFor="let user of users" [value]="user.id">{{ user.firstName }} {{ user.lastName }}</option>
+                    </select>
+                    <small class="error-msg" *ngIf="isFieldInvalid('programLeadId')">Champ requis</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Ajouter</button>
+                    <button type="button" class="btn-secondary" (click)="closeAddProgramForm()">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal d’édition -->
+    <div *ngIf="showEditProgramForm" class="modal-overlay">
+        <div class="modal-box">
+            <button class="close-btn" (click)="closeEditProgramForm()" aria-label="Fermer">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <h2 class="modal-title">Modifier un programme</h2>
+
+            <div *ngIf="showRequiredAlert" class="alert error"><i class="fas fa-exclamation-circle"></i> Tous les champs sont obligatoires !</div>
+
+            <form [formGroup]="editProgramForm" (ngSubmit)="updateProgram()" enctype="multipart/form-data" class="app-task-activity-form">
+                <div class="form-field">
+                    <label>Logo :</label>
+                    <input type="file" (change)="onEditFileSelected($event)" />
+                    <small class="current-logo" *ngIf="editProgramForm.get('logoUrl')?.value">Logo actuel : {{ editProgramForm.get('logoUrl')?.value }}</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Nom du programme :</label>
+                    <input type="text" formControlName="name" />
+                    <small class="error-msg" *ngIf="isEditFieldInvalid('name')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Description :</label>
+                    <textarea formControlName="description"></textarea>
+                    <small class="error-msg" *ngIf="isEditFieldInvalid('description')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Date de début :</label>
+                    <input type="date" formControlName="startDate" />
+                    <small class="error-msg" *ngIf="isEditFieldInvalid('startDate')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Date de fin :</label>
+                    <input type="date" formControlName="endDate" [min]="minEndDate" />
+                    <small class="error-msg" *ngIf="isEditFieldInvalid('endDate')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Budget :</label>
+                    <input type="number" formControlName="budget" />
+                    <small class="error-msg" *ngIf="isEditFieldInvalid('budget')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Statut :</label>
+                    <select formControlName="status">
+                        <option value="ACTIVE">Actif</option>
+                        <option value="ENATTENTE">En attente</option>
+                        <option value="TERMINE">Terminé</option>
+                    </select>
+                    <small class="error-msg" *ngIf="isEditFieldInvalid('status')">Champ requis</small>
+                </div>
+
+                <div class="form-field">
+                    <label>Leader :</label>
+                    <select formControlName="programLeadId">
+                        <option value="">-- Sélectionner --</option>
+                        <option *ngFor="let user of users" [value]="user.id">{{ user.firstName }} {{ user.lastName }}</option>
+                    </select>
+                    <small class="error-msg" *ngIf="isEditFieldInvalid('programLeadId')">Champ requis</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">Mettre à jour</button>
+                    <button type="button" class="btn-secondary" (click)="closeEditProgramForm()">Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

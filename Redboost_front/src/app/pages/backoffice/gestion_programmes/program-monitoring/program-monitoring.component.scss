@@ -1,0 +1,535 @@
+$primary-color: #4a6cf7;
+$secondary-color: #6c757d;
+$success-color: #28a745;
+$warning-color: #ffc107;
+$danger-color: #dc3545;
+$light-color: #f8f9fa;
+$dark-color: #343a40;
+$border-radius: 12px;
+$box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+$transition: all 0.3s ease;
+
+// Base styles
+.program-management-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+    font-family: 'Poppins', sans-serif;
+    color: $dark-color;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+
+    h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin: 0;
+    }
+}
+
+.add-btn {
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: $border-radius;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: $transition;
+
+    &:hover {
+        background-color: darken(#245c67, 10%);
+        transform: translateY(-2px);
+    }
+
+    i {
+        font-size: 1rem;
+    }
+}
+
+// Filters
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+
+    @media (max-width: 768px) {
+        flex-direction: column;
+    }
+}
+
+.search-bar {
+    flex: 1;
+    position: relative;
+
+    i {
+        position: absolute;
+        top: 50%;
+        left: 1rem;
+        transform: translateY(-50%);
+        color: $secondary-color;
+    }
+
+    input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.5rem;
+        border-radius: $border-radius;
+        border: 1px solid #ddd;
+        font-size: 1rem;
+        transition: $transition;
+
+        &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px rgba($primary-color, 0.25);
+        }
+    }
+}
+
+.filter-options {
+    display: flex;
+    gap: 1rem;
+
+    @media (max-width: 576px) {
+        flex-direction: column;
+        width: 100%;
+    }
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    label {
+        font-weight: 500;
+        white-space: nowrap;
+    }
+
+    select {
+        padding: 0.75rem 1rem;
+        border-radius: $border-radius;
+        border: 1px solid #ddd;
+        background-color: white;
+        font-size: 1rem;
+        transition: $transition;
+        cursor: pointer;
+
+        &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px rgba($primary-color, 0.25);
+        }
+    }
+}
+
+// Programs grid
+.programs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+
+    @media (max-width: 576px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.program-card {
+    background-color: white;
+    border-radius: $border-radius;
+    box-shadow: $box-shadow;
+    overflow: hidden;
+    transition: $transition;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.15);
+    }
+}
+
+.card-header {
+    position: relative;
+    height: 160px;
+    background-color: white; // Fond uniforme pour toutes les images
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+
+    img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
+        transition: $transition;
+        border-radius: 8px;
+    }
+
+    .status-badge {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+
+        &.active {
+            background-color: $success-color;
+            color: white;
+        }
+
+        &.enattente {
+            background-color: $warning-color;
+            color: $dark-color;
+        }
+
+        &.termine {
+            background-color: $danger-color;
+            color: white;
+        }
+    }
+}
+
+.card-content {
+    flex-grow: 1;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+
+    h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    .description {
+        margin: 0;
+        color: $primary-color;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+}
+
+.info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+
+    i {
+        color: $primary-color;
+    }
+}
+
+.lead-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+
+    i {
+        color: $primary-color;
+    }
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+.action-btn {
+    background-color: transparent;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: $transition;
+
+    &.edit-btn {
+        color: $primary-color;
+
+        &:hover {
+            background-color: rgba($primary-color, 0.1);
+        }
+    }
+
+    &.delete-btn {
+        color: $danger-color;
+
+        &:hover {
+            background-color: rgba($danger-color, 0.1);
+        }
+    }
+}
+
+// No results message
+.no-results {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: $secondary-color;
+
+    i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    p {
+        font-size: 1.2rem;
+    }
+}
+
+// Loading spinner
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid $primary-color;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1rem;
+    }
+
+    p {
+        color: $secondary-color;
+        font-size: 1rem;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+}
+
+/* Variables */
+:root {
+    --form-bg: #f8f9fa;
+    --form-card: #ffffff;
+    --form-border: #e0e0e0;
+    --form-accent: #5e35b1;
+    --form-accent-text: #fff;
+    --form-label: #5f6368;
+    --form-error: #d32f2f;
+    --form-font: 'Poppins', sans-serif;
+    --form-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--form-font);
+    padding: 1rem;
+}
+
+.modal-box {
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: var(--form-shadow);
+    max-width: 650px;
+    width: 100%;
+    padding: 2rem;
+    position: fixed;
+    z-index: 9999;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    max-height: 90vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--form-accent) transparent;
+}
+
+.modal-box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-box::-webkit-scrollbar-thumb {
+    background-color: var(--form-accent);
+    border-radius: 4px;
+}
+
+.modal-box::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: #888;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.close-btn:hover {
+    color: var(--form-error);
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: var(--form-label);
+}
+
+.alert.error {
+    background-color: rgba(211, 47, 47, 0.1);
+    color: var(--form-error);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 14px;
+    margin-bottom: 1rem;
+}
+
+.app-task-activity-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.form-field label {
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--form-label);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    padding: 12px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--form-border);
+    background-color: #f1f3f4; // AjoutÃ© pour fond gris clair
+    font-size: 14px;
+    font-family: var(--form-font);
+    color: #333;
+    transition:
+        border-color 0.3s,
+        background-color 0.3s;
+}
+
+.form-field textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-field .error-msg {
+    font-size: 12px;
+    color: var(--form-error);
+    margin: 0;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.form-actions .btn-primary {
+    background-color: var(--form-accent);
+    color: var(--form-accent-text);
+    padding: 10px 20px;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.form-actions .btn-primary:hover {
+    background-color: #dc3545;
+}
+
+.form-actions .btn-primary:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.form-actions .btn-secondary {
+    background-color: transparent;
+    color: var(--form-label);
+    border: 1px solid var(--form-label);
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.form-actions .btn-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 768px) {
+    .modal-box {
+        padding: 1rem;
+        border-radius: 10px;
+    }
+
+    .modal-title {
+        font-size: 1.25rem;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

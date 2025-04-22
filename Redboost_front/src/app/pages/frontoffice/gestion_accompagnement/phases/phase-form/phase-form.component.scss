@@ -1,0 +1,98 @@
+.app-phase-form-my-unique-phase-form-container {
+    max-width: 600px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.app-phase-form-mat-dialog-title {
+    font-size: 24px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.app-phase-form-mat-dialog-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: hidden; /* Prevent horizontal scrollbar */
+    box-sizing: border-box;
+}
+
+.app-phase-form-phase-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.app-phase-form-form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+}
+
+.app-phase-form-mat-form-field {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.app-phase-form-full-width {
+    width: 100%;
+}
+
+.app-phase-form-mat-input,
+.app-phase-form-mat-textarea {
+    font-size: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.app-phase-form-mat-label {
+    font-weight: 500;
+    color: #555;
+}
+
+.app-phase-form-mat-hint {
+    font-size: 12px;
+    color: #888;
+}
+
+.app-phase-form-mat-error {
+    font-size: 12px;
+    color: #d32f2f;
+}
+
+.app-phase-form-date-range {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    flex-wrap: nowrap;
+}
+
+.app-phase-form-date-range .app-phase-form-mat-form-field {
+    flex: 1;
+    min-width: 0; /* Prevent overflow in flex container */
+}
+
+.app-phase-form-form-actions {
+    margin-top: 20px;
+    width: 100%;
+}
+
+.app-phase-form-mat-button {
+    color: #666;
+    font-weight: 500;
+}
+
+.app-phase-form-mat-raised-button {
+    background-color: #1976d2;
+    color: #fff;
+    font-weight: 500;
+    padding: 8px 16px;
+}
+
+.app-phase-form-mat-raised-button:disabled {
+    background-color: #ccc;
+    color: #999;
+}

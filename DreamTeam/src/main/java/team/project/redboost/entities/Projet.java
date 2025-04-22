@@ -1,9 +1,6 @@
 package team.project.redboost.entities;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
@@ -86,6 +83,7 @@ public class Projet {
     private List<User> entrepreneurs = new ArrayList<>();
 
     @ManyToMany
+    @JsonBackReference
     @JoinTable(
             name = "projet_coach",
             joinColumns = @JoinColumn(name = "projet_id"),

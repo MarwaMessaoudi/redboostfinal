@@ -1,0 +1,53 @@
+<div class="app-phase-form-my-unique-phase-form-container" scope="phase-form-styles">
+    <h1 mat-dialog-title class="app-phase-form-mat-dialog-title">
+        {{ data.isEdit ? 'Modifier la Phase' : 'Créer une Nouvelle Phase' }}
+    </h1>
+
+    <div mat-dialog-content class="app-phase-form-mat-dialog-content">
+        <form [formGroup]="phaseForm" (ngSubmit)="onSubmit()" class="app-phase-form-phase-form">
+            <div class="app-phase-form-form-container">
+                <mat-form-field appearance="outline" class="app-phase-form-mat-form-field app-phase-form-full-width">
+                    <mat-label class="app-phase-form-mat-label">Nom de la Phase</mat-label>
+                    <input matInput formControlName="phaseName" placeholder="Entrez le nom de la phase" required class="app-phase-form-mat-input" />
+                    <mat-hint class="app-phase-form-mat-hint">Un nom descriptif pour la phase</mat-hint>
+                    <mat-error *ngIf="f['phaseName']?.hasError('required')" class="app-phase-form-mat-error">Le nom de la phase est obligatoire</mat-error>
+                    <mat-error *ngIf="f['phaseName']?.hasError('maxlength')" class="app-phase-form-mat-error">La longueur maximale est de 100 caractères</mat-error>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="app-phase-form-mat-form-field app-phase-form-full-width">
+                    <mat-label class="app-phase-form-mat-label">Description</mat-label>
+                    <textarea matInput formControlName="description" rows="3" placeholder="Entrez une description" class="app-phase-form-mat-textarea"></textarea>
+                    <mat-hint class="app-phase-form-mat-hint">Description optionnelle de la phase</mat-hint>
+                </mat-form-field>
+
+                <div class="app-phase-form-date-range">
+                    <mat-form-field appearance="outline" class="app-phase-form-mat-form-field">
+                        <mat-label class="app-phase-form-mat-label">Date de Début</mat-label>
+                        <input matInput [matDatepicker]="startPicker" formControlName="startDate" [min]="minDate" (dateChange)="startDateChanged($event)" required class="app-phase-form-mat-input" />
+                        <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+                        <mat-datepicker #startPicker></mat-datepicker>
+                        <mat-hint class="app-phase-form-mat-hint">La date de début prévue de la phase</mat-hint>
+                        <mat-error *ngIf="f['startDate']?.hasError('required')" class="app-phase-form-mat-error">La date de début est obligatoire</mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline" class="app-phase-form-mat-form-field">
+                        <mat-label class="app-phase-form-mat-label">Date de Fin</mat-label>
+                        <input matInput [matDatepicker]="endPicker" formControlName="endDate" [min]="minStartDate" required class="app-phase-form-mat-input" />
+                        <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+                        <mat-datepicker #endPicker></mat-datepicker>
+                        <mat-hint class="app-phase-form-mat-hint">La date de fin prévue de la phase</mat-hint>
+                        <mat-error *ngIf="f['endDate']?.hasError('required')" class="app-phase-form-mat-error">La date de fin est obligatoire</mat-error>
+                        <mat-error *ngIf="phaseForm.hasError('dateRangeInvalid')" class="app-phase-form-mat-error">La date de fin doit être postérieure à la date de début</mat-error>
+                    </mat-form-field>
+                </div>
+            </div>
+
+            <mat-dialog-actions align="end" class="app-phase-form-form-actions">
+                <button mat-button (click)="onCancel()" class="app-phase-form-mat-button">Annuler</button>
+                <button mat-raised-button color="primary" type="submit" [disabled]="phaseForm.invalid || submitting" class="app-phase-form-mat-raised-button">
+                    {{ data.isEdit ? 'Mettre à jour' : 'Créer' }}
+                </button>
+            </mat-dialog-actions>
+        </form>
+    </div>
+</div>

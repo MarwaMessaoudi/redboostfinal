@@ -22,4 +22,12 @@ public class CloudinaryService {
         // Return the URL of the uploaded image
         return (String) uploadResult.get("url");
     }
+    public void deleteImage(String publicId) throws IOException {
+        try {
+            // Delete the image from Cloudinary using the public ID
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+        } catch (Exception e) {
+            throw new IOException("Erreur lors de la suppression de l'image avec l'ID public : " + publicId, e);
+        }
+    }
 }

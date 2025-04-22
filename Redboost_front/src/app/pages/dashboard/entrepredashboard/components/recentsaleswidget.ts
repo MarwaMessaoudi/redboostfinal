@@ -3,8 +3,7 @@ import { RippleModule } from 'primeng/ripple';
 import { TableModule } from 'primeng/table';
 import { ButtonModule } from 'primeng/button';
 import { CommonModule } from '@angular/common';
-import { Product, ProductService } from '../../../service/product.service';
-
+import { Product, ProductService } from '../../../backoffice/service/product.service';
 @Component({
     standalone: true,
     selector: 'app-recent-sales-widget',

@@ -36,14 +36,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
-                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/Auth/**").permitAll()
-                        .requestMatchers("/api/rendezvous/add", "/api/rendezvous/all", "/api/rendezvous/accepted").permitAll()
-                        .requestMatchers("/api/v1/coachlist/**").permitAll()
-                        .requestMatchers("/api/produits/**").permitAll()//
                         // Protected endpoints
-                        .requestMatchers("/api/rendezvous/update-status/**").authenticated()  // Require auth for Google Calendar
-                        .anyRequest().permitAll()  // All other endpoints require authentication
+                        .anyRequest().authenticated()  // All other endpoints require authentication
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2Login(oauth2 -> oauth2
@@ -61,7 +56,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200","http://localhost:8089"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200","http://localhost:8085"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);

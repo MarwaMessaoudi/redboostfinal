@@ -8,336 +8,323 @@ import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 
 @Component({
-  selector: 'app-menu',
-  standalone: true,
-  imports: [CommonModule, AppMenuitem, RouterModule],
-  template: `
-    <ul class="layout-menu">
-      <ng-container *ngFor="let item of model; let i = index">
-        <li app-menuitem *ngIf="!item.separator" [item]="item" [index]="i" [root]="true"></li>
-        <li *ngIf="item.separator" class="menu-separator"></li>
-      </ng-container>
-    </ul>
-  `,
+    selector: 'app-menu',
+    standalone: true,
+    imports: [CommonModule, AppMenuitem, RouterModule],
+    template: `
+        <ul class="layout-menu">
+            <ng-container *ngFor="let item of model; let i = index">
+                <li app-menuitem *ngIf="!item.separator" [item]="item" [index]="i" [root]="true"></li>
+                <li *ngIf="item.separator" class="menu-separator"></li>
+            </ng-container>
+        </ul>
+    `
 })
 export class AppMenu implements OnInit {
-  model: MenuItem[] = [];
+    model: MenuItem[] = [];
 
-  constructor(
-    private http: HttpClient,
-    private router: Router,
-    private messageService: MessageService
-  ) {}
+    constructor(
+        private http: HttpClient,
+        private router: Router,
+        private messageService: MessageService
+    ) {}
 
-  ngOnInit(): void {
-    this.fetchUserRoleAndSetMenu();
-  }
-
-  // Fetch user role from the backend and set the menu
-  private fetchUserRoleAndSetMenu(): void {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No authentication token found. Please log in.',
-      });
-      this.router.navigate(['/signin']);
-      return;
+    ngOnInit(): void {
+        this.fetchUserRoleAndSetMenu();
     }
 
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${token}`,
-    });
+    private fetchUserRoleAndSetMenu(): void {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No authentication token found. Please log in.'
+            });
+            this.router.navigate(['/signin']);
+            return;
+        }
 
-    this.http.get('http://localhost:8085/users/profile', { headers }).subscribe({
-      next: (response: any) => {
-        const userRole = response.role; // Assuming 'role' is returned as 'COACH', 'ENTREPRENEUR', or 'INVESTOR'
-        this.setMenuBasedOnRole(userRole);
-      },
-      error: (error) => {
-        console.error('Failed to fetch user profile:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to fetch user role',
+        const headers = new HttpHeaders({
+            Authorization: `Bearer ${token}`
         });
-        this.router.navigate(['/signin']);
-      },
-    });
-  }
 
-  // Common Profile Menu Item
-  private getProfileMenuItem(): MenuItem {
-    return [
-      {
-        label: 'Profile',
-        items: [
-          {
+        this.http.get('http://localhost:8085/users/profile', { headers }).subscribe({
+            next: (response: any) => {
+                const userRole = response.role;
+                this.setMenuBasedOnRole(userRole);
+            },
+            error: (error) => {
+                console.error('Failed to fetch user profile:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'Failed to fetch user role'
+                });
+                this.router.navigate(['/signin']);
+            }
+        });
+    }
+
+    private getProfileMenuItem(): MenuItem {
+        return {
             label: 'Profile',
-            icon: 'pi pi-fw pi-user',
-            routerLink: ['/profile']
-          }
-        ]
-      }
-
-    ];
-  }
-
-  // Set the menu based on the user's role and append Profile
-  private setMenuBasedOnRole(role: string): void {
-    let roleMenu: MenuItem[] = [];
-    switch (role) {
-      case 'ENTREPRENEUR':
-        roleMenu = this.getEntrepreneurMenu();
-        break;
-      case 'COACH':
-        roleMenu = this.getCoachMenu();
-        break;
-      case 'INVESTOR':
-        roleMenu = this.getInvestorMenu();
-        break;
-        case 'SUPERADMIN':
-          roleMenu = this.getSuperAdminMenu();
-          break;
-          case 'ADMIN':
-            roleMenu = this.getAdminMenu();
-          break;
-
-          
-      default:
-        console.warn('Unknown role:', role);
-        roleMenu = []; // Empty menu or fallback
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Warning',
-          detail: 'Unknown user role detected',
-        });
+            items: [
+                {
+                    label: 'Profile',
+                    icon: 'pi pi-fw pi-user-edit', // Improved icon for profile editing
+                    routerLink: ['/profile']
+                }
+            ]
+        };
     }
-    // Append Profile item to all menus
-    this.model = [...roleMenu, this.getProfileMenuItem()];
-  }
 
-  
+    private setMenuBasedOnRole(role: string): void {
+        let roleMenu: MenuItem[] = [];
+        switch (role) {
+            case 'ENTREPRENEUR':
+                roleMenu = this.getEntrepreneurMenu();
+                break;
+            case 'COACH':
+                roleMenu = this.getCoachMenu();
+                break;
+            case 'INVESTOR':
+                roleMenu = this.getInvestorMenu();
+                break;
+            case 'SUPERADMIN':
+                roleMenu = this.getSuperAdminMenu();
+                break;
+            case 'ADMIN':
+                roleMenu = this.getAdminMenu();
+                break;
+            default:
+                console.warn('Unknown role:', role);
+                roleMenu = [];
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Warning',
+                    detail: 'Unknown user role detected'
+                });
+        }
+        this.model = [...roleMenu, this.getProfileMenuItem()];
+    }
 
-  
-  getSuperAdminMenu(): MenuItem[] {
+    private getSuperAdminMenu(): MenuItem[] {
+        return [
+            {
+                label: 'Home',
+                items: [
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                ]
+            },
+            {
+                label: 'Coach Requests',
+                items: [
+                    { label: 'Coach Requests', icon: 'pi pi-fw pi-users', routerLink: ['/all-coach-requests'] } // Users icon for requests
+                ]
+            },
+            {
+                label: 'Utilisateurs',
+                items: [
+                    { label: 'Tous les utilisateurs', icon: 'pi pi-fw pi-user', routerLink: ['/all-users'] } // User icon for users
+                ]
+            },
+            {
+                label: 'Manage Types',
+                items: [
+                    { label: 'Manage Types', icon: 'pi pi-fw pi-tags', routerLink: ['/staff-types'] } // Tags icon for types
+                ]
+            },
+            {
+                label: 'Filter Staff Data',
+                items: [
+                    { label: 'Filter Staff Data', icon: 'pi pi-fw pi-filter', routerLink: ['/staff-filter'] } // Filter icon retained
+                ]
+            },
+            {
+                label: 'Gestion de programmes',
+                items: [
+                    { label: 'Gestion de programmes', icon: 'pi pi-fw pi-folder', routerLink: ['/ProgramMonitoring'] } // Folder icon for programs
+                ]
+            }
+        ];
+    }
 
-return [
- { label: 'Home',
-  items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }],
- },
+    private getAdminMenu(): MenuItem[] {
+        return [
+            {
+                label: 'Home',
+                items: [
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                ]
+            },
 
- { label: 'coach requests',
-  items: [{ label: 'Coach Requests', icon: 'pi pi-fw pi-home', routerLink: ['/all-coach-requests'] }],
- }
-,
- { label: 'utulisateurs',
-  items: [{ label: 'tous les utulisateurs ', icon: 'pi pi-fw pi-user', routerLink: ['/all-users'] }],
- },
- { label: 'Manage Types',
-  items: [{ label: 'Manage Types ', icon: 'pi pi-fw pi-database', routerLink: ['/staff-types'] }],
- },
- { label: 'Filter Staff Data',
-  items: [{ label: 'Filter Staff Data ', icon: 'pi pi-fw pi-filter', routerLink: ['/staff-filter'] }],
- },
- { label: 'Gestion de programmes',
-  items: [{ label: 'Gestion de programmes', icon: 'pi pi-fw pi-home', routerLink: ['/ProgramMonitoring'] }],
- },
+            {
+                label: 'Gestion de programmes',
+                items: [
+                    { label: 'Gestion de programmes', icon: 'pi pi-fw pi-folder', routerLink: ['/ProgramMonitoring'] } // Folder icon for programs
+                ]
+            },
+            {
+                label: 'Reclamations',
+                items: [
+                    { label: 'All Reclamations', icon: 'pi pi-fw pi-file-excel', routerLink: ['/all-reclamations'] } // File-excel for reclamations
+                ]
+            },
+            {
+                label: 'Documents',
+                items: [
+                    { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // File icon for documents
+                ]
+            },
+            {
+                label: 'Ressources',
+                items: [
+                    { label: 'Toutes les ressources', icon: 'pi pi-fw pi-box', routerLink: ['/all-resourses'] } // Box icon for resources
+                ]
+            },
+            {
+                label: 'Clients',
+                items: [
+                    { label: 'Ajouter un client', icon: 'pi pi-fw pi-user-plus', routerLink: ['/customers'] } // User-plus for adding clients
+                ]
+            },
+            {
+                label: 'Services',
+                items: [
+                    { label: 'Ajouter un service', icon: 'pi pi-fw pi-cog', routerLink: ['/services'] } // Cog for services
+                ]
+            },
+            {
+                label: 'Factures / Devis',
+                items: [
+                    { label: 'Générer une facture / devis', icon: 'pi pi-fw pi-money-bill', routerLink: ['/inv'] } // Money-bill for invoices
+                ]
+            }
+        ];
+    }
 
-];
+    private getEntrepreneurMenu(): MenuItem[] {
+        return [
+            {
+                label: 'Home',
+                items: [
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                ]
+            },
+            {
+                label: 'Projets',
+                items: [
+                    { label: 'Projets', icon: 'pi pi-fw pi-briefcase', routerLink: ['/GetProjet'] } // Briefcase for projects
+                ]
+            },
+            {
+                label: 'Gestion Communication',
+                items: [
+                    { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Comments for communication
+                ]
+            },
+            {
+                label: 'Documents',
+                items: [
+                    { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // File icon for documents
+                ]
+            },
+            {
+                label: 'Rendez-vous',
+                items: [
+                    { label: 'Rendez-vous', icon: 'pi pi-fw pi-calendar-plus', routerLink: ['/appointments'] }, // Calendar-plus for appointments
+                    { label: 'My Meetings List', icon: 'pi pi-fw pi-calendar', routerLink: ['/meeting-list'] } // Calendar for meetings
+                ]
+            },
+            {
+                label: 'Mes Réclamations',
+                items: [
+                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // File-excel for reclamations
+                ]
+            },
+            {
+                label: 'Startup View',
+                items: [
+                    { label: 'My Requests', icon: 'pi pi-fw pi-briefcase', routerLink: ['/startup/v1'] } // Briefcase for startup requests
+                ]
+            }
+        ];
+    }
 
-}
+    private getCoachMenu(): MenuItem[] {
+        return [
+            {
+                label: 'Home',
+                items: [
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                ]
+            },
+            {
+                label: 'Rendez-vous',
+                items: [
+                    { label: 'Disponibilités', icon: 'pi pi-fw pi-calendar-plus', routerLink: ['/appointments/received'] } // Calendar-plus for availability
+                ]
+            },
+            {
+                label: 'Projets',
+                items: [
+                    { label: 'Projets', icon: 'pi pi-fw pi-briefcase', routerLink: ['/GetProjet'] } // Briefcase for projects
+                ]
+            },
+            {
+                label: 'Documents',
+                items: [
+                    { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // File icon for documents
+                ]
+            },
+            {
+                label: 'Mes Réclamations',
+                items: [
+                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // File-excel for reclamations
+                ]
+            },
+            {
+                label: 'Gestion Communication',
+                items: [
+                    { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Comments for communication
+                ]
+            }
+        ];
+    }
 
-
-
-   // Admin Menu
-   private getAdminMenu(): MenuItem[] {
-    return [
-      {
-        label: 'Home',
-        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }],
-      },
-      {
-        label: 'Reclamations',  // Changed the label for clarity
-        items: [
-          { label: 'All Reclamations', icon: 'pi pi-fw pi-file', routerLink: ['/all-reclamations'] },  // Link to admin reclamations
-        ],
-      },
-      
-      {
-        label: 'Documents',
-        items: [
-          { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
-        ],
-      },
-      { label: 'resourses',
-        items: [{ label: 'tous les resourses ', icon: 'pi pi-fw pi-user', routerLink: ['/all-resourses'] }],
-       },
-       {
-        label: 'Clients',
-        items: [{ label: 'Ajouter Un Client', icon: 'pi pi-fw pi-briefcase', routerLink: ['/customers'] }],
-      },
-      {
-        label: 'Services',
-        items: [{ label: 'Ajouter Un Service', icon: 'pi pi-fw pi-briefcase', routerLink: ['/services'] }],
-      },
-      {
-        label: 'Factures / Devis',
-        items: [{ label: 'Generer une Facture / Devis', icon: 'pi pi-fw pi-briefcase', routerLink: ['/inv'] }],
-      },
-    ];
-  }
-  // Entrepreneur Menu
-  private getEntrepreneurMenu(): MenuItem[] {
-    return [
-      {
-        label: 'Home',
-        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }],
-      },
-      {
-        label: 'Projet',
-        items: [
-         // { label: 'Projet', icon: 'pi pi-fw pi-home', routerLink: ['/addprojet'] },
-          { label: 'Projets', icon: 'pi pi-fw pi-home', routerLink: ['/GetProjet'] },
-          { label: 'MarketPlace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace'] },
-
-         // { label: 'produits', icon: 'pi pi-fw pi-home', routerLink: ['/ShowProd'] },
-         // { label: 'services', icon: 'pi pi-fw pi-home', routerLink: ['/ShowService'] }
-        ],
-      },
-      
-      {
-        label: 'Accompagnement',
-        items: [
-          { label: 'Accompagnement', icon: 'pi pi-fw pi-home', routerLink: ['/phases'] },
-        ],
-      },
-      {
-        label: 'Chat',
-        items: [
-          { label: 'chat', icon: 'pi pi-fw pi-home', routerLink: ['/chat'] },
-        ],
-      },
-      {
-        label: 'gestioncoom',
-        items: [
-          { label: 'communication', icon: 'pi pi-fw pi-home', routerLink: ['/gestion_comm'] },
-        ],
-      },
-      {
-        label: 'Documents',
-        items: [
-          { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
-        ],
-      },
-     
-      
-      {
-        label: 'Rendez-vous',
-        items: [
-          { label: 'Rendez-vous', icon: 'pi pi-fw pi-calendar', routerLink: ['/appointments'] },
-          { label: 'My Meetings List', icon: 'pi pi-fw pi-calendar', routerLink: ['/meeting-list'] },
-        ],
-      },
-      
-      {
-        label: 'Mes Reclamations',
-        items: [
-          { label: 'Reclamation', icon: 'pi pi-fw pi-file', routerLink: ['/messagerie-reclamation'] },
-        ],
-      },
-      {
-        label: 'Startup View',
-        items: [{ label: 'My Requests', icon: 'pi pi-fw pi-briefcase', routerLink: ['/startup/v1'] }],
-      },
-    ];
-  }
-
-  // Coach Menu
-  private getCoachMenu(): MenuItem[] {
-    return [
-      {
-        label: 'Home',
-        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }],
-      },
-      {
-        label: 'Rendez-vous',
-        items: [
-          { label: 'Disponibilités', icon: 'pi pi-fw pi-calendar', routerLink: ['/appointments/received'] },
-        ],
-      },
-      {
-        label: 'Accompagnements',
-        items: [
-          { label: 'Accompagnement', icon: 'pi pi-fw pi-home', routerLink: ['/phases'] },
-        ],
-      },
-      {
-        label: 'Projet',
-        items: [
-         // { label: 'Projet', icon: 'pi pi-fw pi-home', routerLink: ['/addprojet'] },
-          { label: 'Projets', icon: 'pi pi-fw pi-home', routerLink: ['/GetProjet'] },
-          { label: 'MarketPlace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace'] },
-
-         // { label: 'produits', icon: 'pi pi-fw pi-home', routerLink: ['/ShowProd'] },
-         // { label: 'services', icon: 'pi pi-fw pi-home', routerLink: ['/ShowService'] }
-        ],
-      },
-      {
-        label: 'Documents',
-        items: [
-          { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
-        ],
-      },
-      {
-        label: 'Mes Reclamations',
-        items: [
-          { label: 'Reclamation', icon: 'pi pi-fw pi-file', routerLink: ['/messagerie-reclamation'] },
-        ],
-      },
-      {
-        label: 'Chat',
-        items: [
-          { label: 'chat', icon: 'pi pi-fw pi-home', routerLink: ['/chat'] },
-        ],
-      },
-      {
-        label: 'gestioncoom',
-        items: [
-          { label: 'communication', icon: 'pi pi-fw pi-home', routerLink: ['/gestion_comm'] },
-        ],
-      },
-    ];
-  }
-
-  // Investor Menu
-  private getInvestorMenu(): MenuItem[] {
-    return [
-      {
-        label: 'Home',
-        items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }],
-      },
-      {
-        label: 'Marketplace',
-        items: [{ label: 'Marketplace', icon: 'pi pi-fw pi-home', routerLink: ['/marketplace'] }],
-      },
-      {
-        label: 'Startups',
-        items: [{ label: 'My Startups', icon: 'pi pi-fw pi-briefcase', routerLink: ['/investor/v1'] }],
-      },
-      {
-        label: 'Documents',
-        items: [
-          { label: 'Documents', icon: 'pi pi-fw pi-home', routerLink: ['/documents'] },
-        ],
-      },
-      {
-        label: 'Mes Reclamations',
-        items: [
-          { label: 'Reclamation', icon: 'pi pi-fw pi-file', routerLink: ['/messagerie-reclamation'] },
-        ],
-      },
-    ];
-  }
+    private getInvestorMenu(): MenuItem[] {
+        return [
+            {
+                label: 'Home',
+                items: [
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                ]
+            },
+            {
+                label: 'Marketplace',
+                items: [
+                    { label: 'Marketplace', icon: 'pi pi-fw pi-shopping-cart', routerLink: ['/marketplace'] } // Shopping-cart for marketplace
+                ]
+            },
+            {
+                label: 'Startups',
+                items: [
+                    { label: 'My Startups', icon: 'pi pi-fw pi-briefcase', routerLink: ['/investor/v1'] } // Briefcase for startups
+                ]
+            },
+            {
+                label: 'Documents',
+                items: [
+                    { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // File icon for documents
+                ]
+            },
+            {
+                label: 'Mes Réclamations',
+                items: [
+                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // File-excel for reclamations
+                ]
+            }
+        ];
+    }
 }

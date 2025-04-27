@@ -45,17 +45,20 @@ import { ProgramMonitoringComponent } from './app/pages/backoffice/gestion_progr
 import { ProgramDetailComponent } from './app/pages/backoffice/gestion_programmes/program-details/program-details.component';
 import { ShowProduitsComponent } from './app/pages/frontoffice/gestion_startup/Produit/show-produits/show-produits.component';
 import { ShowServicePComponent } from './app/pages/frontoffice/gestion_startup/ServiceP/show-service-p/show-service-p.component';
+import { EvaluationFormComponent } from './app/pages/frontoffice/evaluation-form/evaluation-form.component';
 
 export const pagesRoutes: Routes = [
     { path: 'addprojet', component: AddProjetComponent },
     { path: 'GetProjet', component: AfficheProjetComponent },
     { path: 'details-projet/:id', component: DetailsProjetComponent },
+    { path: 'details-projet/:id/ShowProd', component: ShowProduitsComponent },
+    { path: 'details-projet/:id/ShowService', component: ShowServicePComponent },
     { path: 'gestion-reclamation', component: GestionReclamationComponent },
     { path: 'marketplace', component: MarketplaceComponent },
     { path: 'appointments', component: AppointmentListComponent },
     { path: 'appointments/received', component: AppointmentsReceivedComponent },
     { path: 'profile', component: UserProfileComponent },
-    { path: 'documents', component: DocumentsComponent },
+    { path: 'projects/:projectId/documents', component: DocumentsComponent },
     { path: 'marketlanding', component: MarketLandingComponent },
     { path: 'chat', component: ChatComponent },
     { path: 'gestion_comm', component: GestionCommunicationComponent },
@@ -65,9 +68,7 @@ export const pagesRoutes: Routes = [
     { path: 'staff-types', component: StaffTypeListComponent },
     { path: 'staff-types/:id', component: StaffTypeDetailComponent },
     { path: 'staff-filter', component: StaffFilterComponent },
-
-    { path: 'ShowProd', component: ShowProduitsComponent },
-    { path: 'ShowService', component: ShowServicePComponent },
+    { path: 'evaluation', component: EvaluationFormComponent },
 
     { path: 'all-resourses', component: ResourcesLandingComponent },
 

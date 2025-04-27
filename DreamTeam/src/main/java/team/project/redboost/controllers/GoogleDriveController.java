@@ -1,189 +1,222 @@
 package team.project.redboost.controllers;
 
-import com.google.api.client.auth.oauth2.TokenResponse;
-import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
-// Suppression de l'import FileList et File ici car non directement utilisés dans le contrôleur après refactoring
-// import com.google.api.services.drive.model.FileList;
-// import com.google.api.services.drive.model.File;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import team.project.redboost.services.GoogleDriveService;
 
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-// Suppression de l'import ArrayList ici car getFolders retourne directement List<Map<...>>
-// import java.util.ArrayList;
-// Suppression de l'import HashMap ici car getFolders retourne directement List<Map<...>>
-// import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+/**
+ * REST controller for managing Google Drive operations such as creating folders,
+ * uploading files, and retrieving folder/file metadata.
+ */
 @RestController
 @RequestMapping("/api/drive")
 public class GoogleDriveController {
 
+    private final GoogleDriveService googleDriveService;
+
     @Autowired
-    private GoogleDriveService googleDriveService;
-
-    @Value("${spring.security.oauth2.client.registration.google.client-id}")
-    private String clientId;
-
-    @Value("${spring.security.oauth2.client.registration.google.client-secret}")
-    private String clientSecret;
-
-    // Step 1: Redirect the user to Google's OAuth2 consent screen
-    @GetMapping("/authorize")
-    public void authorize(@RequestParam Long userId, HttpServletResponse response, HttpSession session) throws IOException {
-        // Store userId in the session
-        session.setAttribute("userId", userId);
-
-        String authorizationUrl = "https://accounts.google.com/o/oauth2/auth?"
-                + "client_id=" + clientId + "&"
-                + "redirect_uri=http://localhost:8085/api/drive/callback&" // Assurez-vous que cette URI est enregistrée dans Google Cloud Console
-                + "response_type=code&"
-                + "scope=https://www.googleapis.com/auth/drive.file&" // drive.file permet de créer/modifier les fichiers créés par l'app
-                + "access_type=offline&" // Important pour obtenir un refresh token
-                + "prompt=consent"; // Force l'écran de consentement pour obtenir le refresh token à chaque fois (utile en dev)
-
-        response.sendRedirect(authorizationUrl);
+    public GoogleDriveController(GoogleDriveService googleDriveService) {
+        this.googleDriveService = googleDriveService;
     }
-
-    // GoogleDriveController.java
-
-    @GetMapping("/subfolders")
-    public List<Map<String, String>> getSubFolders(
-            @RequestParam String parentFolderId,
-            @RequestParam Long userId) throws IOException {
-
-        return googleDriveService.getSubFoldersList(parentFolderId, userId);
-    }
-
-    // Step 2: Handle the OAuth2 callback and store the refresh token
-    @GetMapping("/callback")
-    public String callback(@RequestParam String code, HttpSession session) throws IOException {
-        // Retrieve userId from the session
-        Long userId = (Long) session.getAttribute("userId");
-
-        if (userId == null) {
-            // Peut-être rediriger vers une page d'erreur ou retourner un message JSON
-            session.removeAttribute("userId"); // Nettoyer la session
-            return "Erreur: ID utilisateur non trouvé dans la session. Veuillez réessayer le processus d'autorisation.";
-            // throw new RuntimeException("User ID not found in session");
-        }
-        session.removeAttribute("userId"); // Nettoyer la session après récupération
-
-        try {
-            // Exchange the authorization code for an access token and refresh token
-            TokenResponse tokenResponse = new GoogleAuthorizationCodeTokenRequest(
-                    new NetHttpTransport(),
-                    JacksonFactory.getDefaultInstance(),
-                    "https://oauth2.googleapis.com/token",
-                    clientId,
-                    clientSecret,
-                    code,
-                    "http://localhost:8085/api/drive/callback") // Doit correspondre exactement à l'URI de redirection
-                    .execute();
-
-            String refreshToken = tokenResponse.getRefreshToken();
-            if (refreshToken == null || refreshToken.isEmpty()) {
-                return "Erreur: Aucun refresh token reçu de Google. Assurez-vous que 'access_type=offline' et 'prompt=consent' sont utilisés lors de l'autorisation, et que l'utilisateur n'a pas déjà autorisé l'application sans ces paramètres.";
-            }
-
-            // Store the refresh token in the database
-            googleDriveService.storeRefreshToken(userId, refreshToken);
-
-            // Vous pourriez rediriger l'utilisateur vers une page de succès de votre application frontend
-            return "Accès à Google Drive autorisé avec succès ! Vous pouvez fermer cet onglet.";
-
-        } catch (IOException e) {
-            System.err.println("Erreur lors de l'échange du code d'autorisation : " + e.getMessage());
-            e.printStackTrace();
-            return "Erreur lors de la communication avec Google pour obtenir le token.";
-        }
-    }
-
 
     /**
-     * Crée un dossier racine dans le Google Drive de l'utilisateur.
-     * @param folderName Nom du dossier racine.
-     * @param userId ID de l'utilisateur.
-     * @return ID du dossier créé.
-     * @throws IOException En cas d'erreur API ou réseau.
+     * Creates a new folder in Google Drive.
+     * @param folderName The name of the folder to create.
+     * @return The ID of the created folder.
+     * @throws IOException If an API or network error occurs.
      */
     @PostMapping("/create-folder")
-    public String createFolder(@RequestParam String folderName, @RequestParam Long userId) throws IOException {
-        // TODO: Ajouter une validation pour folderName (non vide, caractères autorisés ?)
-        if (folderName == null || folderName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Le nom du dossier ne peut pas être vide.");
+    public ResponseEntity<String> createFolder(@RequestParam("folderName") String folderName) throws IOException {
+        try {
+            String folderId = googleDriveService.createFolder(folderName);
+            return ResponseEntity.ok(folderId);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid input: " + e.getMessage());
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to create folder: " + e.getMessage());
         }
-        return googleDriveService.createFolder(folderName, userId);
     }
 
     /**
-     * Crée un sous-dossier dans un dossier parent spécifié.
-     * @param parentFolderId ID du dossier parent.
-     * @param subFolderName Nom du nouveau sous-dossier.
-     * @param userId ID de l'utilisateur.
-     * @return ID du sous-dossier créé.
-     * @throws IOException En cas d'erreur API ou réseau.
+     * Creates a subfolder in a specified parent folder.
+     * @param parentFolderId The ID of the parent folder.
+     * @param subFolderName The name of the subfolder to create.
+     * @return The ID of the created subfolder.
+     * @throws IOException If an API or network error occurs.
      */
-    @PostMapping("/create-subfolder") // Nouvel endpoint
-    public String createSubFolder(
-            @RequestParam String parentFolderId, // ID du dossier parent
-            @RequestParam String subFolderName,  // Nom du sous-dossier
-            @RequestParam Long userId) throws IOException {
-        // TODO: Ajouter des validations pour les paramètres
-        if (parentFolderId == null || parentFolderId.trim().isEmpty()) {
-            throw new IllegalArgumentException("L'ID du dossier parent ne peut pas être vide.");
+    @PostMapping("/create-subfolder")
+    public ResponseEntity<String> createSubFolder(
+            @RequestParam("parentFolderId") String parentFolderId,
+            @RequestParam("subFolderName") String subFolderName) throws IOException {
+        try {
+            String subFolderId = googleDriveService.createSubFolder(subFolderName, parentFolderId);
+            return ResponseEntity.ok(subFolderId);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid input: " + e.getMessage());
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to create subfolder: " + e.getMessage());
         }
-        if (subFolderName == null || subFolderName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Le nom du sous-dossier ne peut pas être vide.");
-        }
-        // Appelle la nouvelle méthode dans le service
-        return googleDriveService.createSubFolder(subFolderName, parentFolderId, userId);
     }
 
-
     /**
-     * Upload un fichier dans un dossier spécifique du Google Drive de l'utilisateur.
-     * @param folderId ID du dossier de destination.
-     * @param file Fichier multipart reçu de la requête.
-     * @param userId ID de l'utilisateur.
-     * @return ID du fichier créé sur Google Drive.
-     * @throws IOException En cas d'erreur d'upload ou d'API.
+     * Uploads a file to a specified folder in Google Drive.
+     * @param folderId The ID of the parent folder.
+     * @param file The file to upload.
+     * @param mimeType The MIME type of the file (optional, defaults to file's content type).
+     * @return The ID of the uploaded file.
+     * @throws IOException If an API or network error occurs.
      */
     @PostMapping("/upload-file")
-    public String uploadFile(@RequestParam String folderId, @RequestParam MultipartFile file, @RequestParam Long userId) throws IOException {
-        // TODO: Ajouter des validations pour les paramètres
-        if (folderId == null || folderId.trim().isEmpty()) {
-            throw new IllegalArgumentException("L'ID du dossier ne peut pas être vide.");
+    public ResponseEntity<String> uploadFile(
+            @RequestParam("folderId") String folderId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "mimeType", required = false) String mimeType) throws IOException {
+        try {
+            if (file == null || file.isEmpty()) {
+                return ResponseEntity.badRequest().body("File cannot be empty.");
+            }
+            String fileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unnamed_file";
+            // Use provided MIME type or fallback to file's content type
+            String effectiveMimeType = mimeType != null ? mimeType : file.getContentType();
+            if (effectiveMimeType == null) {
+                effectiveMimeType = "application/octet-stream"; // Fallback for unknown types
+            }
+            String fileId = googleDriveService.uploadFile(folderId, fileName, file.getInputStream(), effectiveMimeType);
+            return ResponseEntity.ok(fileId);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid input: " + e.getMessage());
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to upload file: " + e.getMessage());
         }
-        if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("Le fichier à uploader ne peut pas être vide.");
-        }
-        String originalFileName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "fichier_sans_nom";
-        return googleDriveService.uploadFile(folderId, originalFileName, file.getInputStream(), userId);
     }
 
     /**
-     * Récupère la liste des dossiers racines de l'utilisateur.
-     * @param userId ID de l'utilisateur.
-     * @return Liste des dossiers (ID et nom).
-     * @throws IOException En cas d'erreur API ou réseau.
+     * Retrieves the list of subfolders in a parent folder.
+     * @param parentFolderId The ID of the parent folder.
+     * @return A list of subfolder metadata (id, name, mimeType).
+     * @throws IOException If an API or network error occurs.
      */
-    @GetMapping("/folders")
-    public List<Map<String, String>> getFolders(@RequestParam Long userId) throws IOException {
-        // Note: Ceci ne liste que les dossiers racines.
-        // Pour lister les sous-dossiers d'un dossier spécifique,
-        // il faudrait une autre méthode (ou adapter celle-ci avec un paramètre optionnel parentFolderId)
-        // et modifier la query dans le service ('parentFolderId' in parents).
-        return googleDriveService.getFoldersList(userId);
+    @GetMapping("/subfolders")
+    public ResponseEntity<List<Map<String, String>>> getSubFolders(@RequestParam("parentFolderId") String parentFolderId) throws IOException {
+        try {
+            List<Map<String, String>> subFolders = googleDriveService.getSubFoldersList(parentFolderId);
+            return ResponseEntity.ok(subFolders);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 
-    // TODO: Ajouter la gestion des erreurs (par exemple avec @ExceptionHandler) pour retourner des réponses HTTP appropriées en cas d'erreur (400, 401, 404, 500...).
+    /**
+     * Retrieves the list of files in a folder.
+     * @param folderId The ID of the folder.
+     * @return A list of file metadata (id, name, mimeType).
+     * @throws IOException If an API or network error occurs.
+     */
+    @GetMapping("/files")
+    public ResponseEntity<List<Map<String, String>>> getFiles(@RequestParam("folderId") String folderId) throws IOException {
+        try {
+            List<Map<String, String>> files = googleDriveService.getFilesList(folderId);
+            return ResponseEntity.ok(files);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    /**
+     * Retrieves the permissions for a folder.
+     * @param folderId The ID of the folder.
+     * @return A list of permission metadata (id, email, role).
+     * @throws IOException If an API or network error occurs.
+     */
+    @GetMapping("/permissions")
+    public ResponseEntity<List<Map<String, String>>> getFolderPermissions(@RequestParam("folderId") String folderId) throws IOException {
+        try {
+            List<Map<String, String>> permissions = googleDriveService.getFolderPermissions(folderId).stream()
+                    .map(permission -> Map.of(
+                            "id", permission.getId(),
+                            "email", permission.getEmailAddress() != null ? permission.getEmailAddress() : "",
+                            "role", permission.getRole() != null ? permission.getRole() : ""))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(permissions);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    /**
+     * Shares a folder with a user by email.
+     * @param folderId The ID of the folder to share.
+     * @param email The email address of the user to share with.
+     * @param role The role to assign (e.g., "writer" or "reader").
+     * @return A success message.
+     * @throws IOException If an API or network error occurs.
+     */
+    @PostMapping("/share-folder")
+    public ResponseEntity<String> shareFolder(
+            @RequestParam("folderId") String folderId,
+            @RequestParam("email") String email,
+            @RequestParam("role") String role) throws IOException {
+        try {
+            googleDriveService.shareFolder(folderId, email, role);
+            return ResponseEntity.ok("Folder shared successfully with " + email);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid input: " + e.getMessage());
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to share folder: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Removes a permission from a folder.
+     * @param folderId The ID of the folder.
+     * @param permissionId The ID of the permission to remove.
+     * @return A success message.
+     * @throws IOException If an API or network error occurs.
+     */
+    @DeleteMapping("/permissions")
+    public ResponseEntity<String> removePermission(
+            @RequestParam("folderId") String folderId,
+            @RequestParam("permissionId") String permissionId) throws IOException {
+        try {
+            googleDriveService.removePermission(folderId, permissionId);
+            return ResponseEntity.ok("Permission removed successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid input: " + e.getMessage());
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to remove permission: " + e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/files/{fileId}/name")
+    public ResponseEntity<Map<String, String>> getFileName(@PathVariable String fileId) throws IOException {
+        try {
+            String fileName = googleDriveService.getFileName(fileId);
+            return ResponseEntity.ok(Map.of("name", fileName));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid input: " + e.getMessage()));
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to retrieve file name: " + e.getMessage()));
+        }
+    }
 }

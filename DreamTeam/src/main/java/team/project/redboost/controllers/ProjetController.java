@@ -8,11 +8,12 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import team.project.redboost.entities.Coach;
 import team.project.redboost.entities.Projet;
 import team.project.redboost.entities.Role;
 import team.project.redboost.entities.User;
 import team.project.redboost.services.ProjetService;
-import team.project.redboost.utils.FileStorageUtil;
+import team.project.redboost.services.CloudinaryService;
 
 import jakarta.transaction.Transactional;
 import java.io.IOException;
@@ -27,10 +28,12 @@ import java.util.stream.Collectors;
 public class ProjetController {
 
     private final ProjetService projetService;
+    private final CloudinaryService cloudinaryService;
     private final ObjectMapper objectMapper;
 
-    public ProjetController(ProjetService projetService) {
+    public ProjetController(ProjetService projetService, CloudinaryService cloudinaryService) {
         this.projetService = projetService;
+        this.cloudinaryService = cloudinaryService;
         this.objectMapper = new ObjectMapper()
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -46,7 +49,10 @@ public class ProjetController {
             Long entrepreneurId = user.getId();
 
             Projet projet = objectMapper.readValue(projetJson, Projet.class);
-            String imageUrl = (file != null && !file.isEmpty()) ? FileStorageUtil.saveFile(file) : null;
+            String imageUrl = null;
+            if (file != null && !file.isEmpty()) {
+                imageUrl = cloudinaryService.uploadImage(file);
+            }
 
             Projet savedProjet = projetService.createProjet(projet, imageUrl, entrepreneurId);
             return ResponseEntity.ok(savedProjet);
@@ -55,6 +61,8 @@ public class ProjetController {
                     .body("Erreur lors de l’enregistrement: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(e.getMessage());
         }
     }
 
@@ -66,7 +74,10 @@ public class ProjetController {
     ) {
         try {
             Projet projetDetails = objectMapper.readValue(projetJson, Projet.class);
-            String imageUrl = (file != null && !file.isEmpty()) ? FileStorageUtil.saveFile(file) : null;
+            String imageUrl = null;
+            if (file != null && !file.isEmpty()) {
+                imageUrl = cloudinaryService.uploadImage(file);
+            }
             Projet updatedProjet = projetService.updateProjet(id, projetDetails, imageUrl);
             return ResponseEntity.ok(updatedProjet);
         } catch (NoSuchElementException e) {
@@ -108,7 +119,7 @@ public class ProjetController {
     }
 
     @PostMapping("/{projetId}/entrepreneur/{userId}")
-    public ResponseEntity<?> addEntrepreneurToProjet(
+    public ResponseEntity<?> addEntrepreneurToProject(
             @PathVariable Long projetId,
             @PathVariable Long userId
     ) {
@@ -119,6 +130,16 @@ public class ProjetController {
             return ResponseEntity.notFound().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/entrepreneur/{userId}/coaches")
+    public ResponseEntity<List<Coach>> getCoachesForEntrepreneur(@PathVariable Long userId) {
+        try {
+            List<Coach> coaches = projetService.getCoachesForEntrepreneur(userId);
+            return ResponseEntity.ok(coaches);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(null); // 404 si aucun coach n’est trouvé
         }
     }
 
@@ -259,9 +280,7 @@ public class ProjetController {
         }
     }
 
-    // NEW ENDPOINT: Fetch project contacts
     @GetMapping("/{projetId}/contacts")
-    @Transactional
     public ResponseEntity<?> getProjectContacts(@PathVariable Long projetId) {
         try {
             Map<String, Object> contacts = projetService.getProjectContacts(projetId);
@@ -273,6 +292,7 @@ public class ProjetController {
                     .body("Error fetching project contacts: " + e.getMessage());
         }
     }
+
     @GetMapping("/marketplace")
     public ResponseEntity<List<Projet>> getMarketplaceProjects() {
         try {

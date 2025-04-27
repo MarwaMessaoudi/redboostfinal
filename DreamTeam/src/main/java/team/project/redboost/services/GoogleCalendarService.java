@@ -36,7 +36,7 @@ public class GoogleCalendarService {
     private static final String CENTRAL_CALENDAR_ID = "messaoudimarwa75@gmail.com";
     private static final String CLIENT_ID = "847579644213-tt8aljrm2luej8b38q16f7hdl99ssnl1.apps.googleusercontent.com";
     private static final String CLIENT_SECRET = "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";
-    private static final String REFRESH_TOKEN = "1//041xlouuCPDFMCgYIARAAGAQSNwF-L9IrLguCV-3vZNioSm6KuaOkO0NPYV0dr0cjcS_0W2Mc8YoQDbjGnCRKmbcMLufGFXniejQ";
+    private static final String REFRESH_TOKEN = "1//04R9Q8VVU3BDFCgYIARAAGAQSNwF-L9Iryrp7zcPNa9VVtMP_Wn6FJzXiTscQqsV_7XlsaCO-3nM7Y98AGlEIZy8dRrawcOPdl0Y";
 
     private Calendar calendarService;
 

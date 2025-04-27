@@ -4,10 +4,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import team.project.redboost.entities.Phase;
+import team.project.redboost.entities.Phase.Status;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
 
 public interface PhaseRepository extends JpaRepository<Phase, Long> {
 
@@ -32,4 +35,15 @@ public interface PhaseRepository extends JpaRepository<Phase, Long> {
     GROUP BY pe.projet_id
 """, nativeQuery = true)
     List<Map<String, Object>> findEntrepreneursByProject(@Param("projetId") Long projetId);
+
+    @Query("SELECT ph FROM Phase ph JOIN FETCH ph.projet WHERE ph.phaseId = :phaseId")
+    Optional<Phase> findByIdWithProjet(@Param("phaseId") Long phaseId);
+
+    @Query("""
+         SELECT ph FROM Phase ph
+         JOIN ph.projet p
+         JOIN p.entrepreneurs u
+         WHERE u.id = :userId AND ph.status = :status
+         """)
+    List<Phase> findPhasesByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Status status);
 }

@@ -41,15 +41,16 @@ export class ForgotPasswordComponent {
       .pipe(
         catchError(error => {
           this.isLoading = false;
-          this.errorMessage = 'An error occurred. Please try again.';
+          this.errorMessage = error.error?.message || 'An error occurred. Please try again.';
           return of(null);
         })
       )
       .subscribe(response => {
         this.isLoading = false;
         if (response) {
-          this.successMessage = 'If an account exists with this email, a password reset link has been sent.';
+          this.successMessage = 'A password reset link has been sent to your email. Please check your inbox (and spam/junk folder).';
           this.forgotForm.reset();
+          // Removed the automatic redirect
         }
       });
   }

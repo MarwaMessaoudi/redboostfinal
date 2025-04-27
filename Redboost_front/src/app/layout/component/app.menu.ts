@@ -38,8 +38,8 @@ export class AppMenu implements OnInit {
         if (!token) {
             this.messageService.add({
                 severity: 'error',
-                summary: 'Error',
-                detail: 'No authentication token found. Please log in.'
+                summary: 'Erreur',
+                detail: "Aucun jeton d'authentification trouvé. Veuillez vous connecter."
             });
             this.router.navigate(['/signin']);
             return;
@@ -55,11 +55,11 @@ export class AppMenu implements OnInit {
                 this.setMenuBasedOnRole(userRole);
             },
             error: (error) => {
-                console.error('Failed to fetch user profile:', error);
+                console.error('Échec de la récupération du profil utilisateur :', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to fetch user role'
+                    summary: 'Erreur',
+                    detail: 'Échec de la récupération du rôle utilisateur'
                 });
                 this.router.navigate(['/signin']);
             }
@@ -68,11 +68,11 @@ export class AppMenu implements OnInit {
 
     private getProfileMenuItem(): MenuItem {
         return {
-            label: 'Profile',
+            label: 'Profil',
             items: [
                 {
-                    label: 'Profile',
-                    icon: 'pi pi-fw pi-user-edit', // Improved icon for profile editing
+                    label: 'Profil',
+                    icon: 'pi pi-fw pi-user-edit', // Icône améliorée pour l'édition du profil
                     routerLink: ['/profile']
                 }
             ]
@@ -98,12 +98,12 @@ export class AppMenu implements OnInit {
                 roleMenu = this.getAdminMenu();
                 break;
             default:
-                console.warn('Unknown role:', role);
+                console.warn('Rôle inconnu :', role);
                 roleMenu = [];
                 this.messageService.add({
                     severity: 'warn',
-                    summary: 'Warning',
-                    detail: 'Unknown user role detected'
+                    summary: 'Avertissement',
+                    detail: 'Rôle utilisateur inconnu détecté'
                 });
         }
         this.model = [...roleMenu, this.getProfileMenuItem()];
@@ -112,39 +112,39 @@ export class AppMenu implements OnInit {
     private getSuperAdminMenu(): MenuItem[] {
         return [
             {
-                label: 'Home',
+                label: 'Accueil',
                 items: [
-                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Icône de graphique pour le tableau de bord
                 ]
             },
             {
-                label: 'Coach Requests',
+                label: 'Demandes de coachs',
                 items: [
-                    { label: 'Coach Requests', icon: 'pi pi-fw pi-users', routerLink: ['/all-coach-requests'] } // Users icon for requests
+                    { label: 'Demandes de coachs', icon: 'pi pi-fw pi-users', routerLink: ['/all-coach-requests'] } // Icône d'utilisateurs pour les demandes
                 ]
             },
             {
                 label: 'Utilisateurs',
                 items: [
-                    { label: 'Tous les utilisateurs', icon: 'pi pi-fw pi-user', routerLink: ['/all-users'] } // User icon for users
+                    { label: 'Tous les utilisateurs', icon: 'pi pi-fw pi-user', routerLink: ['/all-users'] } // Icône d'utilisateur pour les utilisateurs
                 ]
             },
             {
-                label: 'Manage Types',
+                label: 'Gérer les types',
                 items: [
-                    { label: 'Manage Types', icon: 'pi pi-fw pi-tags', routerLink: ['/staff-types'] } // Tags icon for types
+                    { label: 'Gérer les types', icon: 'pi pi-fw pi-tags', routerLink: ['/staff-types'] } // Icône d'étiquettes pour les types
                 ]
             },
             {
-                label: 'Filter Staff Data',
+                label: 'Filtrer les données du personnel',
                 items: [
-                    { label: 'Filter Staff Data', icon: 'pi pi-fw pi-filter', routerLink: ['/staff-filter'] } // Filter icon retained
+                    { label: 'Filtrer les données du personnel', icon: 'pi pi-fw pi-filter', routerLink: ['/staff-filter'] } // Icône de filtre conservée
                 ]
             },
             {
                 label: 'Gestion de programmes',
                 items: [
-                    { label: 'Gestion de programmes', icon: 'pi pi-fw pi-folder', routerLink: ['/ProgramMonitoring'] } // Folder icon for programs
+                    { label: 'Gestion de programmes', icon: 'pi pi-fw pi-folder', routerLink: ['/ProgramMonitoring'] } // Icône de dossier pour les programmes
                 ]
             }
         ];
@@ -153,52 +153,51 @@ export class AppMenu implements OnInit {
     private getAdminMenu(): MenuItem[] {
         return [
             {
-                label: 'Home',
+                label: 'Accueil',
                 items: [
-                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Icône de graphique pour le tableau de bord
                 ]
             },
-
             {
                 label: 'Gestion de programmes',
                 items: [
-                    { label: 'Gestion de programmes', icon: 'pi pi-fw pi-folder', routerLink: ['/ProgramMonitoring'] } // Folder icon for programs
+                    { label: 'Gestion de programmes', icon: 'pi pi-fw pi-folder', routerLink: ['/ProgramMonitoring'] } // Icône de dossier pour les programmes
                 ]
             },
             {
-                label: 'Reclamations',
+                label: 'Réclamations',
                 items: [
-                    { label: 'All Reclamations', icon: 'pi pi-fw pi-file-excel', routerLink: ['/all-reclamations'] } // File-excel for reclamations
+                    { label: 'Toutes les réclamations', icon: 'pi pi-fw pi-file-excel', routerLink: ['/all-reclamations'] } // Icône de fichier Excel pour les réclamations
                 ]
             },
-            {
-                label: 'Documents',
-                items: [
-                    { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // File icon for documents
-                ]
-            },
+            // {
+            //     label: 'Documents',
+            //     items: [
+            //         { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // Icône de fichier pour les documents
+            //     ]
+            // },
             {
                 label: 'Ressources',
                 items: [
-                    { label: 'Toutes les ressources', icon: 'pi pi-fw pi-box', routerLink: ['/all-resourses'] } // Box icon for resources
+                    { label: 'Toutes les ressources', icon: 'pi pi-fw pi-box', routerLink: ['/all-resourses'] } // Icône de boîte pour les ressources
                 ]
             },
             {
                 label: 'Clients',
                 items: [
-                    { label: 'Ajouter un client', icon: 'pi pi-fw pi-user-plus', routerLink: ['/customers'] } // User-plus for adding clients
+                    { label: 'Ajouter un client', icon: 'pi pi-fw pi-user-plus', routerLink: ['/customers'] } // Icône d'ajout d'utilisateur pour les clients
                 ]
             },
             {
                 label: 'Services',
                 items: [
-                    { label: 'Ajouter un service', icon: 'pi pi-fw pi-cog', routerLink: ['/services'] } // Cog for services
+                    { label: 'Ajouter un service', icon: 'pi pi-fw pi-cog', routerLink: ['/services'] } // Icône d'engrenage pour les services
                 ]
             },
             {
                 label: 'Factures / Devis',
                 items: [
-                    { label: 'Générer une facture / devis', icon: 'pi pi-fw pi-money-bill', routerLink: ['/inv'] } // Money-bill for invoices
+                    { label: 'Générer une facture / devis', icon: 'pi pi-fw pi-money-bill', routerLink: ['/inv'] } // Icône de billet pour les factures
                 ]
             }
         ];
@@ -207,46 +206,46 @@ export class AppMenu implements OnInit {
     private getEntrepreneurMenu(): MenuItem[] {
         return [
             {
-                label: 'Home',
+                label: 'Accueil',
                 items: [
-                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Icône de graphique pour le tableau de bord
                 ]
             },
             {
                 label: 'Projets',
                 items: [
-                    { label: 'Projets', icon: 'pi pi-fw pi-briefcase', routerLink: ['/GetProjet'] } // Briefcase for projects
+                    { label: 'Projets', icon: 'pi pi-fw pi-briefcase', routerLink: ['/GetProjet'] } // Icône de mallette pour les projets
                 ]
             },
             {
-                label: 'Gestion Communication',
+                label: 'Gestion de la communication',
                 items: [
-                    { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Comments for communication
+                    { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Icône de commentaires pour la communication
                 ]
             },
-            {
-                label: 'Documents',
-                items: [
-                    { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // File icon for documents
-                ]
-            },
+            // {
+            //     label: 'Documents',
+            //     items: [
+            //         { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // Icône de fichier pour les documents
+            //     ]
+            // },
             {
                 label: 'Rendez-vous',
                 items: [
-                    { label: 'Rendez-vous', icon: 'pi pi-fw pi-calendar-plus', routerLink: ['/appointments'] }, // Calendar-plus for appointments
-                    { label: 'My Meetings List', icon: 'pi pi-fw pi-calendar', routerLink: ['/meeting-list'] } // Calendar for meetings
+                    { label: 'Rendez-vous', icon: 'pi pi-fw pi-calendar-plus', routerLink: ['/appointments'] }, // Icône de calendrier plus pour les rendez-vous
+                    { label: 'Liste de mes réunions', icon: 'pi pi-fw pi-calendar', routerLink: ['/meeting-list'] } // Icône de calendrier pour les réunions
                 ]
             },
             {
-                label: 'Mes Réclamations',
+                label: 'Mes réclamations',
                 items: [
-                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // File-excel for reclamations
+                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // Icône de fichier Excel pour les réclamations
                 ]
             },
             {
-                label: 'Startup View',
+                label: 'Vue startup',
                 items: [
-                    { label: 'My Requests', icon: 'pi pi-fw pi-briefcase', routerLink: ['/startup/v1'] } // Briefcase for startup requests
+                    { label: 'Mes demandes', icon: 'pi pi-fw pi-briefcase', routerLink: ['/startup/v1'] } // Icône de mallette pour les demandes de startup
                 ]
             }
         ];
@@ -255,39 +254,39 @@ export class AppMenu implements OnInit {
     private getCoachMenu(): MenuItem[] {
         return [
             {
-                label: 'Home',
+                label: 'Accueil',
                 items: [
-                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Icône de graphique pour le tableau de bord
                 ]
             },
             {
                 label: 'Rendez-vous',
                 items: [
-                    { label: 'Disponibilités', icon: 'pi pi-fw pi-calendar-plus', routerLink: ['/appointments/received'] } // Calendar-plus for availability
+                    { label: 'Disponibilités', icon: 'pi pi-fw pi-calendar-plus', routerLink: ['/appointments/received'] } // Icône de calendrier plus pour les disponibilités
                 ]
             },
             {
                 label: 'Projets',
                 items: [
-                    { label: 'Projets', icon: 'pi pi-fw pi-briefcase', routerLink: ['/GetProjet'] } // Briefcase for projects
+                    { label: 'Projets', icon: 'pi pi-fw pi-briefcase', routerLink: ['/GetProjet'] } // Icône de mallette pour les projets
+                ]
+            },
+            // {
+            //     label: 'Documents',
+            //     items: [
+            //         { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // Icône de fichier pour les documents
+            //     ]
+            // },
+            {
+                label: 'Mes réclamations',
+                items: [
+                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // Icône de fichier Excel pour les réclamations
                 ]
             },
             {
-                label: 'Documents',
+                label: 'Gestion de la communication',
                 items: [
-                    { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // File icon for documents
-                ]
-            },
-            {
-                label: 'Mes Réclamations',
-                items: [
-                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // File-excel for reclamations
-                ]
-            },
-            {
-                label: 'Gestion Communication',
-                items: [
-                    { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Comments for communication
+                    { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Icône de commentaires pour la communication
                 ]
             }
         ];
@@ -296,33 +295,33 @@ export class AppMenu implements OnInit {
     private getInvestorMenu(): MenuItem[] {
         return [
             {
-                label: 'Home',
+                label: 'Accueil',
                 items: [
-                    { label: 'Dashboard', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Chart icon for dashboard
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Icône de graphique pour le tableau de bord
                 ]
             },
             {
                 label: 'Marketplace',
                 items: [
-                    { label: 'Marketplace', icon: 'pi pi-fw pi-shopping-cart', routerLink: ['/marketplace'] } // Shopping-cart for marketplace
+                    { label: 'Marketplace', icon: 'pi pi-fw pi-shopping-cart', routerLink: ['/marketplace'] } // Icône de panier pour le marketplace
                 ]
             },
             {
                 label: 'Startups',
                 items: [
-                    { label: 'My Startups', icon: 'pi pi-fw pi-briefcase', routerLink: ['/investor/v1'] } // Briefcase for startups
+                    { label: 'Mes startups', icon: 'pi pi-fw pi-briefcase', routerLink: ['/investor/v1'] } // Icône de mallette pour les startups
                 ]
             },
+            // {
+            //     label: 'Documents',
+            //     items: [
+            //         { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // Icône de fichier pour les documents
+            //     ]
+            // },
             {
-                label: 'Documents',
+                label: 'Mes réclamations',
                 items: [
-                    { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // File icon for documents
-                ]
-            },
-            {
-                label: 'Mes Réclamations',
-                items: [
-                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // File-excel for reclamations
+                    { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // Icône de fichier Excel pour les réclamations
                 ]
             }
         ];

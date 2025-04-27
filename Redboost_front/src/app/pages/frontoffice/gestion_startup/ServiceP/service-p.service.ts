@@ -1,8 +1,8 @@
-// src/app/services/service-p.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ServiceP } from '../../../../models/ServiceP';
+
 @Injectable({
     providedIn: 'root'
 })
@@ -11,15 +11,9 @@ export class ServicePService {
 
     constructor(private http: HttpClient) {}
 
-    // Create a single service with an optional image
-    createService(projetId: number, service: ServiceP, image?: File): Observable<ServiceP> {
-        const formData = new FormData();
-        formData.append('service', new Blob([JSON.stringify(service)], { type: 'application/json' }));
-        if (image) {
-            formData.append('image', image, image.name);
-        }
-
-        return this.http.post<ServiceP>(`${this.apiUrl}?projetId=${projetId}`, formData);
+    // Create a single service
+    createService(projetId: number, service: ServiceP): Observable<ServiceP> {
+        return this.http.post<ServiceP>(`${this.apiUrl}?projetId=${projetId}`, service);
     }
 
     // Create three standard services (Free, Premium, Gold) for a project
@@ -37,20 +31,19 @@ export class ServicePService {
         return this.http.get<ServiceP[]>(`${this.apiUrl}/project/${projetId}`);
     }
 
+    // Get services by project ID (alternative endpoint)
+    getServicesByProjetId(projetId: number): Observable<ServiceP[]> {
+        return this.http.get<ServiceP[]>(`${this.apiUrl}/getByIdProjet/${projetId}`);
+    }
+
     // Get a service by ID
     getServiceById(id: number): Observable<ServiceP> {
         return this.http.get<ServiceP>(`${this.apiUrl}/${id}`);
     }
 
-    // Update a service with an optional image
-    updateService(id: number, service: ServiceP, image?: File): Observable<ServiceP> {
-        const formData = new FormData();
-        formData.append('service', new Blob([JSON.stringify(service)], { type: 'application/json' }));
-        if (image) {
-            formData.append('image', image, image.name);
-        }
-
-        return this.http.put<ServiceP>(`${this.apiUrl}/${id}`, formData);
+    // Update a service
+    updateService(id: number, service: ServiceP): Observable<ServiceP> {
+        return this.http.put<ServiceP>(`${this.apiUrl}/${id}`, service);
     }
 
     // Delete a service

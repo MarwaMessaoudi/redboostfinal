@@ -1,5 +1,8 @@
 <div class="kanban-board relative">
     <div class="header">
+        <button mat-icon-button class="back-button" (click)="goBackToPhases()" aria-label="Retour aux phases" matTooltip="Retour aux phases">
+            <mat-icon>arrow_back</mat-icon>
+        </button>
         <h1>{{ phaseName }} - Tableau Kanban</h1>
         <div class="actions-container">
             <button mat-fab color="accent" (click)="openCreateTaskCategoryDialog()" matTooltip="Créer une catégorie">
@@ -17,7 +20,6 @@
         </div>
         <div class="filters">
             <div class="filter-group">
-                <label for="categoryFilter">Catégorie :</label>
                 <select id="categoryFilter" [(ngModel)]="categoryFilter" (change)="applyFilters()">
                     <option value="ALL">Toutes les catégories</option>
                     <option *ngFor="let category of taskCategories" [value]="category.id">
@@ -27,16 +29,15 @@
             </div>
 
             <div class="filter-group">
-                <label for="statusFilter">Statut :</label>
                 <select id="statusFilter" [(ngModel)]="statusFilter" (change)="applyFilters()">
                     <option value="ALL">Tous les statuts</option>
                     <option [value]="TaskStatus.TO_DO">À faire</option>
                     <option [value]="TaskStatus.IN_PROGRESS">En cours</option>
                     <option [value]="TaskStatus.DONE">Terminé</option>
+                    <option [value]="TaskStatus.VALIDATED">Validé</option>
                 </select>
             </div>
             <div class="filter-group">
-                <label for="priorityFilter">Priorité :</label>
                 <select id="priorityFilter" [(ngModel)]="priorityFilter" (change)="applyFilters()">
                     <option value="ALL">Toutes les priorités</option>
                     <option *ngFor="let priority of TaskPriority | keyvalue" [value]="priority.value">
@@ -89,7 +90,20 @@
                 >
                 </app-task-card>
             </div>
+
+            <div class="kanban-column" cdkDropList id="validated" [cdkDropListData]="validated">
+                <h2>VALIDÉ ({{ validated.length }}) - XP: {{ calculateTotalXp(validated) }}</h2>
+                <app-task-card
+                    *ngFor="let task of validated"
+                    [task]="task"
+                    [phaseName]="phaseName"
+                    [assigneeAvatarUrl]="getAssigneeAvatarUrl(task.assigneeId)"
+                    [assigneeInitials]="getAssigneeInitials(task.assigneeId)"
+                    [openEditTaskDialog]="openEditTaskDialog.bind(this)"
+                >
+                </app-task-card>
+            </div>
         </div>
-        <app-task-update [task]="selectedTask" [isOpen]="isPanelOpen" (closeEvent)="closePanel()"></app-task-update>
+        <app-task-update [task]="selectedTask" [isOpen]="isPanelOpen" [entrepreneurs]="entrepreneurs" (closeEvent)="closePanel()" (taskUpdated)="loadTasksForPhase(phaseId!)"></app-task-update>
     </div>
 </div>

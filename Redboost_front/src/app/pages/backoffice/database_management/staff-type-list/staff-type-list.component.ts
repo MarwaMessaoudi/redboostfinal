@@ -56,7 +56,7 @@ export class StaffTypeListComponent implements OnInit {
                 this.loading = false;
             },
             error: (error) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load staff types' });
+                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec du chargement des types de personnel' });
                 this.loading = false;
             }
         });
@@ -70,13 +70,13 @@ export class StaffTypeListComponent implements OnInit {
                 if (this.defaultAttributes.length < 4) {
                     this.messageService.add({
                         severity: 'warn',
-                        summary: 'Warning',
-                        detail: 'Some default attributes are missing from the database.'
+                        summary: 'Avertissement',
+                        detail: 'Certains attributs par défaut sont manquants dans la base de données.'
                     });
                 }
             },
             error: (error) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load attributes' });
+                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec du chargement des attributs' });
             }
         });
     }
@@ -91,18 +91,22 @@ export class StaffTypeListComponent implements OnInit {
                 this.newTypeName = '';
                 this.selectedAttributeIds = [];
                 this.newTypeDialogVisible = false;
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Staff type created' });
+                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Type de personnel créé' });
                 this.loadStaffTypes();
             },
             error: (error) => {
                 if (error.status === 400 && error.error?.includes('already exists')) {
                     this.messageService.add({
                         severity: 'warn',
-                        summary: 'Warning',
-                        detail: error.error || 'One or more selected attributes already exist in this StaffType'
+                        summary: 'Avertissement',
+                        detail: error.error || 'Un ou plusieurs attributs sélectionnés existent déjà dans ce type de personnel'
                     });
                 } else {
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to create staff type: ' + (error.message || 'Unknown error') });
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Erreur',
+                        detail: 'Échec de la création du type de personnel : ' + (error.message || 'Erreur inconnue')
+                    });
                 }
                 this.loading = false;
             }
@@ -116,20 +120,20 @@ export class StaffTypeListComponent implements OnInit {
                 this.loadAttributes();
                 this.newAttributeName = '';
                 this.newAttributeDefaultValues = [];
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Attribute created' });
+                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Attribut créé' });
             },
             error: (error: any) => {
                 if (error.status === 400 && error.error?.includes('already exists')) {
                     this.messageService.add({
                         severity: 'warn',
-                        summary: 'Warning',
-                        detail: error.error || 'This attribute name already exists in the system'
+                        summary: 'Avertissement',
+                        detail: error.error || "Ce nom d'attribut existe déjà dans le système"
                     });
                 } else {
                     this.messageService.add({
                         severity: 'error',
-                        summary: 'Error',
-                        detail: error.message || 'Failed to create attribute'
+                        summary: 'Erreur',
+                        detail: error.message || "Échec de la création de l'attribut"
                     });
                 }
             }
@@ -148,15 +152,15 @@ export class StaffTypeListComponent implements OnInit {
 
     deleteStaffType(id: number): void {
         this.confirmationService.confirm({
-            message: 'Are you sure you want to delete this staff type?',
+            message: 'Êtes-vous sûr de vouloir supprimer ce type de personnel ?',
             accept: () => {
                 this.staffService.deleteStaffType(id).subscribe({
                     next: () => {
                         this.loadStaffTypes();
-                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Staff type deleted' });
+                        this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Type de personnel supprimé' });
                     },
                     error: (error) => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete staff type' });
+                        this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de la suppression du type de personnel' });
                     }
                 });
             }
@@ -183,9 +187,9 @@ export class StaffTypeListComponent implements OnInit {
             next: () => {
                 this.loadStaffTypes();
                 this.editTypeDialogVisible = false;
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Staff type updated' });
+                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Type de personnel mis à jour' });
             },
-            error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update staff type' })
+            error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de la mise à jour du type de personnel' })
         });
     }
 

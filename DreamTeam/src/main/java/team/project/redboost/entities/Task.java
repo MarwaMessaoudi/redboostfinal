@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -44,11 +45,13 @@ public class Task {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "phase_id", nullable = false)
     @JsonBackReference("phaseTasks")
+    @ToString.Exclude
     private Phase phase;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "task_category_id", nullable = false)
     @JsonBackReference("categoryTasks")
+    @ToString.Exclude
     private TaskCategory taskCategory;
 
     @Column(name = "created_at", updatable = false)
@@ -57,18 +60,20 @@ public class Task {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @ElementCollection
-    private List<String> attachments;
+    @Column
+    private String attachment; // Stores Google Drive file ID
 
     @Transient
     private Long taskCategoryId;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference("taskSubTasks")
+    @ToString.Exclude
     private List<SubTask> subTasks = new ArrayList<>();
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference("taskComments")
+    @ToString.Exclude
     private List<Comment> comments = new ArrayList<>();
 
     public enum Priority {
@@ -76,7 +81,7 @@ public class Task {
     }
 
     public enum Status {
-        TO_DO, IN_PROGRESS, DONE
+        TO_DO, IN_PROGRESS, DONE, VALIDATED
     }
 
     @PrePersist
@@ -99,13 +104,11 @@ public class Task {
         }
     }
 
-    // Helper method to add a sub-task
     public void addSubTask(SubTask subTask) {
         subTasks.add(subTask);
         subTask.setTask(this);
     }
 
-    // Helper method to add a comment
     public void addComment(Comment comment) {
         comments.add(comment);
         comment.setTask(this);

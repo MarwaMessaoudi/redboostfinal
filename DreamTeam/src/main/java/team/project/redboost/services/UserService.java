@@ -101,6 +101,10 @@ public class UserService { // No need to implement an interface
         user.setProfilePictureUrl(imageUrl);
         userRepository.save(user);
     }
+
+    public List<User> getAllCoaches() {
+        return userRepository.findByRole(Role.COACH);
+    }
     public List<User> getUsersByRoles(List<Role> roles) {
         return userRepository.findByRoleIn(roles);
     }

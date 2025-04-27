@@ -42,7 +42,7 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .oauth2Login(oauth2 -> oauth2
-                       // .loginPage("/oauth2/authorization/google-calendar")  // Trigger Google OAuth2 login
+                        // .loginPage("/oauth2/authorization/google-calendar")  // Trigger Google OAuth2 login
                         .defaultSuccessUrl("/api/rendezvous/update-status", true)  // Redirect after login
                         .userInfoEndpoint(userInfo -> userInfo.oidcUserService(new OidcUserService()))
                 )
@@ -82,11 +82,4 @@ public class SecurityConfig {
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
-
-
-
-
-
-
-
 }

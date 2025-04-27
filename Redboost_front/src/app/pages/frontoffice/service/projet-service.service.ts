@@ -1,8 +1,22 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject, of } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, tap, map, switchMap } from 'rxjs/operators';
 import { Projet, Objectives, Statut } from '../../../models/Projet';
+
+interface Coach {
+    id: number;
+    name: string;
+    specialty: string;
+    avatar: string;
+    email: string;
+    phoneNumber: string;
+    specialization: string;
+    status?: string;
+    profile_pictureurl?: string;
+    firstName?: string;
+    lastName?: string;
+}
 
 interface User {
     id: number;
@@ -50,23 +64,20 @@ export class ProjetService {
 
     fetchCurrentUserId(): Observable<number> {
         return new Observable<number>((observer) => {
-            const tokenKey = 'accessToken'; // Align with SigninComponent and AuthInterceptor
+            const tokenKey = 'accessToken';
             const checkToken = () => {
                 const token = localStorage.getItem(tokenKey);
-                console.log('fetchCurrentUserId - Token:', token); // Debug log
                 if (!token) {
-                    console.warn('Token not found yet');
                     return false;
                 }
                 const decodedToken = this.decodeToken(token);
-                console.log('fetchCurrentUserId - Decoded:', decodedToken); // Debug log
                 if (!decodedToken) {
                     observer.error(new Error('Failed to decode token.'));
                     return true;
                 }
                 const userId = decodedToken.userId || decodedToken.id || decodedToken.sub;
                 if (!userId) {
-                    observer.error(new Error('User ID not found in token (tried userId, id, sub).'));
+                    observer.error(new Error('User ID not found in token.'));
                     return true;
                 }
                 const parsedUserId = parseInt(userId, 10);
@@ -80,15 +91,12 @@ export class ProjetService {
                 return true;
             };
 
-            // Try immediately
             if (checkToken()) return;
 
-            // Poll with a timeout
             let attempts = 0;
-            const maxAttempts = 50; // 5 seconds (increased from 3s for safety)
+            const maxAttempts = 50;
             const interval = setInterval(() => {
                 attempts++;
-                console.log('Polling attempt:', attempts, 'Token:', localStorage.getItem(tokenKey)); // Debug log
                 if (checkToken() || attempts >= maxAttempts) {
                     clearInterval(interval);
                     if (attempts >= maxAttempts) {
@@ -97,7 +105,7 @@ export class ProjetService {
                 }
             }, 100);
 
-            return () => clearInterval(interval); // Cleanup on unsubscribe
+            return () => clearInterval(interval);
         });
     }
 
@@ -122,7 +130,7 @@ export class ProjetService {
                         projectCards.map(
                             (card) =>
                                 ({
-                                    id: card[7], // id is 8th field (index 7)
+                                    id: card[7],
                                     name: card[0],
                                     logoUrl: card[1],
                                     sector: card[2],
@@ -160,10 +168,23 @@ export class ProjetService {
         );
     }
 
+    getProjectCount(): Observable<number> {
+        return this.currentUserId$.pipe(
+            tap((userId) => {
+                if (!userId) throw new Error('User ID not set');
+            }),
+            switchMap((userId) =>
+                this.http.get<any[]>(`${this.apiUrl}/Getcardfounder/${userId}`, { headers: this.getHeaders() }).pipe(
+                    map((projectCards) => projectCards.length),
+                    catchError(this.handleError)
+                )
+            )
+        );
+    }
+
     createProjet(projet: Projet, logoFile: File | null): Observable<Projet> {
         const url = `${this.apiUrl}/AddProjet`;
         const formData = new FormData();
-        // Only include fields the backend expects
         const projetToSend = {
             name: projet.name,
             sector: projet.sector,
@@ -193,14 +214,24 @@ export class ProjetService {
         } else {
             console.log('No logo file provided');
         }
-        return this.http.post<Projet>(url, formData, { headers: this.getHeaders(false) }).pipe(
+
+        return this.http.post(url, formData, { headers: this.getHeaders(false), observe: 'response' }).pipe(
+            map((response: HttpResponse<any>) => {
+                if (response.status >= 200 && response.status < 300) {
+                    return response.body as Projet;
+                } else {
+                    throw new HttpErrorResponse({
+                        status: response.status,
+                        statusText: response.statusText,
+                        error: response.body
+                    });
+                }
+            }),
             tap((response) => console.log('Create project response:', response)),
-            catchError((error) => {
-                console.error('Create project error:', error);
-                return this.handleError(error);
-            })
+            catchError(this.handleError)
         );
     }
+
     getProjetById(id: number): Observable<Projet> {
         const url = `${this.apiUrl}/GetProjet/${id}`;
         return this.http.get<Projet>(url, { headers: this.getHeaders() }).pipe(catchError(this.handleError));
@@ -219,7 +250,7 @@ export class ProjetService {
 
     deleteProjet(id: number): Observable<string> {
         const url = `${this.apiUrl}/DeleteProjet/${id}`;
-        return this.http.delete<string>(url, { headers: this.getHeaders() }).pipe(catchError(this.handleError));
+        return this.http.delete(url, { headers: this.getHeaders(), responseType: 'text' }).pipe(catchError(this.handleError));
     }
 
     getPendingInvitations(): Observable<PendingInvitation[]> {
@@ -253,24 +284,59 @@ export class ProjetService {
     getProjectContacts(projectId: number): Observable<ProjectContacts> {
         const url = `${this.apiUrl}/${projectId}/contacts`;
         return this.http.get<ProjectContacts>(url, { headers: this.getHeaders() }).pipe(
-            tap((response) => console.log(`Project ${projectId} contacts:`, response)), // Debug log
+            tap((response) => console.log(`Project ${projectId} contacts:`, response)),
             catchError(this.handleError)
         );
     }
 
     private handleError(error: HttpErrorResponse): Observable<never> {
         let errorMessage = 'Une erreur est survenue. Veuillez réessayer plus tard.';
-        if (error.status === 401) {
+        let status = error.status;
+
+        if (status === 401) {
             errorMessage = 'Session expirée. Veuillez vous reconnecter.';
-        } else if (error.status === 400) {
-            errorMessage = error.error?.message || 'Requête invalide.';
-        } else if (error.status === 403) {
+        } else if (status === 402) {
+            if (typeof error.error === 'string') {
+                errorMessage = error.error.includes('You have reached the limit') ? 'Veuillez accéder au paiement pour mettre à jour votre compte.' : error.error;
+            } else if (error.error instanceof Blob) {
+                return new Observable((observer) => {
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        const text = reader.result as string;
+                        errorMessage = text.includes('You have reached the limit') ? 'Veuillez accéder au paiement pour mettre à jour votre compte.' : text;
+                        observer.error({ status, message: errorMessage });
+                        observer.complete();
+                    };
+                    reader.onerror = () => {
+                        observer.error({ status, message: errorMessage });
+                        observer.complete();
+                    };
+                    reader.readAsText(error.error);
+                });
+            } else {
+                errorMessage = error.error?.message || 'Veuillez accéder au paiement pour mettre à jour votre compte.';
+            }
+        } else if (status === 400) {
+            errorMessage = typeof error.error === 'string' ? error.error : error.error?.message || 'Requête invalide.';
+        } else if (status === 403) {
             errorMessage = 'Accès interdit.';
-        } else if (error.status === 404) {
+        } else if (status === 404) {
             errorMessage = 'Ressource non trouvée.';
-        } else if (error.status === 500) {
+        } else if (status === 500) {
             errorMessage = 'Erreur serveur interne.';
         }
-        return throwError(() => new Error(errorMessage));
+
+        console.error('Error details:', error);
+        return throwError(() => ({ status, message: errorMessage }));
+    }
+
+    getCoachesForEntrepreneur(userId: number): Observable<Coach[]> {
+        const url = `http://localhost:8085/api/projets/entrepreneur/${userId}/coaches`;
+        const headers = this.getHeaders();
+        console.log('Request Headers:', headers); // Log headers for debugging
+        return this.http.get<Coach[]>(url, { headers }).pipe(
+            tap((response) => console.log(`Coaches for entrepreneur ${userId}:`, response)),
+            catchError((error) => this.handleError(error))
+        );
     }
 }

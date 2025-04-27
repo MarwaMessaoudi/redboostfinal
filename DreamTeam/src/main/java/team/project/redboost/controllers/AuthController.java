@@ -172,6 +172,8 @@ public class AuthController {
         String password = loginRequest.get("password");
         log.info("Authenticating user with email: {}", email);
 
+
+
         try {
             // Check if user exists before authentication
             User user = userService.findByEmail(email);
@@ -179,6 +181,14 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
                         "message", "User not found with email: " + email,
                         "errorCode", "AUTH008"
+                ));
+            }
+
+            // Check if user is active (email confirmed)
+            if (!user.isActive()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                        "message", "Please confirm your email before logging in!",
+                        "errorCode", "AUTH017"
                 ));
             }
 
@@ -439,11 +449,14 @@ public class AuthController {
                 investorRepository.save(investor);
             }
 
-            // Send confirmation email
+            // Send confirmation email with link to confirm-email component
+            String confirmationLink = "http://localhost:4200/confirm-email?email=" + email + "&code=" + confirmationCode;
             String subject = "Confirm your email";
             String body = "Hello " + firstName + " " + lastName + ",\n\n" +
                     "Thank you for registering!\n\n" +
-                    "Your confirmation code is: " + confirmationCode + "\n\n" +
+                    "Please confirm your email by clicking the following link:\n" +
+                    confirmationLink + "\n\n" +
+                    "Alternatively, use this confirmation code: " + confirmationCode + "\n\n" +
                     "Best regards,\nRedboost Team";
             emailService.sendEmail(email, subject, body);
 
@@ -456,10 +469,6 @@ public class AuthController {
             ));
         }
     }
-
-
-
-
 
 
     @PostMapping("/confirm-email")
@@ -494,8 +503,63 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/resend-confirmation")
+    public ResponseEntity<?> resendConfirmationEmail(@RequestBody Map<String, String> resendRequest) {
+        try {
+            String email = resendRequest.get("email");
 
+            // Validate email
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                        "message", "Email is required!",
+                        "errorCode", "AUTH015"
+                ));
+            }
 
+            // Check if user exists
+            User user = userService.findByEmail(email);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                        "message", "User not found!",
+                        "errorCode", "AUTH013"
+                ));
+            }
+
+            // Check if user is already active
+            if (user.isActive()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                        "message", "Email is already confirmed!",
+                        "errorCode", "AUTH016"
+                ));
+            }
+
+            // Optionally generate a new confirmation code
+            String confirmationCode = user.getConfirm_code(); // Use existing code
+            // If you want to generate a new code:
+            // String confirmationCode = user.generateConfirmationCode();
+            // user.setConfirm_code(confirmationCode);
+            // userService.updateUser(user);
+
+            // Send confirmation email
+            String confirmationLink = "http://localhost:4200/confirm-email?email=" + email + "&code=" + confirmationCode;
+            String subject = "Confirm your email";
+            String body = "Hello " + user.getFirstName() + " " + user.getLastName() + ",\n\n" +
+                    "Thank you for registering!\n\n" +
+                    "Please confirm your email by clicking the following link:\n" +
+                    confirmationLink + "\n\n" +
+                    "Alternatively, use this confirmation code: " + confirmationCode + "\n\n" +
+                    "Best regards,\nRedboost Team";
+            emailService.sendEmail(email, subject, body);
+
+            return ResponseEntity.ok(Map.of("message", "Confirmation email resent successfully!"));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "message", "Failed to resend confirmation email",
+                    "error", e.getMessage()
+            ));
+        }
+    }
 
     @GetMapping("/verifyToken")
     public ResponseEntity<?> verifyToken(@RequestHeader("Authorization") String token) {
@@ -550,7 +614,6 @@ public class AuthController {
     }
 
 
-
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         try {
@@ -597,6 +660,7 @@ public class AuthController {
         }
     }
 
+
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
         try {
@@ -636,4 +700,5 @@ public class AuthController {
             ));
         }
     }
+
 }

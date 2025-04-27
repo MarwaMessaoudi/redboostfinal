@@ -29,5 +29,5 @@ public class Produit {
     private String categorie;
     private LocalDate dateExpiration;
     @Lob
-    private String image; // Will store base64 encoded string
+    private String image; // Now stores Cloudinary URL instead of base64
 }

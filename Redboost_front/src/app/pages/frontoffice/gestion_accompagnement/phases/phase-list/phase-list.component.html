@@ -1,5 +1,8 @@
 <div class="dashboard-container">
     <div class="header">
+        <button mat-icon-button class="back-button" (click)="goBackToProjects()" aria-label="Retour aux projets" matTooltip="Retour aux projets">
+            <mat-icon>arrow_back</mat-icon>
+        </button>
         <h1>Phases</h1>
         <p class="date">{{ currentDate | date: 'MMMM d, y' }}</p>
     </div>

@@ -1,67 +1,36 @@
 import { Component, Inject, OnInit, ViewEncapsulation, ElementRef, ViewChild } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormArray, FormControl } from '@angular/forms';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { CommonModule, DatePipe } from '@angular/common'; // Import DatePipe
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { TaskService } from '../../../service/task.service';
-import { PhaseService } from '../../../service/phase.service';
+// PhaseService import is not used in the component logic provided, can be removed
+// import { PhaseService } from '../../../service/phase.service';
 import { TaskCategoryService } from '../../../service/taskCategory.service';
-import { Task, Priority, Status, TaskCategory } from '../../../../../models/task';
+import { Task, Priority, Status, TaskCategory, PriorityTranslation } from '../../../../../models/task';
 import { Phase } from '../../../../../models/phase';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule } from '@angular/material/dialog';
-import { MatListModule } from '@angular/material/list';
-import { MatCardModule } from '@angular/material/card';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { User } from '../../../../../models/user';
 
 interface DialogData {
     phaseId: number;
-    taskId?: number; // Optional for create mode
-    task?: Task; // Optional for edit mode
+    taskId?: number;
+    task?: Task; // Include original task data for editing
     isEdit: boolean;
     entrepreneurs: User[];
-    phase?: Phase; // Add phase to pass startDate and endDate
+    phase?: Phase; // Phase data including start/end dates
 }
 
 @Component({
     selector: 'app-task-form',
     standalone: true,
-    imports: [
-        CommonModule,
-        RouterModule,
-        ReactiveFormsModule,
-        MatCardModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatSelectModule,
-        MatDatepickerModule,
-        MatNativeDateModule,
-        MatButtonModule,
-        MatIconModule,
-        MatChipsModule,
-        MatProgressBarModule,
-        MatTooltipModule,
-        MatSnackBarModule,
-        MatDatepickerModule,
-        MatDialogModule,
-        MatIconModule,
-        MatListModule,
-        MatCardModule,
-        MatSnackBarModule
-    ],
+    // Add DatePipe to imports
+    imports: [CommonModule, ReactiveFormsModule, MatDialogModule, MatSnackBarModule, DatePipe],
     templateUrl: './task-form.component.html',
     styleUrls: ['./task-form.component.scss'],
-    encapsulation: ViewEncapsulation.ShadowDom
+    encapsulation: ViewEncapsulation.ShadowDom,
+    // *** ADD DatePipe TO PROVIDERS ***
+    providers: [DatePipe]
 })
 export class TaskFormComponent implements OnInit {
     taskForm!: FormGroup;
@@ -71,101 +40,199 @@ export class TaskFormComponent implements OnInit {
     submitting = false;
     error = '';
     priorityOptions = Object.values(Priority);
-    statusOptions = Object.values(Status);
-    phases: Phase[] = [];
+    // statusOptions = Object.values(Status); // Status is not a form control in template?
+    // phases: Phase[] = []; // This is not used in the template select, can be removed
     taskCategories: TaskCategory[] = [];
     phaseId: number | null = null;
     @ViewChild('fileInput') fileInput!: ElementRef;
+    selectedFile: File | null = null;
 
-    // Minimum date (today)
-    minStartDate: Date = new Date();
+    // Date constraints derived from phase and today
+    effectiveMinStartDate: string = ''; // The actual minimum date a task can start (max of today and phase start)
+    phaseStartDate: string = ''; // Formatted phase start date for validation/display
+    phaseEndDate: string = ''; // Formatted phase end date for validation/display
 
     constructor(
         private fb: FormBuilder,
         private taskService: TaskService,
-        private phaseService: PhaseService,
+        // private phaseService: PhaseService, // This service is not used within this component
         private taskCategoryService: TaskCategoryService,
-        private route: ActivatedRoute,
-        private router: Router,
         private snackBar: MatSnackBar,
         public dialogRef: MatDialogRef<TaskFormComponent>,
-        @Inject(MAT_DIALOG_DATA) public data: DialogData
-    ) {}
-
-    ngOnInit(): void {
-        this.initForm();
-        this.loadPhases();
-        this.loadTaskCategories();
-
+        @Inject(MAT_DIALOG_DATA) public data: DialogData,
+        private datePipe: DatePipe // Inject DatePipe
+    ) {
         this.isEditMode = this.data.isEdit;
         this.phaseId = this.data.phaseId;
         this.taskId = this.data.taskId ?? null;
+
+        // Date calculations moved to ngOnInit to ensure data.phase is available
+        // and to use the injected DatePipe safely.
+    }
+
+    ngOnInit(): void {
+        // Calculate date constraints based on phase data and today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize to start of the day
+
+        const phaseStart = this.data.phase?.startDate ? new Date(this.data.phase.startDate) : null;
+        if (phaseStart) phaseStart.setHours(0, 0, 0, 0);
+
+        const phaseEnd = this.data.phase?.endDate ? new Date(this.data.phase.endDate) : null;
+        if (phaseEnd) phaseEnd.setHours(0, 0, 0, 0);
+
+        // Effective minimum start date: must be >= max(today, phaseStart)
+        let earliestAllowedStart = today;
+        if (phaseStart && phaseStart > today) {
+            earliestAllowedStart = phaseStart;
+        }
+
+        this.effectiveMinStartDate = this.formatDate(earliestAllowedStart);
+        this.phaseStartDate = phaseStart ? this.formatDate(phaseStart) : ''; // Store formatted phase start
+        this.phaseEndDate = phaseEnd ? this.formatDate(phaseEnd) : ''; // Store formatted phase end
+
+        this.initForm();
+        // Removed loadPhases as it is unused
+        // this.loadPhases();
+        this.loadTaskCategories();
 
         if (this.isEditMode && this.taskId) {
             this.loadTask(this.taskId);
         } else if (this.phaseId) {
             this.taskForm.patchValue({ phase: { phaseId: this.phaseId } });
+            // For new tasks, pre-fill start date with the earliest allowed date
+            this.taskForm.patchValue({
+                startDate: this.effectiveMinStartDate
+            });
         }
-
-        // Add listener to update end date filter when start date changes
-        this.taskForm.get('startDate')?.valueChanges.subscribe(() => {
-            this.taskForm.get('endDate')?.updateValueAndValidity();
-        });
     }
 
     initForm(): void {
-        this.taskForm = this.fb.group({
-            title: ['', [Validators.required]],
-            xpPoint: [0, [Validators.required, Validators.min(0)]],
-            description: [''],
-            assigneeId: [null, [Validators.required]],
-            startDate: ['', [Validators.required]],
-            endDate: ['', [Validators.required]],
-            priority: [Priority.MEDIUM, [Validators.required]],
-            taskCategory: [null, [Validators.required]],
-            status: [Status.TO_DO],
-            phase: this.fb.group({
-                phaseId: [null, [Validators.required]]
-            }),
-            attachments: this.fb.array([])
-        });
+        this.taskForm = this.fb.group(
+            {
+                title: ['', [Validators.required]],
+                xpPoint: [0, [Validators.required, Validators.min(0)]],
+                description: [''],
+                assigneeId: [null, [Validators.required]],
+                // Initial date values will be patched in ngOnInit or loadTask
+                startDate: ['', [Validators.required]],
+                endDate: ['', [Validators.required]],
+                priority: [Priority.MEDIUM, [Validators.required]],
+                taskCategory: [null, [Validators.required]],
+                // Status is not a form control in the template, leave it out here
+                // status: [Status.TO_DO], // Default status for new tasks handled in prepareTaskData
+                phase: this.fb.group({
+                    phaseId: [this.phaseId, [Validators.required]]
+                })
+            },
+            {
+                // Group-level validators
+                validators: [
+                    this.dateRangeValidator.bind(this), // Checks Task Start <= Task End
+                    this.startDatePhaseValidator.bind(this), // Checks Task Start vs Today/Phase
+                    this.endDatePhaseValidator.bind(this) // Checks Task End vs Phase
+                ]
+            }
+        );
     }
 
-    // Date filters with phase constraints
-    startDateFilter = (date: Date | null): boolean => {
-        if (!date) return true;
+    // Validator 1: Ensures Task Start Date is within Phase Dates and after Today
+    // Rules: startDate >= max(today, phaseStart) AND startDate <= phaseEnd
+    startDatePhaseValidator(group: FormGroup): { [key: string]: any } | null {
+        const startDate = group.get('startDate')?.value;
+        if (!startDate) return null; // Don't validate if start date is not entered yet
+
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0); // Normalize to start of day for accurate comparison
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+
         const phaseStart = this.data.phase?.startDate ? new Date(this.data.phase.startDate) : null;
-        const phaseEnd = this.data.phase?.endDate ? new Date(this.data.phase.endDate) : null;
         if (phaseStart) phaseStart.setHours(0, 0, 0, 0);
-        if (phaseEnd) phaseEnd.setHours(23, 59, 59, 999); // End of the day
-        const earliestAllowed = phaseStart && phaseStart > today ? phaseStart : today;
-        return date >= earliestAllowed && (!phaseEnd || date <= phaseEnd);
-    };
 
-    endDateFilter = (date: Date | null): boolean => {
-        if (!date) return true;
-        const startDate = this.taskForm.get('startDate')?.value;
         const phaseEnd = this.data.phase?.endDate ? new Date(this.data.phase.endDate) : null;
-        if (phaseEnd) phaseEnd.setHours(23, 59, 59, 999); // End of the day
-        const start = startDate ? new Date(startDate) : null;
-        if (start) start.setHours(0, 0, 0, 0);
-        const earliestAllowed = start || new Date();
-        return date >= earliestAllowed && (!phaseEnd || date <= phaseEnd);
-    };
+        if (phaseEnd) phaseEnd.setHours(0, 0, 0, 0);
 
-    loadPhases(): void {
-        this.phaseService.getAllPhases().subscribe({
-            next: (phases) => {
-                this.phases = phases;
-            },
-            error: (error) => {
-                this.snackBar.open('Impossible de charger les phases', 'Fermer', { duration: 3000 });
-                console.error('Erreur lors du chargement des phases :', error);
-            }
-        });
+        // Check 1: Start date is not before the earliest allowed date (max of today and phase start)
+        let earliestAllowedStart = today;
+        if (phaseStart && phaseStart > today) {
+            earliestAllowedStart = phaseStart;
+        }
+        if (start < earliestAllowedStart) {
+            // Error key 'invalidStartDateEarly' is used in the template
+            // Include the required date in the error object to display it in the template
+            return { invalidStartDateEarly: { requiredAfter: this.formatDate(earliestAllowedStart) } };
+        }
+
+        // Check 2: Start date is not after phase end (if phase end exists)
+        if (phaseEnd && start > phaseEnd) {
+            // Error key 'startDateAfterPhaseEnd' is used in the template
+            // Include the required date in the error object
+            return { startDateAfterPhaseEnd: { requiredBefore: this.formatDate(phaseEnd) } };
+        }
+
+        return null; // Valid
     }
+
+    // Validator 2: Ensures Task End Date is within Phase Dates
+    // Rules: endDate >= phaseStart AND endDate <= phaseEnd
+    endDatePhaseValidator(group: FormGroup): { [key: string]: any } | null {
+        const endDate = group.get('endDate')?.value;
+        // Also need startDate to check range constraint, but that's handled by dateRangeValidator
+        const startDate = group.get('startDate')?.value; // Needed for cross-validation consistency, though dateRangeValidator does the check
+        if (!endDate) return null; // Don't validate if end date is not entered yet
+
+        const end = new Date(endDate);
+        end.setHours(0, 0, 0, 0); // Normalize to start of day
+
+        const phaseStart = this.data.phase?.startDate ? new Date(this.data.phase.startDate) : null;
+        if (phaseStart) phaseStart.setHours(0, 0, 0, 0);
+
+        const phaseEnd = this.data.phase?.endDate ? new Date(this.data.phase.endDate) : null;
+        if (phaseEnd) phaseEnd.setHours(0, 0, 0, 0);
+
+        // Check 1: End date is not after phase end (if phase end exists)
+        if (phaseEnd && end > phaseEnd) {
+            // Error key 'endDateAfterPhaseEnd' is used in the template
+            // Include the required date in the error object
+            return { endDateAfterPhaseEnd: { requiredBefore: this.formatDate(phaseEnd) } };
+        }
+
+        // Check 2: End date is not before phase start (if phase start exists)
+        if (phaseStart && end < phaseStart) {
+            // Error key 'endDateBeforePhaseStart' is used in the template
+            // Include the required date in the error object
+            return { endDateBeforePhaseStart: { requiredAfter: this.formatDate(phaseStart) } };
+        }
+
+        return null; // Valid
+    }
+
+    // Validator 3: Ensures Task End Date is on or after Task Start Date
+    // Rule: startDate <= endDate
+    dateRangeValidator(group: FormGroup): { [key: string]: any } | null {
+        const startDate = group.get('startDate')?.value;
+        const endDate = group.get('endDate')?.value;
+
+        // Only validate if both dates are present
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            // Normalize to start of day for comparison
+            start.setHours(0, 0, 0, 0);
+            end.setHours(0, 0, 0, 0);
+
+            if (start > end) {
+                // Error key 'dateRangeInvalid' is used in the template
+                return { dateRangeInvalid: true };
+            }
+        }
+        return null;
+    }
+
+    // loadPhases is not used in this component, remove it
+    // loadPhases(): void { ... }
 
     loadTaskCategories(): void {
         this.taskCategoryService.getAllTaskCategories().subscribe({
@@ -201,25 +268,41 @@ export class TaskFormComponent implements OnInit {
             xpPoint: task.xpPoint,
             description: task.description,
             assigneeId: task.assigneeId,
-            startDate: task.startDate ? new Date(task.startDate) : null,
-            endDate: task.endDate ? new Date(task.endDate) : null,
+            // Ensure dates are formatted correctly (YYYY-MM-DD) for the input[type=date]
+            startDate: task.startDate ? this.formatDate(new Date(task.startDate)) : '',
+            endDate: task.endDate ? this.formatDate(new Date(task.endDate)) : '',
             priority: task.priority,
+            // Patch taskCategory using the ID
             taskCategory: task.taskCategory?.id || null,
-            status: task.status,
+            // Status is not a form control in the template, no need to patch it here
+            // status: task.status,
             phase: {
                 phaseId: task.phase.phaseId
             }
         });
-        if (task.attachments && task.attachments.length > 0) {
-            const attachmentsFormArray = this.fb.array(task.attachments.map((att) => this.fb.control(att.name)));
-            this.taskForm.setControl('attachments', attachmentsFormArray);
-        }
+        // After patching, trigger validation to show any potential errors based on current phase dates
+        this.taskForm.updateValueAndValidity();
     }
 
     onSubmit(): void {
+        // Mark all controls as touched to display validation errors
+        this.markFormGroupTouched(this.taskForm);
+
+        // Check form validity, including group-level validators
         if (this.taskForm.invalid) {
-            this.markFormGroupTouched(this.taskForm);
-            this.snackBar.open('Veuillez remplir tous les champs obligatoires', 'Fermer', { duration: 3000 });
+            // Optional: Log errors for debugging
+            // console.log('Form is invalid:', this.taskForm.errors);
+            // Object.keys(this.taskForm.controls).forEach(key => {
+            //     const controlErrors = this.taskForm.get(key)?.errors;
+            //     if (controlErrors != null) {
+            //          console.log('Control ' + key + ' has errors:', controlErrors);
+            //     }
+            // });
+            // const groupErrors = this.taskForm.errors;
+            // if (groupErrors != null) {
+            //      console.log('Form group errors:', groupErrors);
+            // }
+            this.snackBar.open('Veuillez corriger les erreurs dans le formulaire', 'Fermer', { duration: 3000 });
             return;
         }
 
@@ -230,7 +313,7 @@ export class TaskFormComponent implements OnInit {
             this.taskService.updateTask(this.taskId, taskData).subscribe({
                 next: () => {
                     this.submitting = false;
-                    this.dialogRef.close(true);
+                    this.dialogRef.close(true); // Close and indicate success
                     this.snackBar.open('Tâche mise à jour avec succès', 'Fermer', { duration: 3000 });
                 },
                 error: (error) => {
@@ -241,10 +324,10 @@ export class TaskFormComponent implements OnInit {
                 }
             });
         } else {
-            this.taskService.createTask(taskData).subscribe({
+            this.taskService.createTask(taskData, this.selectedFile || undefined).subscribe({
                 next: () => {
                     this.submitting = false;
-                    this.dialogRef.close(true);
+                    this.dialogRef.close(true); // Close and indicate success
                     this.snackBar.open('Tâche créée avec succès', 'Fermer', { duration: 3000 });
                 },
                 error: (error) => {
@@ -260,27 +343,25 @@ export class TaskFormComponent implements OnInit {
     prepareTaskData(): Task {
         const formValues = this.taskForm.value;
 
-        // Normalize dates to YYYY-MM-DD using local time
-        const startDate = new Date(formValues.startDate);
-        const endDate = new Date(formValues.endDate);
-        const normalizedStartDate = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
-        const normalizedEndDate = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
-
         return {
             ...(this.isEditMode && this.taskId ? { taskId: this.taskId } : {}),
             title: formValues.title,
             xpPoint: formValues.xpPoint,
             description: formValues.description,
             assigneeId: formValues.assigneeId,
-            startDate: normalizedStartDate,
-            endDate: normalizedEndDate,
+            // Dates are already in YYYY-MM-DD format from the input controls
+            startDate: formValues.startDate,
+            endDate: formValues.endDate,
             priority: formValues.priority,
-            taskCategory: { id: formValues.taskCategory },
-            status: Status.TO_DO,
+            taskCategory: { id: formValues.taskCategory }, // taskCategory should hold the ID from the select
+            // Status is not editable in this form.
+            // For new tasks, default to TO_DO.
+            // For edited tasks, preserve the original task's status.
+            // Access data.task to get the original status in edit mode.
+            status: this.isEditMode && this.data.task ? this.data.task.status : Status.TO_DO,
             phase: {
                 phaseId: formValues.phase.phaseId
-            },
-            attachments: formValues.attachments || []
+            }
         } as Task;
     }
 
@@ -290,35 +371,32 @@ export class TaskFormComponent implements OnInit {
             if (control instanceof FormGroup) {
                 this.markFormGroupTouched(control);
             } else {
+                // Mark control as touched and trigger its own validation (if any)
                 control?.markAsTouched();
+                control?.updateValueAndValidity({ onlySelf: true, emitEvent: true });
             }
         });
+        // After marking all controls, update validity of the group to trigger group validators
+        formGroup.updateValueAndValidity({ onlySelf: false, emitEvent: true }); // Use onlySelf: false to propagate validation status up
     }
 
-    getPhaseName(phaseId: number): string {
-        const phase = this.phases.find((p) => p.phaseId === phaseId);
-        return phase ? phase.phaseName : 'Inconnu';
+    onCancel(): void {
+        this.dialogRef.close(false);
     }
 
-    getErrorMessage(controlName: string): string {
-        const control = this.taskForm.get(controlName);
-        if (control?.hasError('required')) {
-            return 'Ce champ est obligatoire';
-        }
-        if (control?.hasError('min')) {
-            return 'La valeur doit être supérieure ou égale à 0';
-        }
-        return '';
+    // Trigger validation for the end date whenever the start date changes
+    onStartDateChange(event: Event): void {
+        // The group validators will run automatically when startDate changes.
+        // Explicitly updating endDate's validity ensures dateRangeValidator runs
+        // against the newly selected startDate without needing to touch the endDate field.
+        this.taskForm.get('endDate')?.updateValueAndValidity();
+        // Also update form group validity to trigger phase validators immediately
+        this.taskForm.updateValueAndValidity();
     }
 
-    // Attachment handling
-    removeAttachment(index: number): void {
-        const attachments = this.taskForm.get('attachments') as FormArray;
-        attachments.removeAt(index);
-    }
-
-    get attachmentControls(): FormArray {
-        return this.taskForm.get('attachments') as FormArray;
+    // Also trigger validation for the form group whenever the end date changes
+    onEndDateChange(event: Event): void {
+        this.taskForm.updateValueAndValidity();
     }
 
     addAttachment(): void {
@@ -328,11 +406,29 @@ export class TaskFormComponent implements OnInit {
     onFileSelected(event: any): void {
         const files: FileList = event.target.files;
         if (files && files.length > 0) {
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                (this.taskForm.get('attachments') as FormArray).push(this.fb.control(file.name));
-            }
+            this.selectedFile = files[0];
+            this.snackBar.open(`Fichier sélectionné : ${this.selectedFile.name}`, 'Fermer', { duration: 3000 });
         }
-        this.fileInput.nativeElement.value = '';
+        // Clear the input value so the same file can be selected again if needed
+        if (this.fileInput && this.fileInput.nativeElement) {
+            this.fileInput.nativeElement.value = '';
+        }
     }
+
+    removeAttachment(): void {
+        this.selectedFile = null;
+        this.snackBar.open('Pièce jointe supprimée', 'Fermer', { duration: 3000 });
+    }
+
+    getTranslatedPriority(priority: Priority): string {
+        // Assuming PriorityTranslation maps Priority enum values to strings
+        return PriorityTranslation[priority] || priority;
+    }
+
+    // Helper to format Date object to 'YYYY-MM-DD' string required by input[type=date] [min]/[max]
+    private formatDate(date: Date): string {
+        if (!date || isNaN(date.getTime())) return ''; // Handle invalid dates
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+    // The DatePipe is used directly in the template for displaying dates in error messages
 }

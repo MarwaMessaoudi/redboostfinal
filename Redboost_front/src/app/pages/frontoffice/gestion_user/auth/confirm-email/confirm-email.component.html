@@ -19,6 +19,11 @@
         </div>
       </div>
 
+      <!-- Error Message for Incorrect Code -->
+      <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+
       <!-- Submit Button -->
       <button type="submit" class="confirm-button">Confirm Email</button>
     </form>

@@ -1,4 +1,3 @@
-// confirm-email.component.ts
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -15,6 +14,7 @@ import { CommonModule } from '@angular/common';
 export class ConfirmEmailComponent {
   confirmForm: FormGroup;
   email: string = '';
+  errorMessage: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -26,9 +26,13 @@ export class ConfirmEmailComponent {
       code: ['', Validators.required],
     });
 
-    // Get the email from the query parameters
+    // Get email and code from query parameters
     this.route.queryParams.subscribe((params) => {
-      this.email = params['email'];
+      this.email = params['email'] || '';
+      const code = params['code'] || '';
+      if (code) {
+        this.confirmForm.patchValue({ code }); // Prefill the code input
+      }
     });
   }
 
@@ -42,13 +46,14 @@ export class ConfirmEmailComponent {
       code: this.confirmForm.value.code,
     };
 
+    this.errorMessage = null;
+
     this.http.post('http://localhost:8085/Auth/confirm-email', confirmationRequest).subscribe(
       () => {
-        alert('Email confirmed successfully!');
-        this.router.navigate(['/dashboard']); // Navigate to login page after confirmation
+        this.router.navigate(['/signin']);
       },
       (error) => {
-        alert('Invalid confirmation code. Please try again.');
+        this.errorMessage = 'code de confirmation incorrect';
       }
     );
   }

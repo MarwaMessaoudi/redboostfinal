@@ -44,8 +44,8 @@ export class StaffFilterComponent implements OnInit {
                 this.staffTypes = staffTypes;
             },
             error: (error) => {
-                console.error('Error loading staff types:', error);
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load staff types' });
+                console.error('Erreur lors du chargement des types de personnel :', error);
+                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec du chargement des types de personnel' });
             }
         });
     }
@@ -56,32 +56,40 @@ export class StaffFilterComponent implements OnInit {
                 this.attributes = attributes;
             },
             error: (error) => {
-                console.error('Error loading attributes:', error);
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load attributes' });
+                console.error('Erreur lors du chargement des attributs :', error);
+                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec du chargement des attributs' });
             }
         });
     }
 
     filterStaff(): void {
         this.loading = true;
-        console.log('Filtering staff with type IDs:', this.selectedTypeIds);
+        console.log('Filtrage du personnel avec les ID de type :', this.selectedTypeIds);
         this.staffService.filterStaff(this.selectedTypeIds).subscribe({
             next: (staffList) => {
-                console.log('Staff data received:', staffList);
+                console.log('Les données du personnel sont chargés avec avec succès:', staffList);
                 this.staffList = staffList;
                 this.filteredAttributes = this.attributes.filter((attr) => this.selectedAttributeIds.includes(attr.id));
                 this.loading = false;
             },
             error: (error) => {
-                console.error('Error fetching staff data:', error);
+                console.error('Erreur lors de la récupération des données du personnel :', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: 'Failed to load staff data: ' + (error.message || 'Unknown error')
+                    summary: 'Erreur',
+                    detail: 'Échec du chargement des données du personnel : ' + (error.message || 'Erreur inconnue')
                 });
                 this.loading = false;
             }
         });
+    }
+
+    resetFilters(): void {
+        this.selectedTypeIds = [];
+        this.selectedAttributeIds = [];
+        this.staffList = [];
+        this.filteredAttributes = [];
+        this.messageService.add({ severity: 'info', summary: 'Réinitialisé', detail: 'Les filtres ont été réinitialisés.' });
     }
 
     getAttributeValue(staff: Staff, attributeId: number): string {

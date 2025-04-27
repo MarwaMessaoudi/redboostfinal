@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -26,10 +26,21 @@ interface ProductService {
     standalone: true,
     templateUrl: './details-projet.component.html',
     styleUrls: ['./details-projet.component.scss'],
-    imports: [CommonModule, RouterModule, FormsModule, ButtonModule, InputTextModule, DropdownModule, CalendarModule, MessagesModule, ProgressSpinnerModule]
+    imports: [
+        CommonModule,
+        RouterModule,
+        FormsModule,
+        ButtonModule,
+        InputTextModule,
+        DropdownModule,
+        CalendarModule,
+        MessagesModule,
+        ProgressSpinnerModule
+    ]
 })
 export class DetailsProjetComponent implements OnInit {
     projet: Projet | null = null;
+    editProjet: Projet | null = null;
     isEditing: boolean = false;
     isSaving: boolean = false;
     updateMessage: string = '';
@@ -37,7 +48,10 @@ export class DetailsProjetComponent implements OnInit {
     objectives = Object.values(Objectives);
     statuses = Object.values(Statut);
     hoveredItem: number | null = null;
-    hoveredFeature: number | null = null;
+    currentSlide: number = 0;
+    totalSlides: number = 3;
+
+    @ViewChild('carouselTrack') carouselTrack!: ElementRef;
 
     productServices: ProductService[] = [
         {
@@ -66,40 +80,43 @@ export class DetailsProjetComponent implements OnInit {
     ngOnInit(): void {
         const idParam = this.route.snapshot.paramMap.get('id');
         if (idParam) {
-            const id = +idParam;
+            const id = parseInt(idParam, 10);
             if (!isNaN(id)) {
                 this.loadProject(id);
             } else {
-                console.warn('Invalid project ID provided in URL:', idParam);
+                console.error('Invalid project ID:', idParam);
+                this.updateMessage = 'ID de projet invalide.';
                 this.router.navigate(['/affiche-projet']);
             }
         } else {
-            console.warn('No project ID provided in URL');
+            console.error('No project ID provided in URL');
+            this.updateMessage = 'Aucun ID de projet fourni.';
             this.router.navigate(['/affiche-projet']);
         }
     }
 
     loadProject(id: number): void {
         this.projetService.getProjetById(id).subscribe({
-            next: (data) => {
+            next: (data: Projet) => {
                 if (data) {
-                    this.projet = data;
-                    console.log('Project loaded:', data);
+                    this.projet = { ...data };
+                    console.log('Project loaded successfully:', this.projet);
                 } else {
-                    console.warn('No project data received for ID:', id);
+                    console.warn('No project found for ID:', id);
+                    this.updateMessage = 'Aucun projet trouvé.';
                     this.router.navigate(['/affiche-projet']);
                 }
             },
-            error: (error) => {
+            error: (error: any) => {
                 console.error('Error loading project:', error);
                 this.updateMessage = 'Erreur lors du chargement du projet.';
-                this.router.navigate(['/affiche-projet']);
+                setTimeout(() => this.router.navigate(['/affiche-projet']), 2000);
             }
         });
     }
 
     sanitizedImageUrl(url: string | undefined): SafeUrl {
-        if (!url || url === 'null' || url === 'ROLE_USER') {
+        if (!url || url === 'null' || url === '') {
             return this.sanitizer.bypassSecurityTrustUrl('/assets/default-logo.png');
         }
         const baseUrl = 'http://localhost:8085';
@@ -113,8 +130,18 @@ export class DetailsProjetComponent implements OnInit {
         img.onerror = null;
     }
 
-    toggleEdit(): void {
-        this.isEditing = !this.isEditing;
+    openEditPopup(): void {
+        if (this.projet) {
+            this.editProjet = { ...this.projet };
+            this.isEditing = true;
+            this.updateMessage = '';
+            this.logoFile = null;
+        }
+    }
+
+    closeEditPopup(): void {
+        this.isEditing = false;
+        this.editProjet = null;
         this.updateMessage = '';
         this.logoFile = null;
     }
@@ -123,71 +150,100 @@ export class DetailsProjetComponent implements OnInit {
         const input = event.target as HTMLInputElement;
         if (input.files && input.files.length > 0) {
             this.logoFile = input.files[0];
-            console.log('Selected file:', this.logoFile.name);
-        }
-    }
-
-    cancelEdit(): void {
-        this.isEditing = false;
-        this.updateMessage = '';
-        this.logoFile = null;
-        const idParam = this.route.snapshot.paramMap.get('id');
-        if (idParam) {
-            const id = +idParam;
-            this.loadProject(id);
+            console.log('Logo file selected:', this.logoFile.name);
         }
     }
 
     saveChanges(): void {
-        if (this.projet && this.projet.id) {
-            this.isSaving = true;
-            this.updateMessage = '';
+        if (!this.editProjet || !this.projet?.id) {
+            this.updateMessage = 'Aucun projet à sauvegarder.';
+            return;
+        }
 
-            const updatedProjet = new Projet(
-                this.projet.name,
-                this.projet.sector,
-                this.projet.type,
-                this.projet.creationDate,
-                this.projet.description,
-                this.projet.objectives,
-                this.projet.status,
-                this.projet.globalScore,
-                this.projet.location,
-                this.projet.logoUrl,
-                this.projet.websiteUrl,
-                this.projet.revenue,
-                this.projet.numberOfEmployees,
-                this.projet.nbFemaleEmployees,
-                this.projet.lastUpdated,
-                this.projet.associatedSectors,
-                this.projet.technologiesUsed,
-                this.projet.fundingGoal,
-                this.projet.lastEvaluationDate
-            );
+        this.isSaving = true;
+        this.updateMessage = '';
 
-            this.projetService.updateProjet(this.projet.id, updatedProjet, this.logoFile).subscribe({
-                next: (response) => {
-                    this.isSaving = false;
-                    this.isEditing = false;
-                    this.logoFile = null;
-                    this.projet = response;
-                    this.updateMessage = 'Projet mis à jour avec succès!';
-                    console.log('Project updated:', response);
-                    setTimeout(() => (this.updateMessage = ''), 3000);
-                },
-                error: (error) => {
-                    console.error('Error updating project:', error);
-                    this.isSaving = false;
-                    this.updateMessage = 'Erreur lors de la mise à jour du projet.';
-                    if (error.status === 400 && error.error?.message) {
-                        this.updateMessage = error.error.message;
-                    }
-                }
-            });
+        const updatedProjet = new Projet(
+            this.editProjet.name,
+            this.editProjet.sector,
+            this.editProjet.type,
+            this.editProjet.creationDate,
+            this.editProjet.description,
+            this.editProjet.objectives,
+            this.editProjet.status,
+            this.editProjet.globalScore,
+            this.editProjet.location,
+            this.editProjet.logoUrl,
+            this.editProjet.websiteUrl,
+            this.editProjet.revenue,
+            this.editProjet.numberOfEmployees,
+            this.editProjet.nbFemaleEmployees,
+            this.editProjet.lastUpdated,
+            this.editProjet.associatedSectors,
+            this.editProjet.technologiesUsed,
+            this.editProjet.fundingGoal,
+            this.editProjet.lastEvaluationDate
+        );
+
+        this.projetService.updateProjet(this.projet.id, updatedProjet, this.logoFile).subscribe({
+            next: (response: Projet) => {
+                this.isSaving = false;
+                this.isEditing = false;
+                this.logoFile = null;
+                this.projet = { ...response };
+                this.editProjet = null;
+                this.updateMessage = 'Projet mis à jour avec succès !';
+                setTimeout(() => {
+                    this.updateMessage = '';
+                }, 3000);
+            },
+            error: (error: any) => {
+                this.isSaving = false;
+                console.error('Error updating project:', error);
+                this.updateMessage = 'Erreur lors de la mise à jour du projet.';
+                setTimeout(() => {
+                    this.updateMessage = '';
+                }, 3000);
+            }
+        });
+    }
+
+    goBack(): void {
+        this.router.navigate(['/affiche-projet']);
+    }
+
+    navigateTo(path: string): void {
+        this.router.navigate([path]);
+    }
+
+    prevSlide(): void {
+        if (this.currentSlide > 0) {
+            this.currentSlide--;
+        } else {
+            this.currentSlide = this.totalSlides - 1;
+        }
+        this.updateCarousel();
+    }
+
+    nextSlide(): void {
+        if (this.currentSlide < this.totalSlides - 1) {
+            this.currentSlide++;
+        } else {
+            this.currentSlide = 0;
+        }
+        this.updateCarousel();
+    }
+
+    goToSlide(index: number): void {
+        if (index >= 0 && index < this.totalSlides) {
+            this.currentSlide = index;
+            this.updateCarousel();
         }
     }
 
-    navigateTo(route: string): void {
-        this.router.navigate([route]);
+    updateCarousel(): void {
+        const track = this.carouselTrack.nativeElement;
+        const slideWidth = track.querySelector('.carousel-slide').offsetWidth;
+        track.style.transform = `translateX(-${this.currentSlide * slideWidth}px)`;
     }
 }

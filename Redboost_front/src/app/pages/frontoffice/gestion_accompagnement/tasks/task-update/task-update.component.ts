@@ -1,11 +1,11 @@
-import { Component, OnInit, ViewEncapsulation, ElementRef, ViewChild, Input, Output, EventEmitter, Renderer2, SimpleChanges, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, ViewEncapsulation, Input, Output, EventEmitter, SimpleChanges, ChangeDetectorRef } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { TaskService } from '../../../service/task.service';
 import { PhaseService } from '../../../service/phase.service';
 import { TaskCategoryService } from '../../../service/taskCategory.service';
-import { Task, Priority, Status, Attachment, TaskCategory, SubTask, Comment } from '../../../../../models/task';
+import { Task, Priority, Status, Attachment, TaskCategory, SubTask, Comment, PriorityTranslation, StatusTranslation } from '../../../../../models/task';
 import { Phase, PhaseStatus } from '../../../../../models/phase';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatIconModule } from '@angular/material/icon';
@@ -15,6 +15,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { HttpClient } from '@angular/common/http';
+import { User } from '../../../../../models/user';
 
 interface Assignee {
     id: number;
@@ -31,12 +32,14 @@ interface Assignee {
     imports: [CommonModule, FormsModule, RouterModule, ReactiveFormsModule, MatIconModule, MatSnackBarModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatDatepickerModule, MatNativeDateModule],
     templateUrl: './task-update.component.html',
     styleUrls: ['./task-update.component.scss'],
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
+    providers: [DatePipe]
 })
 export class TaskUpdateComponent implements OnInit {
     taskForm!: FormGroup;
     @Input() task: Task | null = null;
     @Input() isOpen: boolean = false;
+    @Input() entrepreneurs: User[] = [];
     @Output() closeEvent = new EventEmitter<boolean>();
     @Output() taskUpdated = new EventEmitter<Task>();
 
@@ -46,14 +49,11 @@ export class TaskUpdateComponent implements OnInit {
     submitting = false;
     error = '';
     priorityOptions = Object.values(Priority);
-    statusOptions = Object.values(Status);
-
-    @ViewChild('fileInput') fileInput!: ElementRef;
-
+    statusOptions: Status[] = [];
     editingTitle: boolean = false;
     editingDescription: boolean = false;
     editingCategory: boolean = false;
-    editingXpPoint: boolean = false; // Added for XP Point editing
+    editingXpPoint: boolean = false;
     showStatusDropdown: boolean = false;
     showPriorityDropdown: boolean = false;
     showAssigneeDropdown: boolean = false;
@@ -67,10 +67,12 @@ export class TaskUpdateComponent implements OnInit {
     editingSubTaskIndex: number | null = null;
     newSubTask: SubTask = { title: '', description: '' };
 
-    minStartDate: string = new Date().toISOString().split('T')[0];
-    minEndDate: string = '';
+    effectiveMinStartDate: string = '';
+    phaseStartDate: string = '';
+    phaseEndDate: string = '';
 
     currentUser: any = null;
+    attachmentName: string | null = null;
 
     constructor(
         private fb: FormBuilder,
@@ -78,19 +80,21 @@ export class TaskUpdateComponent implements OnInit {
         private phaseService: PhaseService,
         private taskCategoryService: TaskCategoryService,
         private snackBar: MatSnackBar,
-        private renderer: Renderer2,
         private cdr: ChangeDetectorRef,
-        private http: HttpClient
+        private http: HttpClient,
+        private datePipe: DatePipe
     ) {}
 
     ngOnInit(): void {
+        this.updateDateConstraints();
         this.initForm();
-        this.updateMinEndDate();
         this.fetchCurrentUser();
+        this.statusOptions = Object.values(Status).filter((status) => status !== Status.VALIDATED);
     }
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['task'] && this.taskForm) {
+            this.updateDateConstraints();
             if (this.task && this.task.taskId) {
                 this.loadTask(this.task.taskId);
             } else {
@@ -108,71 +112,251 @@ export class TaskUpdateComponent implements OnInit {
                         endDate: ''
                     },
                     taskCategory: { id: undefined, name: '' },
-                    startDate: '',
+                    startDate: this.effectiveMinStartDate,
                     endDate: '',
                     subTasks: [],
-                    comments: []
+                    comments: [],
+                    attachment: { name: '', fileId: '' }
                 } as Task;
                 this.patchForm(this.task);
                 this.loading = false;
                 this.cdr.detectChanges();
             }
         }
+        if (changes['entrepreneurs'] && this.entrepreneurs) {
+            this.availableAssignees = this.entrepreneurs.map((user) => ({
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phoneNumber: user.phoneNumber,
+                role: user.role
+            }));
+            this.cdr.detectChanges();
+        }
     }
 
-    initForm(): void {
-        this.taskForm = this.fb.group({
-            title: ['', [Validators.required]],
-            description: [''],
-            comments: [''],
-            priority: [Priority.MEDIUM, [Validators.required]],
-            status: [Status.TO_DO],
-            comment: [''],
-            xpPoint: [0, [Validators.min(0)]],
-            startDate: [null],
-            endDate: [null],
-            assigneeId: [null, [Validators.required]],
-            categoryId: [null]
-        });
-
-        this.taskForm.get('startDate')?.valueChanges.subscribe((startDate) => {
-            this.updateMinEndDate(startDate);
-            this.taskForm.get('endDate')?.updateValueAndValidity();
-        });
-    }
-
-    startDateFilter = (date: Date | null): boolean => {
-        if (!date) return true;
+    updateDateConstraints(): void {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const phaseStart = this.task?.phase?.startDate ? new Date(this.task.phase.startDate) : null;
         const phaseEnd = this.task?.phase?.endDate ? new Date(this.task.phase.endDate) : null;
-        if (phaseStart) phaseStart.setHours(0, 0, 0, 0);
-        if (phaseEnd) phaseEnd.setHours(23, 59, 59, 999);
-        const earliestAllowed = phaseStart && phaseStart > today ? phaseStart : today;
-        return date >= earliestAllowed && (!phaseEnd || date <= phaseEnd);
+
+        if (phaseStart && !isNaN(phaseStart.getTime())) {
+            phaseStart.setHours(0, 0, 0, 0);
+        } else {
+            console.warn('Invalid phase start date:', this.task?.phase?.startDate);
+        }
+
+        if (phaseEnd && !isNaN(phaseEnd.getTime())) {
+            phaseEnd.setHours(0, 0, 0, 0);
+        } else {
+            console.warn('Invalid phase end date:', this.task?.phase?.endDate);
+        }
+
+        let earliestAllowedStart = today;
+        if (phaseStart && !isNaN(phaseStart.getTime()) && phaseStart > today) {
+            earliestAllowedStart = phaseStart;
+        }
+
+        this.effectiveMinStartDate = this.formatDate(earliestAllowedStart);
+        this.phaseStartDate = phaseStart && !isNaN(phaseStart.getTime()) ? this.formatDate(phaseStart) : '';
+        this.phaseEndDate = phaseEnd && !isNaN(phaseEnd.getTime()) ? this.formatDate(phaseEnd) : '';
+
+        console.log('Date Constraints:', {
+            effectiveMinStartDate: this.effectiveMinStartDate,
+            phaseStartDate: this.phaseStartDate,
+            phaseEndDate: this.phaseEndDate
+        });
+
+        // Force form validation update
+        if (this.taskForm) {
+            this.taskForm.get('startDate')?.updateValueAndValidity();
+            this.taskForm.get('endDate')?.updateValueAndValidity();
+            this.taskForm.updateValueAndValidity();
+        }
+        this.cdr.detectChanges();
+    }
+
+    initForm(): void {
+        this.taskForm = this.fb.group(
+            {
+                title: ['', [Validators.required]],
+                description: [''],
+                comments: [''],
+                priority: [Priority.MEDIUM],
+                status: [Status.TO_DO],
+                comment: [''],
+                xpPoint: [0, [Validators.min(0)]],
+                startDate: [null, [Validators.required]],
+                endDate: [null, [Validators.required]],
+                assigneeId: [null],
+                categoryId: [null]
+            },
+            {
+                validators: [this.dateRangeValidator.bind(this), this.startDatePhaseValidator.bind(this), this.endDatePhaseValidator.bind(this)]
+            }
+        );
+    }
+
+    startDateFilter = (date: Date | null): boolean => {
+        if (!date) return true;
+        date.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const phaseStart = this.task?.phase?.startDate ? new Date(this.task.phase.startDate) : null;
+        const phaseEnd = this.task?.phase?.endDate ? new Date(this.task.phase.endDate) : null;
+
+        const validPhaseStart = phaseStart && !isNaN(phaseStart.getTime()) ? phaseStart : null;
+        const validPhaseEnd = phaseEnd && !isNaN(phaseEnd.getTime()) ? phaseEnd : null;
+
+        if (validPhaseStart) validPhaseStart.setHours(0, 0, 0, 0);
+        if (validPhaseEnd) validPhaseEnd.setHours(0, 0, 0, 0);
+
+        const earliestAllowed = validPhaseStart && validPhaseStart > today ? validPhaseStart : today;
+
+        const isValid = date >= earliestAllowed && (!validPhaseEnd || date <= validPhaseEnd);
+
+        console.log('startDateFilter:', {
+            inputDate: this.formatDate(date),
+            earliestAllowed: this.formatDate(earliestAllowed),
+            phaseEnd: validPhaseEnd ? this.formatDate(validPhaseEnd) : 'undefined',
+            isValid
+        });
+
+        return isValid;
     };
 
     endDateFilter = (date: Date | null): boolean => {
         if (!date) return true;
+        date.setHours(0, 0, 0, 0);
+
         const startDate = this.taskForm.get('startDate')?.value;
+        const phaseStart = this.task?.phase?.startDate ? new Date(this.task.phase.startDate) : null;
         const phaseEnd = this.task?.phase?.endDate ? new Date(this.task.phase.endDate) : null;
-        if (phaseEnd) phaseEnd.setHours(23, 59, 59, 999);
+
+        const validPhaseStart = phaseStart && !isNaN(phaseStart.getTime()) ? phaseStart : null;
+        const validPhaseEnd = phaseEnd && !isNaN(phaseEnd.getTime()) ? phaseEnd : null;
+
+        if (validPhaseStart) validPhaseStart.setHours(0, 0, 0, 0);
+        if (validPhaseEnd) validPhaseEnd.setHours(0, 0, 0, 0);
+
         const start = startDate ? new Date(startDate) : null;
-        if (start) start.setHours(0, 0, 0, 0);
-        const earliestAllowed = start || new Date();
-        return date >= earliestAllowed && (!phaseEnd || date <= phaseEnd);
+        if (start && !isNaN(start.getTime())) start.setHours(0, 0, 0, 0);
+
+        const earliestAllowed = start && validPhaseStart && start < validPhaseStart ? validPhaseStart : start || validPhaseStart || new Date();
+        earliestAllowed.setHours(0, 0, 0, 0);
+
+        const isValid = date >= earliestAllowed && (!validPhaseEnd || date <= validPhaseEnd);
+
+        console.log('endDateFilter:', {
+            inputDate: this.formatDate(date),
+            earliestAllowed: this.formatDate(earliestAllowed),
+            phaseEnd: validPhaseEnd ? this.formatDate(validPhaseEnd) : 'undefined',
+            isValid
+        });
+
+        return isValid;
     };
+
+    startDatePhaseValidator(group: FormGroup): { [key: string]: any } | null {
+        const startDate = group.get('startDate')?.value;
+        if (!startDate) return null;
+
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const phaseStart = this.task?.phase?.startDate ? new Date(this.task.phase.startDate) : null;
+        const phaseEnd = this.task?.phase?.endDate ? new Date(this.task.phase.endDate) : null;
+
+        const validPhaseStart = phaseStart && !isNaN(phaseStart.getTime()) ? phaseStart : null;
+        const validPhaseEnd = phaseEnd && !isNaN(phaseEnd.getTime()) ? phaseEnd : null;
+
+        if (validPhaseStart) validPhaseStart.setHours(0, 0, 0, 0);
+        if (validPhaseEnd) validPhaseEnd.setHours(0, 0, 0, 0);
+
+        let earliestAllowedStart = today;
+        if (validPhaseStart && validPhaseStart > today) {
+            earliestAllowedStart = validPhaseStart;
+        }
+
+        if (start < earliestAllowedStart) {
+            return { invalidStartDateEarly: { requiredAfter: this.formatDate(earliestAllowedStart) } };
+        }
+
+        if (validPhaseEnd && start > validPhaseEnd) {
+            return { startDateAfterPhaseEnd: { requiredBefore: this.formatDate(validPhaseEnd) } };
+        }
+
+        return null;
+    }
+
+    endDatePhaseValidator(group: FormGroup): { [key: string]: any } | null {
+        const endDate = group.get('endDate')?.value;
+        if (!endDate) return null;
+
+        const end = new Date(endDate);
+        end.setHours(0, 0, 0, 0);
+
+        const phaseStart = this.task?.phase?.startDate ? new Date(this.task.phase.startDate) : null;
+        const phaseEnd = this.task?.phase?.endDate ? new Date(this.task.phase.endDate) : null;
+
+        const validPhaseStart = phaseStart && !isNaN(phaseStart.getTime()) ? phaseStart : null;
+        const validPhaseEnd = phaseEnd && !isNaN(phaseEnd.getTime()) ? phaseEnd : null;
+
+        if (validPhaseStart) validPhaseStart.setHours(0, 0, 0, 0);
+        if (validPhaseEnd) validPhaseEnd.setHours(0, 0, 0, 0);
+
+        if (validPhaseEnd && end > validPhaseEnd) {
+            return { endDateAfterPhaseEnd: { requiredBefore: this.formatDate(validPhaseEnd) } };
+        }
+
+        if (validPhaseStart && end < validPhaseStart) {
+            return { endDateBeforePhaseStart: { requiredAfter: this.formatDate(validPhaseStart) } };
+        }
+
+        return null;
+    }
+
+    dateRangeValidator(group: FormGroup): { [key: string]: any } | null {
+        const startDate = group.get('startDate')?.value;
+        const endDate = group.get('endDate')?.value;
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(0, 0, 0, 0);
+
+            if (start > end) {
+                return { dateRangeInvalid: true };
+            }
+        }
+        return null;
+    }
 
     fetchCurrentUser(): void {
         this.http.get('http://localhost:8085/users/profile').subscribe({
             next: (response: any) => {
                 this.currentUser = response;
                 console.log('Current user fetched:', this.currentUser);
+                if (this.currentUser?.role === 'COACH') {
+                    this.statusOptions = Object.values(Status);
+                } else {
+                    this.statusOptions = Object.values(Status).filter((status) => status !== Status.VALIDATED);
+                }
+                this.cdr.detectChanges();
             },
             error: (error) => {
                 console.error('Failed to fetch current user:', error);
                 this.snackBar.open('Failed to fetch user profile', 'Close', { duration: 3000 });
+                this.statusOptions = Object.values(Status).filter((status) => status !== Status.VALIDATED);
+                this.cdr.detectChanges();
             }
         });
     }
@@ -186,9 +370,21 @@ export class TaskUpdateComponent implements OnInit {
                 this.comments = task.comments || [];
                 this.patchForm(task);
                 this.selectedCategoryId = task.taskCategoryId;
-                const projetId = task.phase?.projetId ?? 1;
-                this.loadTaskAssignees(projetId);
+                this.availableAssignees = this.entrepreneurs.map((user) => ({
+                    id: user.id,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    email: user.email,
+                    phoneNumber: user.phoneNumber,
+                    role: user.role
+                }));
                 this.loadAvailableCategories();
+                if (task.attachment?.fileId) {
+                    this.fetchAttachmentName(task.attachment.fileId);
+                } else {
+                    this.attachmentName = null;
+                }
+                this.updateDateConstraints(); // Recompute date constraints after loading task
                 this.loading = false;
                 this.cdr.detectChanges();
             },
@@ -202,8 +398,8 @@ export class TaskUpdateComponent implements OnInit {
     }
 
     patchForm(task: Task): void {
-        const startDate = task.startDate ? new Date(task.startDate) : null;
-        const endDate = task.endDate ? new Date(task.endDate) : null;
+        const startDate = task.startDate ? this.formatDate(new Date(task.startDate)) : null;
+        const endDate = task.endDate ? this.formatDate(new Date(task.endDate)) : null;
 
         this.taskForm.patchValue(
             {
@@ -223,32 +419,11 @@ export class TaskUpdateComponent implements OnInit {
         );
 
         if (this.task) {
-            this.task.startDate = startDate?.toISOString().split('T')[0] || '';
-            this.task.endDate = endDate?.toISOString().split('T')[0] || '';
+            this.task.startDate = startDate || '';
+            this.task.endDate = endDate || '';
         }
+        this.taskForm.updateValueAndValidity();
         this.cdr.detectChanges();
-    }
-
-    updateMinEndDate(startDate: Date | string | null = this.taskForm.get('startDate')?.value): void {
-        if (startDate instanceof Date) {
-            this.minEndDate = startDate.toISOString().split('T')[0];
-        } else if (typeof startDate === 'string' && startDate.length === 10) {
-            this.minEndDate = startDate;
-        } else {
-            this.minEndDate = this.minStartDate;
-        }
-    }
-
-    loadTaskAssignees(projectId: number): void {
-        this.phaseService.getEntrepreneursByProject(projectId).subscribe({
-            next: (entrepreneurs) => {
-                this.availableAssignees = entrepreneurs;
-                this.cdr.detectChanges();
-            },
-            error: (error) => {
-                this.snackBar.open('Failed to load assignees', 'Close', { duration: 3000 });
-            }
-        });
     }
 
     loadAvailableCategories(): void {
@@ -275,10 +450,17 @@ export class TaskUpdateComponent implements OnInit {
         return category ? category.name : 'Catégorie inconnue';
     }
 
+    getAssigneeName(assigneeId: number | undefined): string {
+        if (!assigneeId) return 'Aucun responsable';
+        const assignee = this.availableAssignees.find((a) => a.id === assigneeId);
+        return assignee ? `${assignee.firstName} ${assignee.lastName}` : 'Aucun responsable';
+    }
+
     onSubmit(): void {
+        this.markFormGroupTouched(this.taskForm);
+
         if (this.taskForm.invalid) {
-            this.markFormGroupTouched(this.taskForm);
-            this.snackBar.open('Please fill in all required fields', 'Close', { duration: 3000 });
+            this.snackBar.open('Veuillez corriger les erreurs dans le formulaire', 'Fermer', { duration: 3000 });
             return;
         }
 
@@ -305,47 +487,27 @@ export class TaskUpdateComponent implements OnInit {
                     this.cdr.detectChanges();
                 }
             });
-        } else {
-            this.taskService.createTask(taskData).subscribe({
-                next: (newTask) => {
-                    this.submitting = false;
-                    this.task = newTask;
-                    this.subTasks = newTask.subTasks || [];
-                    this.comments = newTask.comments || [];
-                    this.taskUpdated.emit(newTask);
-                    this.close();
-                    this.snackBar.open('Task created successfully', 'Close', { duration: 3000 });
-                },
-                error: (error) => {
-                    this.error = 'Failed to create task. Please try again later.';
-                    this.submitting = false;
-                    this.snackBar.open('Failed to create task', 'Close', { duration: 3000 });
-                    this.cdr.detectChanges();
-                }
-            });
         }
     }
 
     prepareTaskData(): Task {
         const formValues = this.taskForm.value;
-        const selectedCategory = this.availableCategories.find((cat) => cat.id === this.selectedCategoryId);
 
         return {
-            ...(this.task && this.task.taskId ? { taskId: this.task.taskId } : {}),
+            taskId: this.task?.taskId,
             title: formValues.title,
-            description: formValues.description,
-            priority: formValues.priority,
-            status: formValues.status,
-            phase: this.task?.phase,
-            taskCategoryId: this.selectedCategoryId,
-            taskCategory: selectedCategory || this.task?.taskCategory,
-            attachments: this.task?.attachments,
-            xpPoint: formValues.xpPoint,
-            startDate: formValues.startDate ? formValues.startDate.toISOString().split('T')[0] : undefined,
-            endDate: formValues.endDate ? formValues.endDate.toISOString().split('T')[0] : undefined,
-            assigneeId: formValues.assigneeId,
-            subTasks: this.subTasks,
-            comments: this.comments
+            description: formValues.description || '',
+            priority: formValues.priority || 'MEDIUM',
+            status: formValues.status || 'TO_DO',
+            taskCategoryId: this.selectedCategoryId || null,
+            xpPoint: formValues.xpPoint || 0,
+            startDate: formValues.startDate || null,
+            endDate: formValues.endDate || null,
+            assigneeId: formValues.assigneeId || null,
+            subTasks: this.subTasks || [],
+            comments: this.comments || [],
+            attachment: this.task?.attachment || null,
+            phase: this.task?.phase || { phaseId: 1 }
         } as Task;
     }
 
@@ -356,8 +518,10 @@ export class TaskUpdateComponent implements OnInit {
                 this.markFormGroupTouched(control);
             } else {
                 control?.markAsTouched();
+                control?.updateValueAndValidity({ onlySelf: true, emitEvent: true });
             }
         });
+        formGroup.updateValueAndValidity({ onlySelf: false, emitEvent: true });
     }
 
     deleteTask(): void {
@@ -515,12 +679,6 @@ export class TaskUpdateComponent implements OnInit {
         this.editingCategory = false;
     }
 
-    getAssigneeName(assigneeId: number | undefined): string {
-        if (!assigneeId) return 'Aucun responsable';
-        const assignee = this.availableAssignees.find((a) => a.id === assigneeId);
-        return assignee ? `${assignee.firstName} ${assignee.lastName}` : 'Aucun responsable';
-    }
-
     addComment(): void {
         const commentValue = this.taskForm.value.comment;
         if (!commentValue?.trim() || !this.task?.taskId || !this.currentUser) {
@@ -552,77 +710,37 @@ export class TaskUpdateComponent implements OnInit {
     }
 
     trackByAttachments(index: number, attachment: Attachment): string {
-        return attachment.name;
-    }
-
-    downloadAttachment(attachment: Attachment) {
-        if (!this.task?.taskId) return;
-        this.taskService.downloadAttachment(this.task.taskId, attachment.name).subscribe({
-            next: (blob: Blob) => {
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = attachment.name;
-                link.click();
-                window.URL.revokeObjectURL(url);
-            },
-            error: (err) => {
-                this.snackBar.open('Failed to download attachment.', 'Close', { duration: 3000 });
-            }
-        });
-    }
-
-    deleteAttachment(attachment: Attachment) {
-        if (!this.task || !this.task.taskId) return;
-
-        this.task.attachments = this.task.attachments?.filter((att) => att.name !== attachment.name) || [];
-
-        this.loading = true;
-        this.taskService.updateTask(this.task.taskId, this.task).subscribe({
-            next: (updatedTask) => {
-                this.task = updatedTask;
-                this.loading = false;
-                this.taskUpdated.emit(updatedTask);
-                this.snackBar.open('Attachment deleted successfully.', 'Close', { duration: 2000 });
-                this.cdr.detectChanges();
-            },
-            error: (err) => {
-                this.loading = false;
-                this.snackBar.open('Failed to delete attachment.', 'Close', { duration: 3000 });
-                this.taskService.getTaskById(this.task!.taskId!).subscribe((task) => {
-                    this.task = task;
-                    this.patchForm(task);
-                    this.cdr.detectChanges();
-                });
-            }
-        });
+        return attachment.fileId || attachment.name || '';
     }
 
     saveStartDate(): void {
         if (this.task) {
             const startDate = this.taskForm.value.startDate;
-            this.task.startDate = startDate ? startDate.toISOString().split('T')[0] : '';
+            this.task.startDate = startDate ? this.formatDate(new Date(startDate)) : '';
+            this.taskForm.get('endDate')?.updateValueAndValidity();
+            this.taskForm.updateValueAndValidity();
             this.onSubmit();
-        }
-    }
-
-    cancelEditStartDate(): void {
-        if (this.task) {
-            this.taskForm.patchValue({ startDate: this.task.startDate ? new Date(this.task.startDate) : null });
         }
     }
 
     saveEndDate(): void {
         if (this.task) {
             const endDate = this.taskForm.value.endDate;
-            this.task.endDate = endDate ? endDate.toISOString().split('T')[0] : '';
+            this.task.endDate = endDate ? this.formatDate(new Date(endDate)) : '';
+            this.taskForm.updateValueAndValidity();
             this.onSubmit();
+        }
+    }
+
+    cancelEditStartDate(): void {
+        if (this.task) {
+            this.taskForm.patchValue({ startDate: this.task.startDate ? this.formatDate(new Date(this.task.startDate)) : null });
         }
     }
 
     cancelEditEndDate(): void {
         if (this.task) {
-            this.taskForm.patchValue({ endDate: this.task.endDate ? new Date(this.task.endDate) : null });
+            this.taskForm.patchValue({ endDate: this.task.endDate ? this.formatDate(new Date(this.task.endDate)) : null });
         }
     }
 
@@ -656,5 +774,62 @@ export class TaskUpdateComponent implements OnInit {
     deleteSubTask(index: number): void {
         this.subTasks.splice(index, 1);
         this.onSubmit();
+    }
+
+    fetchAttachmentName(fileId: string): void {
+        this.http.get(`http://localhost:8085/api/drive/files/${fileId}/name`).subscribe({
+            next: (response: any) => {
+                this.attachmentName = response.name || 'Unknown File';
+                if (this.task && this.task.attachment) {
+                    this.task.attachment.name = this.attachmentName || 'Unknown File';
+                }
+                this.cdr.detectChanges();
+            },
+            error: (error) => {
+                console.error('Failed to fetch attachment name:', error);
+                this.attachmentName = 'Unknown File';
+                if (this.task) {
+                    this.task.attachment.name = this.attachmentName;
+                }
+                this.snackBar.open('Failed to fetch attachment name', 'Close', { duration: 3000 });
+                this.cdr.detectChanges();
+            }
+        });
+    }
+
+    downloadAttachment(): void {
+        if (!this.task?.taskId || !this.task.attachment?.fileId) {
+            this.snackBar.open('No attachment available for download.', 'Close', { duration: 3000 });
+            return;
+        }
+        this.taskService.downloadAttachment(this.task.taskId).subscribe({
+            next: (blob: Blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = this.attachmentName || 'attachment';
+                link.click();
+                window.URL.revokeObjectURL(url);
+                this.snackBar.open('Attachment downloaded successfully.', 'Close', { duration: 3000 });
+            },
+            error: (err) => {
+                console.error('Failed to download attachment:', err);
+                this.snackBar.open('Failed to download attachment.', 'Close', { duration: 3000 });
+            }
+        });
+    }
+
+    getTranslatedPriority(priority: Priority): string {
+        return PriorityTranslation[priority] || priority;
+    }
+
+    getTranslatedStatus(status: Status | undefined): string {
+        if (!status) return '';
+        return StatusTranslation[status] || status;
+    }
+
+    private formatDate(date: Date): string {
+        if (!date || isNaN(date.getTime())) return '';
+        return this.datePipe.transform(date, 'yyyy-MM-dd') || '';
     }
 }

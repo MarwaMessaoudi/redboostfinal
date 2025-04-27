@@ -64,7 +64,7 @@ public class User implements UserDetails {
     private String refreshToken; // Field to store the refresh token
 
 
-    //to avoid adding this attribute to the database
+    //to avoid adding this attribute to the database so i can validate it
     @Transient
     private String confirm_password;
 
@@ -91,6 +91,10 @@ public class User implements UserDetails {
 
     @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
+
+    public boolean isActive() {
+        return isActive;
+    }
 
     private boolean isActive = false;
     // OAuth2 fields
@@ -167,4 +171,6 @@ public class User implements UserDetails {
     public Object getRoleName() {
         return role;
     }
+
+
 }

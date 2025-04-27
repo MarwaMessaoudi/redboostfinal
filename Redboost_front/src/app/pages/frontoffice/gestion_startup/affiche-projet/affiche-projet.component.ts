@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { Observable, Subject, of } from 'rxjs';
+import { Observable, Subject, of, forkJoin } from 'rxjs';
 import { ProjetService } from '../../service/projet-service.service';
+import { UserService } from '../../service/UserService';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +18,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { Projet } from '../../../../models/Projet';
 import { catchError, debounceTime, map, shareReplay, tap } from 'rxjs/operators';
 import Swal from 'sweetalert2';
+import { CoachListComponent } from '../rendezvous/CoachlistComponent';
 
 interface ProjectContacts {
     founder: User | null;
@@ -31,6 +33,7 @@ interface User {
     role: string;
     firstName?: string;
     lastName?: string;
+    profilePictureUrl?: string | null;
 }
 
 interface PendingInvitation {
@@ -43,7 +46,7 @@ interface PendingInvitation {
 @Component({
     selector: 'app-affiche-projet',
     standalone: true,
-    imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule, RouterModule, MatTooltipModule, MatTabsModule],
+    imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule, RouterModule, MatTooltipModule, MatTabsModule, CoachListComponent],
     templateUrl: './affiche-projet.component.html',
     styleUrls: ['./affiche-projet.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -64,10 +67,14 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     private searchSubject = new Subject<string>();
     imageErrorCount: { [key: string]: number } = {};
     imageLoadStatus: { [key: string]: 'loaded' | 'failed' | 'loading' } = {};
-    defaultImage = '/assets/images/default-logo.png'; // Ensure this file exists in src/assets/images
+    avatarErrorCount: { [key: string]: number } = {};
+    defaultImage = '/assets/images/default-logo.png';
+    defaultAvatar = 'https://via.placeholder.com/80?text=User'; // Placeholder to avoid 404
+    baseUrl = 'http://localhost:8085';
 
     constructor(
         private projetService: ProjetService,
+        private userService: UserService,
         private sanitizer: DomSanitizer,
         private router: Router,
         private cdr: ChangeDetectorRef
@@ -117,9 +124,11 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                 });
             }),
             catchError((error) => {
-                if (error.status === 401) {
-                    this.router.navigate(['/login']);
-                }
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur!',
+                    text: 'Échec du chargement des projets.'
+                });
                 return of([]);
             }),
             shareReplay(1)
@@ -144,18 +153,87 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     }
 
     loadProjectContacts(projets: Projet[]) {
+        this.avatarErrorCount = {}; // Reset to prevent stale errors
         projets.forEach((projet) => {
             const projectId = projet.id ?? 0;
             if (projectId) {
                 this.projetService.getProjectContacts(projectId).subscribe({
                     next: (contacts) => {
-                        this.projetContacts[projectId] = {
+                        const projectContacts: ProjectContacts = {
                             founder: contacts.founder,
                             entrepreneurs: contacts.entrepreneurs || [],
                             coaches: contacts.coaches || [],
                             investors: contacts.investors || []
                         };
-                        this.cdr.markForCheck();
+                        console.log(`Project ${projectId} Initial Contacts:`, projectContacts);
+
+                        // Collect all user IDs to fetch profiles
+                        const userIds: number[] = [];
+                        if (projectContacts.founder?.id) userIds.push(projectContacts.founder.id);
+                        projectContacts.entrepreneurs.forEach((user) => user.id && userIds.push(user.id));
+                        projectContacts.coaches.forEach((user) => user.id && userIds.push(user.id));
+                        projectContacts.investors.forEach((user) => user.id && userIds.push(user.id));
+                        console.log(`Project ${projectId} User IDs to fetch:`, userIds);
+
+                        // Fetch all user profiles in a single batch
+                        if (userIds.length > 0) {
+                            forkJoin(
+                                userIds.map((id) =>
+                                    this.userService.getUserById(id).pipe(
+                                        tap((profile) => console.log(`Fetched profile for user ${id}:`, profile)),
+                                        catchError((err) => {
+                                            console.error(`Failed to load profile for user ${id}:`, err);
+                                            return of(null);
+                                        })
+                                    )
+                                )
+                            ).subscribe((profiles) => {
+                                const profileMap = new Map<number, User>();
+                                profiles.forEach((profile, index) => {
+                                    if (profile && profile.id) {
+                                        profileMap.set(userIds[index], profile);
+                                    }
+                                });
+                                console.log(`Project ${projectId} Profile Map:`, Array.from(profileMap.entries()));
+
+                                // Update founder
+                                if (projectContacts.founder?.id) {
+                                    const profile = profileMap.get(projectContacts.founder.id);
+                                    if (profile) {
+                                        projectContacts.founder = {
+                                            ...projectContacts.founder,
+                                            profilePictureUrl: profile.profilePictureUrl || projectContacts.founder.profilePictureUrl
+                                        };
+                                    }
+                                }
+
+                                // Update entrepreneurs
+                                projectContacts.entrepreneurs = projectContacts.entrepreneurs.map((user) => {
+                                    const profile = user.id ? profileMap.get(user.id) : null;
+                                    return profile ? { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl } : user;
+                                });
+
+                                // Update coaches
+                                projectContacts.coaches = projectContacts.coaches.map((user) => {
+                                    const profile = user.id ? profileMap.get(user.id) : null;
+                                    return profile ? { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl } : user;
+                                });
+
+                                // Update investors
+                                projectContacts.investors = projectContacts.investors.map((user) => {
+                                    const profile = user.id ? profileMap.get(user.id) : null;
+                                    return profile ? { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl } : user;
+                                });
+
+                                this.projetContacts[projectId] = projectContacts;
+                                console.log(`Project ${projectId} Updated Contacts:`, this.projetContacts[projectId]);
+                                this.cdr.detectChanges(); // Force change detection
+                            });
+                        } else {
+                            this.projetContacts[projectId] = projectContacts;
+                            console.log(`Project ${projectId} Contacts (No Users):`, this.projetContacts[projectId]);
+                            this.cdr.detectChanges();
+                        }
                     },
                     error: (error) => {
                         console.error(`Failed to load contacts for project ${projectId}:`, error);
@@ -165,7 +243,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                             coaches: [],
                             investors: []
                         };
-                        this.cdr.markForCheck();
+                        this.cdr.detectChanges();
                     }
                 });
             }
@@ -245,13 +323,25 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     }
 
     sanitizedImageUrl(url: string | null | undefined): SafeUrl {
-        const baseUrl = 'http://localhost:8085';
         if (!url || url === 'null' || url.trim() === '' || this.imageLoadStatus[url] === 'failed') {
             return this.defaultImage;
         }
-        const fullUrl = url.startsWith('http') ? url : `${baseUrl}${url}`;
+        const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}/Uploads${url}`;
         this.imageLoadStatus[fullUrl] = 'loading';
         return this.sanitizer.bypassSecurityTrustUrl(fullUrl);
+    }
+
+    getUserAvatar(user: User | null): SafeUrl {
+        if (!user) {
+            console.warn('No user provided for avatar');
+            return this.defaultAvatar;
+        }
+        if (!user.profilePictureUrl || (user.profilePictureUrl && this.avatarErrorCount[user.profilePictureUrl])) {
+            console.warn(`No valid profilePictureUrl for user ${user.id}, profilePictureUrl: ${user.profilePictureUrl || 'null/undefined'}, errorCount: ${user.profilePictureUrl ? this.avatarErrorCount[user.profilePictureUrl] || 0 : 0}`);
+            return this.defaultAvatar;
+        }
+        console.log(`Loading avatar for user ${user.id}: ${user.profilePictureUrl}`);
+        return this.sanitizer.bypassSecurityTrustUrl(user.profilePictureUrl);
     }
 
     onImageError(event: Event) {
@@ -264,6 +354,20 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
         this.imageLoadStatus[src] = 'failed';
         img.src = this.defaultImage;
         img.onerror = null;
+        console.warn(`Project logo load failed for ${src}, using default: ${this.defaultImage}`);
+        this.cdr.markForCheck();
+    }
+
+    onAvatarError(event: Event) {
+        const img = event.target as HTMLImageElement;
+        const src = img.src;
+        if (this.avatarErrorCount[src]) {
+            return;
+        }
+        this.avatarErrorCount[src] = 1;
+        img.src = this.defaultAvatar;
+        img.onerror = null;
+        console.warn(`Avatar load failed for ${src}, using default: ${this.defaultAvatar}`);
         this.cdr.markForCheck();
     }
 
@@ -292,12 +396,13 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                         });
                         this.loadProjects();
                     },
-                    error: () =>
+                    error: (error) => {
                         Swal.fire({
                             icon: 'error',
                             title: 'Erreur!',
-                            text: 'Échec de la suppression.'
-                        })
+                            text: error.message || 'Échec de la suppression.'
+                        });
+                    }
                 });
             }
         });
@@ -313,7 +418,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
             return;
         }
         this.projetService.acceptInvitation(projetId, this.currentUserId).subscribe({
-            next: (response) => {
+            next: () => {
                 Swal.fire({
                     icon: 'success',
                     title: 'Succès!',
@@ -323,14 +428,10 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                 this.loadProjects();
             },
             error: (error) => {
-                let errorMessage = typeof error.message === 'string' ? error.message : error.error?.message || "Échec de l'acceptation de l'invitation.";
-                if (error.status === 400) {
-                    errorMessage = typeof error.error === 'string' ? error.error : error.error?.message || 'Requête invalide. Vérifiez que vous êtes autorisé à accepter cette invitation.';
-                }
                 Swal.fire({
                     icon: 'error',
                     title: 'Erreur!',
-                    text: errorMessage
+                    text: error.message || "Échec de l'acceptation de l'invitation."
                 });
             }
         });
@@ -413,7 +514,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Succès!',
-                                    text: 'Invitation envoyée avec succès! Le collaborateur sera notifié.'
+                                    text: 'Invitation envoyée avec succès!'
                                 });
                                 this.loadProjects();
                                 this.loadPendingInvitations();
@@ -443,33 +544,58 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
         return index % 2 === 0 ? 'card-red-border' : 'card-blue-border';
     }
 
-    getFounderEmail(projectId: number | undefined): string {
-        if (!projectId || !this.projetContacts[projectId]?.founder) return '';
-        const founder = this.projetContacts[projectId].founder;
-        return `${founder.firstName || ''} ${founder.lastName || ''} (${founder.email || ''})`.trim();
-    }
-
-    getEntrepreneursEmails(projectId: number | undefined): string {
-        if (!projectId || !this.projetContacts[projectId]?.entrepreneurs?.length) return '';
-        return this.projetContacts[projectId].entrepreneurs.map((u) => `${u.firstName || ''} ${u.lastName || ''} (${u.email || ''})`.trim()).join(', ');
-    }
-
-    getCoachesEmails(projectId: number | undefined): string {
-        if (!projectId || !this.projetContacts[projectId]?.coaches?.length) return '';
-        return this.projetContacts[projectId].coaches.map((u) => `${u.firstName || ''} ${u.lastName || ''} (${u.email || ''})`.trim()).join(', ');
-    }
-
-    getInvestorsEmails(projectId: number | undefined): string {
-        if (!projectId || !this.projetContacts[projectId]?.investors?.length) return '';
-        return this.projetContacts[projectId].investors.map((u) => `${u.firstName || ''} ${u.lastName || ''} (${u.email || ''})`.trim()).join(', ');
-    }
-
     getUserName(user: User | null): string {
-        if (!user) return '';
+        if (!user) return 'N/A';
         return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email.split('@')[0];
+    }
+
+    groupUsersByEmail(contacts: ProjectContacts): { users: User[]; roles: string[] }[] {
+        const userMap = new Map<string, { users: User[]; roles: string[] }>();
+
+        // Helper function to add a user to the map
+        const addUserToMap = (user: User, role: string) => {
+            if (!user || !user.email) return;
+            const email = user.email;
+            if (!userMap.has(email)) {
+                userMap.set(email, { users: [user], roles: [role] });
+            } else {
+                const entry = userMap.get(email)!;
+                if (!entry.roles.includes(role)) {
+                    entry.roles.push(role);
+                }
+            }
+        };
+
+        // Add founder
+        if (contacts.founder) {
+            addUserToMap(contacts.founder, 'Fondateur');
+        }
+
+        // Add entrepreneurs
+        contacts.entrepreneurs?.forEach((user) => addUserToMap(user, 'Entrepreneur'));
+
+        // Add coaches
+        contacts.coaches?.forEach((user) => addUserToMap(user, 'Coach'));
+
+        // Add investors
+        contacts.investors?.forEach((user) => addUserToMap(user, 'Investisseur'));
+
+        return Array.from(userMap.values());
     }
 
     navigateToCreateProject() {
         this.router.navigate(['/addprojet']);
+    }
+
+    navigateToDocuments(projectId: number | undefined) {
+        if (!projectId || projectId === 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erreur!',
+                text: 'ID du projet non défini.'
+            });
+            return;
+        }
+        this.router.navigate([`/projects/${projectId}/documents`]);
     }
 }

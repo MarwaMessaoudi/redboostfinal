@@ -26,27 +26,70 @@ export class TaskService {
         return this.http.get<Task>(`${this.apiUrl}/${id}`).pipe(map((task) => this.transformTask(task)));
     }
 
-    createTask(task: Task): Observable<Task> {
-        const taskToSend = {
-            ...task,
-            attachments: task.attachments?.map((attachment) => attachment.name) || [],
-            taskCategory: { id: task.taskCategory?.id ?? task.taskCategoryId },
+    createTask(task: Task, attachment?: File): Observable<Task> {
+        const formData = new FormData();
+        const taskJsonPart = {
+            title: task.title,
+            xpPoint: task.xpPoint,
+            description: task.description,
+            assigneeId: task.assigneeId,
+            startDate: task.startDate,
+            endDate: task.endDate,
+            priority: task.priority,
+            status: task.status,
+            phase: task.phase?.phaseId !== undefined ? { phaseId: task.phase.phaseId } : task.phase || null,
+            taskCategory: task.taskCategory?.id !== undefined ? { id: task.taskCategory.id } : task.taskCategoryId !== undefined ? { id: task.taskCategoryId } : null,
             subTasks: task.subTasks || [],
-            comments: task.comments || [] // Include comments
+            comments: task.comments || [],
+            attachment: null
         };
-        return this.http.post<Task>(this.apiUrl, taskToSend).pipe(map((task) => this.transformTask(task)));
+
+        formData.append('task', new Blob([JSON.stringify(taskJsonPart)], { type: 'application/json' }));
+        if (attachment) {
+            formData.append('attachment', attachment, attachment.name);
+        } else {
+            formData.append('attachment', new Blob([], { type: 'application/octet-stream' }), '');
+        }
+
+        return this.http.post<Task>(this.apiUrl, formData).pipe(map((task) => this.transformTask(task)));
     }
 
     updateTask(id: number, task: Task): Observable<Task> {
         console.log('Task being sent to update:', task);
+        console.log('Sending PUT to:', `${this.apiUrl}/${id}`);
+
+        const token = localStorage.getItem('accessToken');
+        console.log('JWT token for update:', token ? 'Found' : 'Not found');
+
+        if (!token) {
+            console.error('No access token found. Please log in again.');
+            throw new Error('No access token found');
+        }
+
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        });
+
         const taskToSend = {
-            ...task,
-            attachments: task.attachments?.map((attachment) => attachment.name) || [],
-            taskCategory: { id: task.taskCategory?.id ?? task.taskCategoryId },
+            taskId: id,
+            title: task.title,
+            description: task.description || '',
+            priority: task.priority,
+            status: task.status,
+            taskCategoryId: task.taskCategoryId ?? task.taskCategory?.id,
+            xpPoint: task.xpPoint || 0,
+            startDate: task.startDate || null,
+            endDate: task.endDate || null,
+            assigneeId: task.assigneeId || null,
             subTasks: task.subTasks || [],
-            comments: task.comments || [] // Include comments
+            comments: task.comments || [],
+            attachment: task.attachment ? task.attachment.fileId : null
         };
-        return this.http.put<Task>(`${this.apiUrl}/${id}`, taskToSend).pipe(map((updatedTask) => this.transformTask(updatedTask)));
+
+        console.log('Payload being sent:', taskToSend);
+
+        return this.http.put<Task>(`${this.apiUrl}/${id}`, taskToSend, { headers }).pipe(map((updatedTask) => this.transformTask(updatedTask)));
     }
 
     deleteTask(id: number): Observable<void> {
@@ -61,24 +104,39 @@ export class TaskService {
         return this.http.get<Task[]>(`${this.apiUrl}/category/${categoryId}`).pipe(map((tasks) => this.transformTasks(tasks)));
     }
 
-    getAssigneesForTask(taskId: number): Observable<Assignee[]> {
-        return this.http.get<Assignee[]>(`${this.apiUrl}/${taskId}/assignees`);
-    }
-
-    getCommentsForTask(taskId: number): Observable<Comment[]> {
-        return this.http.get<Comment[]>(`${this.apiUrl}/${taskId}/comments`);
-    }
-
     addCommentToTask(taskId: number, comment: Comment): Observable<Task> {
         return this.http.post<Task>(`${this.apiUrl}/${taskId}/comments`, comment).pipe(map((task) => this.transformTask(task)));
     }
 
-    downloadAttachment(taskId: number, fileName: string): Observable<Blob> {
-        const url = `${this.apiUrl}/${taskId}/attachments/${fileName}`;
+    validateTask(taskId: number): Observable<Task> {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            throw new Error('No access token found');
+        }
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        });
+        return this.http.post<Task>(`${this.apiUrl}/${taskId}/validate`, {}, { headers }).pipe(map((task) => this.transformTask(task)));
+    }
+
+    rejectTask(taskId: number): Observable<Task> {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            throw new Error('No access token found');
+        }
+        const headers = new HttpHeaders({
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        });
+        return this.http.post<Task>(`${this.apiUrl}/${taskId}/reject`, {}, { headers }).pipe(map((task) => this.transformTask(task)));
+    }
+
+    downloadAttachment(taskId: number): Observable<Blob> {
         const headers = new HttpHeaders({
             Accept: 'application/octet-stream'
         });
-        return this.http.get(url, {
+        return this.http.get(`${this.apiUrl}/${taskId}/attachment`, {
             headers: headers,
             responseType: 'blob'
         });
@@ -86,28 +144,32 @@ export class TaskService {
 
     private transformTask(task: Task): Task {
         let category: TaskCategory | undefined;
-        if (task.taskCategory) {
+        if (task.taskCategory && task.taskCategory.id !== undefined) {
             category = task.taskCategory;
-        } else if (task.taskCategoryId) {
+        } else if (task.taskCategoryId !== undefined) {
             category = { id: task.taskCategoryId, name: 'Unknown' };
         } else {
             category = { id: 0, name: 'None' };
         }
 
+        let attachment: Attachment = { name: '', fileId: '' };
+        if (task.attachment && typeof (task.attachment as unknown) === 'string') {
+            attachment = {
+                name: '',
+                fileId: task.attachment as unknown as string
+            };
+        } else if (task.attachment) {
+            console.warn('Received non-string attachment from backend:', task.attachment);
+        }
+
         return {
             ...task,
-            attachments:
-                task.attachments?.map((attachment: string | Attachment) => {
-                    const name = typeof attachment === 'string' ? attachment : attachment.name;
-                    return {
-                        name,
-                        url: `${this.apiUrl}/${task.taskId}/attachments/${name}`
-                    };
-                }) || [],
+            attachment: attachment,
             taskCategory: category,
+            taskCategoryId: category?.id,
             subTasks: task.subTasks || [],
-            comments: task.comments || [] // Ensure comments is always an array
-        };
+            comments: task.comments || []
+        } as Task;
     }
 
     private transformTasks(tasks: Task[]): Task[] {

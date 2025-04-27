@@ -14,6 +14,7 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
 @Entity
 @Getter
 @Setter
@@ -27,6 +28,10 @@ public class Projet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // New fields for Google Drive folder IDs
+    private String driveFolderId;
+    private String accompagnementFolderId;
 
     private String name;
     private String sector;
@@ -99,8 +104,6 @@ public class Projet {
     )
     private List<User> investors = new ArrayList<>();
 
-
-
     @OneToMany(mappedBy = "projet", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Phase> phases = new ArrayList<>();
 
@@ -123,6 +126,7 @@ public class Projet {
     public enum Objectives {
         COURT_TERME, MOYEN_TERME, LONG_TERME
     }
+
     public Projet(String name, String logoUrl, String websiteUrl, LocalDate creationDate) {
         this.name = name;
         this.logoUrl = logoUrl;

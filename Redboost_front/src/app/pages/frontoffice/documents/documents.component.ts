@@ -2,33 +2,27 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GoogleDriveService } from '../service/GoogleDriveService';
-import { RandomImagePipe } from '../../../random-image.pipe';
+import { ActivatedRoute, Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from '../service/auth.service';
 import { trigger, state, style, animate, transition, stagger, query, keyframes } from '@angular/animations';
 
 @Component({
     selector: 'app-google-drive',
     standalone: true,
-    imports: [CommonModule, FormsModule, RandomImagePipe],
+    imports: [CommonModule, FormsModule],
     templateUrl: './documents.component.html',
     styleUrls: ['./documents.component.scss'],
     animations: [
-        trigger('fadeIn', [transition(':enter', [style({ opacity: 0, transform: 'translateY(10px)' }), animate('400ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))])]),
-        trigger('staggerIn', [transition('* => *', [query(':enter', [style({ opacity: 0, transform: 'translateY(15px)' }), stagger('100ms', [animate('400ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))])], { optional: true })])]),
-        trigger('hoverScale', [
-            state('default', style({ transform: 'scale(1)', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' })),
-            state('hovered', style({ transform: 'scale(1.03)', boxShadow: '0 6px 15px rgba(0,0,0,0.15)' })),
-            transition('default <=> hovered', animate('300ms ease-out'))
-        ]),
-        trigger('buttonClick', [
-            transition('* => clicked', [
-                animate('600ms ease-out', keyframes([style({ transform: 'scale(1)', offset: 0 }), style({ transform: 'scale(0.95)', offset: 0.3 }), style({ transform: 'scale(1.05)', offset: 0.7 }), style({ transform: 'scale(1)', offset: 1.0 })]))
-            ])
-        ]),
+        trigger('fadeIn', [transition(':enter', [style({ opacity: 0, transform: 'translateY(10px)' }), animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))])]),
+        trigger('hoverScale', [state('default', style({ transform: 'scale(1)' })), state('hovered', style({ transform: 'scale(1.02)' })), transition('default <=> hovered', animate('200ms ease-in-out'))]),
+        trigger('buttonClick', [transition('* => clicked', [animate('200ms', keyframes([style({ transform: 'scale(1)', offset: 0 }), style({ transform: 'scale(0.95)', offset: 0.5 }), style({ transform: 'scale(1)', offset: 1 })]))])]),
         trigger('inputFocus', [
-            state('focused', style({ borderColor: '#568086', boxShadow: '0 0 0 4px rgba(86, 128, 134, 0.2)' })),
-            state('blurred', style({ borderColor: 'rgba(0, 0, 0, 0.08)', boxShadow: 'none' })),
-            transition('blurred <=> focused', animate('300ms ease-out'))
-        ])
+            state('blurred', style({ borderColor: '#d1d5db' })),
+            state('focused', style({ borderColor: '#3b82f6', boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.3)' })),
+            transition('blurred <=> focused', animate('200ms ease-in-out'))
+        ]),
+        trigger('staggerIn', [transition('* => *', [query(':enter', [style({ opacity: 0, transform: 'translateY(10px)' }), stagger(100, [animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))])], { optional: true })])])
     ]
 })
 export class DocumentsComponent implements OnInit {
@@ -36,39 +30,124 @@ export class DocumentsComponent implements OnInit {
     subFolderName: string = '';
     selectedFolder: any = null;
     selectedFile: File | null = null;
-    folders: any[] = [];
-    userId: number | null = null;
     successMessage: string | null = null;
+    errorMessage: string | null = null;
     fileName: string = '';
     subFolders: any[] = [];
-    isCreatingFolder: boolean = false;
+    files: any[] = [];
     isCreatingSubFolder: boolean = false;
     isUploadingFile: boolean = false;
-    folderInputFocused: boolean = false; // Track focus state for folder input
-    subFolderInputFocused: boolean = false; // Track focus state for subfolder input
+    subFolderInputFocused: boolean = false;
+    projectId: number | null = null;
+    driveFolderId: string | null = null;
+    folderHistory: any[] = [];
 
-    constructor(private googleDriveService: GoogleDriveService) {}
+    constructor(
+        private googleDriveService: GoogleDriveService,
+        private route: ActivatedRoute,
+        private http: HttpClient,
+        private authService: AuthService,
+        private router: Router
+    ) {}
 
     ngOnInit(): void {
-        this.userId = this.googleDriveService.getCurrentUserId();
-        if (this.userId) {
-            this.loadFolders();
+        if (!this.authService.getToken()) {
+            this.router.navigate(['/login']);
+            return;
+        }
+
+        this.projectId = +this.route.snapshot.paramMap.get('projectId')!;
+        if (this.projectId) {
+            this.loadProjectFolder();
         } else {
-            console.error('User ID not found - please log in');
+            this.showError('Project ID not found. Please try again.');
         }
     }
 
-    onHover(item: any) {
-        item.isHovered = true;
+    loadProjectFolder() {
+        this.http.get<any>(`http://localhost:8085/api/projets/${this.projectId}/contacts`).subscribe({
+            next: (contacts) => {
+                this.driveFolderId = contacts.driveFolderId;
+                if (this.driveFolderId) {
+                    this.selectedFolder = { id: this.driveFolderId, name: 'Project Folder' };
+                    this.folderHistory = [this.selectedFolder];
+                    this.loadFolderContents(this.driveFolderId);
+                } else {
+                    this.showError('No drive folder found for this project.');
+                }
+            },
+            error: (error) => {
+                this.showError('Failed to load project folder. Please try again.');
+                console.error('Failed to load project contacts:', error);
+            }
+        });
     }
 
-    onLeave(item: any) {
-        item.isHovered = false;
+    loadFolderContents(folderId: string) {
+        this.googleDriveService.getSubFolders(folderId).subscribe({
+            next: (subFolders) => {
+                this.subFolders = subFolders.map((subFolder) => ({ ...subFolder, isHovered: false }));
+            },
+            error: (error) => {
+                this.showError(error.message);
+                this.subFolders = [];
+            }
+        });
+
+        this.googleDriveService.getFiles(folderId).subscribe({
+            next: (files) => {
+                this.files = files.map((file) => ({ ...file, isHovered: false }));
+            },
+            error: (error) => {
+                this.showError(error.message);
+                this.files = [];
+            }
+        });
+    }
+
+    selectFolder(folder: any) {
+        this.selectedFolder = folder;
+        this.folderHistory.push(folder);
+        this.loadFolderContents(folder.id);
     }
 
     goBack() {
-        this.selectedFolder = null;
-        this.subFolders = [];
+        if (this.folderHistory.length > 1) {
+            this.folderHistory.pop();
+            this.selectedFolder = this.folderHistory[this.folderHistory.length - 1];
+            this.loadFolderContents(this.selectedFolder.id);
+        }
+    }
+
+    createSubFolder() {
+        if (!this.selectedFolder || !this.subFolderName) {
+            this.showError('Please enter a subfolder name.');
+            return;
+        }
+        this.isCreatingSubFolder = true;
+
+        this.googleDriveService.createSubFolder(this.selectedFolder.id, this.subFolderName).subscribe({
+            next: (response) => {
+                console.log('Subfolder created:', response);
+                this.subFolderName = '';
+                this.showSuccess('Subfolder created successfully!');
+                this.loadFolderContents(this.selectedFolder.id);
+                this.isCreatingSubFolder = false;
+            },
+            error: (error) => {
+                console.error('Subfolder creation error:', error);
+                this.showError(error.message || 'Failed to create subfolder. Please try again.');
+                this.isCreatingSubFolder = false;
+            }
+        });
+    }
+
+    onFileSelected(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (input.files && input.files.length > 0) {
+            this.selectedFile = input.files[0];
+            this.fileName = this.selectedFile?.name || '';
+        }
     }
 
     handleFileDrop(event: DragEvent) {
@@ -79,111 +158,64 @@ export class DocumentsComponent implements OnInit {
         }
     }
 
-    authorize() {
-        this.googleDriveService.authorize();
-    }
-
-    loadFolders() {
-        if (!this.userId) return;
-
-        this.googleDriveService.getFolders(this.userId).subscribe({
-            next: (folders) => {
-                this.folders = folders.map((folder) => ({ ...folder, isHovered: false }));
-            },
-            error: (error) => {
-                console.error('Failed to load folders:', error);
-            }
-        });
-    }
-
-    selectFolder(folder: any) {
-        this.selectedFolder = folder;
-        this.loadSubFolders(folder.id);
-    }
-
-    loadSubFolders(parentFolderId: string) {
-        if (!this.userId || !parentFolderId) {
-            console.error('User ID or Parent Folder ID missing');
+    uploadFile() {
+        if (!this.selectedFile || !this.selectedFolder) {
+            this.showError('Please select a file and folder.');
             return;
         }
-
-        this.googleDriveService.getSubFolders(parentFolderId, this.userId).subscribe({
-            next: (subFolders) => {
-                this.subFolders = subFolders.map((subFolder) => ({ ...subFolder, isHovered: false }));
-            },
-            error: (error) => {
-                console.error('Failed to load subfolders:', error);
-                this.subFolders = [];
-            }
-        });
-    }
-
-    createFolder() {
-        if (!this.userId) return;
-        this.isCreatingFolder = true;
-
-        this.googleDriveService.createFolder(this.folderName, this.userId).subscribe({
-            next: () => {
-                this.folderName = '';
-                this.showSuccess('Folder created successfully!');
-                this.loadFolders();
-                this.isCreatingFolder = false;
-            },
-            error: (error) => {
-                console.error('Failed to create folder:', error);
-                this.isCreatingFolder = false;
-            }
-        });
-    }
-
-    createSubFolder() {
-        if (!this.userId || !this.selectedFolder) return;
-        this.isCreatingSubFolder = true;
-
-        this.googleDriveService.createSubFolder(this.selectedFolder.id, this.subFolderName, this.userId).subscribe({
-            next: () => {
-                this.subFolderName = '';
-                this.showSuccess('Subfolder created successfully!');
-                this.loadSubFolders(this.selectedFolder.id);
-                this.isCreatingSubFolder = false;
-            },
-            error: (error) => {
-                console.error('Failed to create subfolder:', error);
-                this.isCreatingSubFolder = false;
-            }
-        });
-    }
-
-    onFileSelected(event: any) {
-        this.selectedFile = event.target.files[0];
-        this.fileName = this.selectedFile?.name || '';
-    }
-
-    uploadFile() {
-        if (!this.userId || !this.selectedFile || !this.selectedFolder) return;
         this.isUploadingFile = true;
 
-        this.googleDriveService.uploadFile(this.selectedFolder.id, this.selectedFile, this.userId).subscribe({
-            next: () => {
+        this.googleDriveService.uploadFile(this.selectedFolder.id, this.selectedFile).subscribe({
+            next: (response) => {
+                console.log('File uploaded:', response);
                 this.selectedFile = null;
                 this.fileName = '';
                 this.showSuccess('File uploaded successfully!');
                 const fileInput = document.getElementById('fileInput') as HTMLInputElement;
                 if (fileInput) fileInput.value = '';
-                this.loadSubFolders(this.selectedFolder.id);
+                this.loadFolderContents(this.selectedFolder.id);
                 this.isUploadingFile = false;
             },
             error: (error) => {
-                console.error('Failed to upload file:', error);
+                console.error('File upload error:', error);
+                this.showError(error.message || 'Failed to upload file. Please try again.');
                 this.isUploadingFile = false;
             }
         });
     }
 
+    openFile(file: any) {
+        const fileUrl = `https://drive.google.com/file/d/${file.id}/view`;
+        window.open(fileUrl, '_blank');
+    }
+
+    onHover(item: any) {
+        item.isHovered = true;
+    }
+
+    onLeave(item: any) {
+        item.isHovered = false;
+    }
+
     private showSuccess(message: string) {
         this.successMessage = message;
+        this.errorMessage = null;
         setTimeout(() => {
             this.successMessage = null;
         }, 3000);
+    }
+
+    private showError(message: string) {
+        this.errorMessage = message;
+        this.successMessage = null;
+        setTimeout(() => {
+            this.errorMessage = null;
+        }, 5000);
+    }
+
+    goBackToProjects(): void {
+        // Assuming the route to AfficheProjetComponent is '/projets'
+        // Adjust this path if your routing configuration is different
+        this.router.navigate(['/GetProjet']);
     }
 }

@@ -46,7 +46,7 @@ export class StaffTypeDetailComponent implements OnInit {
     ngOnInit(): void {
         this.route.params.subscribe((params) => {
             this.typeId = +params['id'];
-            console.log('Loading staff type for ID:', this.typeId);
+            console.log("Chargement du type de personnel pour l'ID :", this.typeId);
             this.loadStaffType();
             this.loadAvailableAttributes();
         });
@@ -63,12 +63,12 @@ export class StaffTypeDetailComponent implements OnInit {
     loadStaffType(): void {
         this.staffService.getStaffTypeById(this.typeId).subscribe({
             next: (staffType: StaffType) => {
-                console.log('Staff type loaded:', staffType);
+                console.log('Type de personnel chargé :', staffType);
                 this.staffType = staffType;
             },
             error: (error: any) => {
-                console.error('Error loading staff type:', error);
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load staff type' });
+                console.error('Erreur lors du chargement du type de personnel :', error);
+                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec du chargement du type de personnel' });
             }
         });
     }
@@ -76,12 +76,12 @@ export class StaffTypeDetailComponent implements OnInit {
     loadAvailableAttributes(): void {
         this.staffService.getAvailableAttributesForType(this.typeId).subscribe({
             next: (attributes: Attribute[]) => {
-                console.log('Available attributes loaded:', attributes);
+                console.log('Attributs disponibles chargés :', attributes);
                 this.availableAttributes = attributes;
             },
             error: (error: any) => {
-                console.error('Error loading available attributes:', error);
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to load available attributes' });
+                console.error('Erreur lors du chargement des attributs disponibles :', error);
+                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec du chargement des attributs disponibles' });
             }
         });
     }
@@ -92,14 +92,14 @@ export class StaffTypeDetailComponent implements OnInit {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${this.staffType?.typeName}_template.xlsx`;
+                a.download = `${this.staffType?.typeName}_modèle.xlsx`;
                 a.click();
                 window.URL.revokeObjectURL(url);
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Template downloaded' });
+                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Modèle téléchargé' });
             },
             error: (error: any) => {
-                console.error('Download error:', error);
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to download template' });
+                console.error('Erreur de téléchargement :', error);
+                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec du téléchargement du modèle' });
             }
         });
     }
@@ -110,23 +110,23 @@ export class StaffTypeDetailComponent implements OnInit {
             const file = input.files[0];
             if (file && file.name.endsWith('.xlsx')) {
                 this.selectedFile = file;
-                console.log('Selected file:', file.name, file.size, file.lastModified);
+                console.log('Fichier sélectionné :', file.name, file.size, file.lastModified);
             } else {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Please select an .xlsx file' });
+                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Veuillez sélectionner un fichier .xlsx' });
             }
         }
     }
 
     uploadFile(): void {
         if (!this.selectedFile) {
-            this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'No file selected' });
+            this.messageService.add({ severity: 'warn', summary: 'Avertissement', detail: 'Aucun fichier sélectionné' });
             return;
         }
 
-        console.log('Uploading file:', this.selectedFile.name, this.selectedFile.size);
+        console.log('Téléchargement du fichier :', this.selectedFile.name, this.selectedFile.size);
         this.staffService.importStaff(this.typeId, this.selectedFile).subscribe({
             next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'File uploaded successfully' });
+                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Fichier téléchargé avec succès' });
                 this.selectedFile = null;
                 if (this.fileInput) {
                     this.fileInput.nativeElement.value = '';
@@ -134,11 +134,11 @@ export class StaffTypeDetailComponent implements OnInit {
                 this.loadStaffType();
             },
             error: (error: any) => {
-                console.error('Upload error:', error);
+                console.error('Erreur de téléchargement :', error);
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: error.message || 'Failed to upload file'
+                    summary: 'Erreur',
+                    detail: error.message || 'Échec du téléchargement du fichier'
                 });
             }
         });
@@ -158,20 +158,20 @@ export class StaffTypeDetailComponent implements OnInit {
                     .createNewAttributeForType(this.typeId, attributeId)
                     .toPromise()
                     .then(() => {
-                        console.log(`Attribute ID ${attributeId} added successfully`);
+                        console.log(`Attribut ID ${attributeId} ajouté avec succès`);
                     })
                     .catch((error: any) => {
                         if (error.status === 400 && error.error?.includes('already exists')) {
                             this.messageService.add({
                                 severity: 'warn',
-                                summary: 'Warning',
-                                detail: error.error || `Attribute with ID ${attributeId} already exists in this StaffType`
+                                summary: 'Avertissement',
+                                detail: error.error || `L'attribut avec l'ID ${attributeId} existe déjà dans ce type de personnel`
                             });
                         } else {
                             this.messageService.add({
                                 severity: 'error',
-                                summary: 'Error',
-                                detail: `Failed to add attribute ID ${attributeId}: ${error.message || 'Unknown error'}`
+                                summary: 'Erreur',
+                                detail: `Échec de l'ajout de l'attribut ID ${attributeId} : ${error.message || 'Erreur inconnue'}`
                             });
                         }
                         throw error;
@@ -183,10 +183,10 @@ export class StaffTypeDetailComponent implements OnInit {
                     this.loadStaffType();
                     this.loadAvailableAttributes();
                     this.addAttributeDialogVisible = false;
-                    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Attributes added successfully' });
+                    this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Attributs ajoutés avec succès' });
                 })
                 .catch(() => {
-                    console.error('One or more attribute additions failed');
+                    console.error("Échec de l'ajout d'un ou plusieurs attributs");
                 });
         } else if (this.newAttributeName) {
             this.staffService.createAttribute(this.newAttributeName, 'STRING', this.newAttributeDefaultValues.length > 0 ? this.newAttributeDefaultValues : undefined).subscribe({
@@ -202,31 +202,31 @@ export class StaffTypeDetailComponent implements OnInit {
                                         this.addAttributeDialogVisible = false;
                                         this.newAttributeDefaultValues = [];
                                         this.newAttributeName = '';
-                                        this.messageService.add({ severity: 'success', summary: 'Success', detail: 'New attribute added' });
+                                        this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Nouvel attribut ajouté' });
                                     },
                                     error: (error: any) => {
                                         if (error.status === 400 && error.error?.includes('already exists')) {
                                             this.messageService.add({
                                                 severity: 'warn',
-                                                summary: 'Warning',
-                                                detail: error.error || 'This attribute name already exists in this StaffType'
+                                                summary: 'Avertissement',
+                                                detail: error.error || "Ce nom d'attribut existe déjà dans ce type de personnel"
                                             });
                                         } else {
-                                            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to add attribute to staff type' });
+                                            this.messageService.add({ severity: 'error', summary: 'Erreur', detail: "Échec de l'ajout de l'attribut au type de personnel" });
                                         }
                                     }
                                 });
                             } else {
-                                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to find newly created attribute' });
+                                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: "Échec de la recherche de l'attribut nouvellement créé" });
                             }
                         },
-                        error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to fetch attributes' })
+                        error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de la récupération des attributs' })
                     });
                 },
-                error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to create attribute' })
+                error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Erreur', detail: "Échec de la création de l'attribut" })
             });
         } else {
-            this.messageService.add({ severity: 'warn', summary: 'Warning', detail: 'Please select at least one attribute or enter a new attribute name' });
+            this.messageService.add({ severity: 'warn', summary: 'Avertissement', detail: "Veuillez sélectionner au moins un attribut ou entrer un nouveau nom d'attribut" });
         }
     }
 
@@ -237,21 +237,14 @@ export class StaffTypeDetailComponent implements OnInit {
 
     updateAttribute(): void {
         if (!this.editAttribute) return;
-        this.staffService
-            .updateAttribute(
-                this.editAttribute.id,
-                this.editAttribute.attributeName,
-                'STRING', // Data type is always STRING
-                this.editAttribute.defaultValues
-            )
-            .subscribe({
-                next: () => {
-                    this.loadStaffType();
-                    this.editAttributeDialogVisible = false;
-                    this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Attribute updated' });
-                },
-                error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to update attribute' })
-            });
+        this.staffService.updateAttribute(this.editAttribute.id, this.editAttribute.attributeName, 'STRING', this.editAttribute.defaultValues).subscribe({
+            next: () => {
+                this.loadStaffType();
+                this.editAttributeDialogVisible = false;
+                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Attribut mis à jour' });
+            },
+            error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Erreur', detail: "Échec de la mise à jour de l'attribut" })
+        });
     }
 
     deleteAttribute(attributeId: number): void {
@@ -259,9 +252,9 @@ export class StaffTypeDetailComponent implements OnInit {
             next: () => {
                 this.loadStaffType();
                 this.loadAvailableAttributes();
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Attribute deleted' });
+                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Attribut supprimé' });
             },
-            error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete attribute' })
+            error: (error: any) => this.messageService.add({ severity: 'error', summary: 'Erreur', detail: "Échec de la suppression de l'attribut" })
         });
     }
 

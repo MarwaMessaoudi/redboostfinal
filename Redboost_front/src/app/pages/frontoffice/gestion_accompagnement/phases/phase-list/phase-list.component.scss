@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
+/* Dashboard Container */
 .dashboard-container {
     padding: 20px;
     margin: 0 auto;
@@ -5,7 +8,7 @@
     background-color: #f8f9fa; /* Fallback background color */
     background-color: var(--surface-card);
     border-radius: 12px;
-    color: #1a3c3c; /* Added to set the default text color for the dashboard */
+    color: #1a3c3c; /* Default text color for the dashboard */
 }
 
 /* Header styles */
@@ -14,13 +17,20 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+
+    .back-button {
+        color: #1a3c3c;
+        margin-right: 0;
+    }
 }
 
 .header h1 {
     font-size: 28px;
     margin: 0;
-    color: inherit; /* Inherit color from dashboard container */
+    color: inherit;
     font-weight: 500;
+    margin-right: auto;
+    margin-left: 10px;
 }
 
 .header .date {
@@ -33,10 +43,11 @@
     display: flex;
     justify-content: flex-end;
     margin-bottom: 15px;
+    gap: 8px; /* Added gap for better spacing */
 }
 
 .actions-container button {
-    margin-left: 8px;
+    margin-left: 0; /* Removed margin-left since gap is used */
 }
 
 /* Phase categories styling */
@@ -56,20 +67,14 @@
     font-size: 22px;
     font-weight: 500;
     margin: 0;
-    color: inherit; /* Inherit color from dashboard container */
+    color: inherit;
 }
 
 /* Customize colors for different categories */
-.category-not-started .category-title {
-    color: inherit; /* Inherit color from dashboard container */
-}
-
-.category-in-progress .category-title {
-    color: inherit; /* Inherit color from dashboard container */
-}
-
+.category-not-started .category-title,
+.category-in-progress .category-title,
 .category-completed .category-title {
-    color: inherit; /* Inherit color from dashboard container */
+    color: inherit;
 }
 
 /* Phase table styling */
@@ -96,7 +101,7 @@
     padding: 12px 15px;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
     font-size: 14px;
-    color: inherit; /* Inherit color from dashboard container */
+    color: inherit;
 }
 
 .phase-table tr {
@@ -119,14 +124,8 @@
     color: white;
 }
 
-.status-not-started {
-    background-color: #db1e37; /* Red */
-}
-
-.status-in-progress {
-    background-color: #db1e37; /* Red */
-}
-
+.status-not-started,
+.status-in-progress,
 .status-completed {
     background-color: #db1e37; /* Red */
 }
@@ -230,7 +229,7 @@
 
 .metric .value {
     font-size: 24px;
-    font-weight: bold;
+    font-weight: 600; /* Updated to 600 for better emphasis with Poppins */
     color: #1a3c3c;
 }
 
@@ -263,15 +262,161 @@
     border-radius: 5px;
 }
 
-/* Media Queries for responsive design */
+/* Media Queries for Responsive Design */
 @media (max-width: 768px) {
     .dashboard-container {
-        padding: 10px;
+        padding: 15px;
+        border-radius: 8px;
     }
 
     .header {
         flex-direction: column;
         align-items: flex-start;
+        margin-bottom: 15px;
+        gap: 10px;
+    }
+
+    .header h1 {
+        font-size: 24px;
+        margin-left: 0;
+    }
+
+    .header .date {
+        font-size: 14px;
+    }
+
+    .actions-container {
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-start;
+    }
+
+    .phase-category {
+        margin-bottom: 20px;
+    }
+
+    .category-header {
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+    }
+
+    .category-title {
+        font-size: 20px;
+    }
+
+    .phase-table {
+        font-size: 13px;
+        display: block; /* Enable horizontal scrolling */
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        white-space: nowrap; /* Prevent text wrapping */
+    }
+
+    .phase-table th,
+    .phase-table td {
+        padding: 10px 12px;
+        min-width: 100px; /* Ensure columns have a minimum width */
+    }
+
+    .status-badge {
+        padding: 5px 10px;
+        font-size: 12px;
+    }
+
+    .progress-text {
+        font-size: 11px;
+    }
+
+    .days-left {
+        font-size: 13px;
+    }
+
+    .add-phase-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    .action-buttons {
+        gap: 6px;
+    }
+
+    .action-btn {
+        padding: 3px;
+    }
+
+    .metrics-container {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+
+    .summary-metrics {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .metric .value {
+        font-size: 22px;
+    }
+
+    .metric .label {
+        font-size: 13px;
+    }
+
+    .loading {
+        padding: 30px;
+    }
+
+    .error-message {
+        padding: 12px;
+        margin-bottom: 15px;
+    }
+
+    .no-data {
+        padding: 25px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-container {
+        padding: 10px;
+        border-radius: 6px;
+    }
+
+    .header {
+        margin-bottom: 10px;
+        gap: 8px;
+    }
+
+    .header h1 {
+        font-size: 20px;
+    }
+
+    .header .date {
+        font-size: 12px;
+    }
+
+    .actions-container {
+        flex-direction: column;
+        gap: 5px;
+        align-items: stretch; /* Buttons take full width */
+    }
+
+    .actions-container button {
+        width: 100%; /* Full-width buttons */
+        padding: 8px;
+    }
+
+    .phase-category {
+        margin-bottom: 15px;
+    }
+
+    .category-header {
+        margin-bottom: 6px;
+        padding-bottom: 3px;
+    }
+
+    .category-title {
+        font-size: 18px;
     }
 
     .phase-table {
@@ -280,16 +425,70 @@
 
     .phase-table th,
     .phase-table td {
-        padding: 8px;
+        padding: 8px 10px;
+        min-width: 80px;
     }
 
     .status-badge {
         padding: 4px 8px;
+        font-size: 11px;
+    }
+
+    .progress-bar {
+        height: 6px;
+    }
+
+    .progress-text {
+        font-size: 10px;
+    }
+
+    .days-left {
         font-size: 12px;
     }
 
+    .add-phase-btn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .action-buttons {
+        gap: 5px;
+    }
+
+    .action-btn {
+        padding: 2px;
+    }
+
+    .metrics-container {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
     .summary-metrics {
-        flex-direction: column;
-        gap: 15px;
+        gap: 10px;
+    }
+
+    .metric .value {
+        font-size: 20px;
+    }
+
+    .metric .label {
+        font-size: 12px;
+    }
+
+    .loading {
+        padding: 20px;
+        font-size: 14px;
+    }
+
+    .error-message {
+        padding: 10px;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+    .no-data {
+        padding: 20px;
+        font-size: 14px;
     }
 }

@@ -40,6 +40,7 @@ export class KanbanBoardComponent implements OnInit {
     todo: Task[] = [];
     inprogress: Task[] = [];
     completed: Task[] = [];
+    validated: Task[] = [];
     statusFilter: Status | 'ALL' = 'ALL';
     priorityFilter: Priority | 'ALL' = 'ALL';
     categoryFilter: number | 'ALL' = 'ALL';
@@ -162,12 +163,17 @@ export class KanbanBoardComponent implements OnInit {
         this.todo = this.filteredTasks.filter((task) => task.status === Status.TO_DO);
         this.inprogress = this.filteredTasks.filter((task) => task.status === Status.IN_PROGRESS);
         this.completed = this.filteredTasks.filter((task) => task.status === Status.DONE);
+        this.validated = this.filteredTasks.filter((task) => task.status === Status.VALIDATED);
     }
 
     drop(event: CdkDragDrop<Task[]>) {
         if (event.previousContainer === event.container) {
             moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
         } else {
+            if (event.previousContainer.id === 'validated' || event.container.id === 'validated') {
+                return;
+            }
+
             transferArrayItem(event.previousContainer.data, event.container.data, event.previousIndex, event.currentIndex);
 
             const task = event.container.data[event.currentIndex];
@@ -216,9 +222,9 @@ export class KanbanBoardComponent implements OnInit {
         if (!this.phase || !this.phaseId) return;
 
         let newPhaseStatus: PhaseStatus;
-        if (this.tasks.length > 0 && this.tasks.every((task) => task.status === Status.DONE)) {
+        if (this.tasks.length > 0 && this.tasks.every((task) => task.status === Status.VALIDATED)) {
             newPhaseStatus = PhaseStatus.COMPLETED;
-        } else if (this.tasks.some((task) => task.status === Status.IN_PROGRESS || task.status === Status.DONE)) {
+        } else if (this.tasks.some((task) => task.status === Status.IN_PROGRESS || task.status === Status.DONE || task.status === Status.VALIDATED)) {
             newPhaseStatus = PhaseStatus.IN_PROGRESS;
         } else {
             newPhaseStatus = PhaseStatus.NOT_STARTED;
@@ -248,7 +254,7 @@ export class KanbanBoardComponent implements OnInit {
                 task: null,
                 isEdit: false,
                 entrepreneurs: this.entrepreneurs,
-                phase: this.phase // Pass the phase object with startDate and endDate
+                phase: this.phase
             }
         });
 
@@ -321,6 +327,8 @@ export class KanbanBoardComponent implements OnInit {
                 return 'status-in-progress';
             case Status.DONE:
                 return 'status-done';
+            case Status.VALIDATED:
+                return 'status-validated';
             default:
                 return '';
         }
@@ -357,5 +365,14 @@ export class KanbanBoardComponent implements OnInit {
         const assignee = this.entrepreneurs.find((e) => e.id === assigneeId);
         if (!assignee) return null;
         return `${assignee.firstName.charAt(0).toUpperCase()}.${assignee.lastName.charAt(0).toUpperCase()}`;
+    }
+
+    goBackToPhases(): void {
+        if (this.phase && this.phase.projetId) {
+            this.router.navigate(['/phases'], { queryParams: { projectId: this.phase.projetId } });
+        } else {
+            console.warn('Cannot navigate back: projetId not found in phase.');
+            this.router.navigate(['/phases']);
+        }
     }
 }

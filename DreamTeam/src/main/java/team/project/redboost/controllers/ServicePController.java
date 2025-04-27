@@ -1,17 +1,12 @@
 package team.project.redboost.controllers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import team.project.redboost.entities.ServiceP;
 import team.project.redboost.services.ServicePService;
 
-import java.io.IOException;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,32 +17,20 @@ public class ServicePController {
     @Autowired
     private ServicePService servicePService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    // Create a single service with an image
-    @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // Create a single service
+    @PostMapping("")
     public ResponseEntity<ServiceP> createService(
-            @RequestPart(name = "service") String serviceJson,
-            @RequestPart(value = "image", required = false) MultipartFile image,
-            @RequestParam Long projetId) throws IOException {
-        ServiceP service = objectMapper.readValue(serviceJson, ServiceP.class);
-
-        String base64Image = null;
-        if (image != null && !image.isEmpty()) {
-            base64Image = "data:" + image.getContentType() + ";base64," +
-                    Base64.getEncoder().encodeToString(image.getBytes());
-        }
-
+            @RequestBody ServiceP service,
+            @RequestParam Long projetId) {
         try {
-            ServiceP newService = servicePService.createService(service, projetId, base64Image);
+            ServiceP newService = servicePService.createService(service, projetId);
             return new ResponseEntity<>(newService, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
     }
 
-    // Create standard packs (no image upload here, predefined)
+    // Create standard packs
     @PostMapping("/standard/{projetId}")
     public ResponseEntity<List<ServiceP>> createStandardPacks(@PathVariable Long projetId) {
         try {
@@ -84,22 +67,13 @@ public class ServicePController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
-    // Update a service with an optional image
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // Update a service
+    @PutMapping("/{id}")
     public ResponseEntity<ServiceP> updateService(
             @PathVariable Long id,
-            @RequestPart(name = "service") String serviceJson,
-            @RequestPart(value = "image", required = false) MultipartFile image) throws IOException {
-        ServiceP serviceDetails = objectMapper.readValue(serviceJson, ServiceP.class);
-
-        String base64Image = null;
-        if (image != null && !image.isEmpty()) {
-            base64Image = "data:" + image.getContentType() + ";base64," +
-                    Base64.getEncoder().encodeToString(image.getBytes());
-        }
-
+            @RequestBody ServiceP serviceDetails) {
         try {
-            ServiceP updatedService = servicePService.updateService(id, serviceDetails, base64Image);
+            ServiceP updatedService = servicePService.updateService(id, serviceDetails);
             return new ResponseEntity<>(updatedService, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
@@ -114,6 +88,17 @@ public class ServicePController {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+
+    // Get services by project ID (alternative endpoint)
+    @GetMapping("/getByIdProjet/{idProjet}")
+    public ResponseEntity<List<ServiceP>> getServicesByProjetId(@PathVariable Long idProjet) {
+        try {
+            List<ServiceP> services = servicePService.getServicesByProjetId(idProjet);
+            return ResponseEntity.ok(services);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
     }
 }

@@ -43,6 +43,7 @@
                         <button (click)="saveTitle()" class="save-button">Enregistrer</button>
                         <button (click)="cancelEditTitle()" class="cancel-edit-button">Annuler</button>
                     </div>
+                    <mat-error *ngIf="taskForm.get('title')?.hasError('required') && taskForm.get('title')?.touched"> Le titre est requis </mat-error>
                 </div>
             </div>
 
@@ -143,11 +144,11 @@
                     <h3>STATUT</h3>
                 </div>
                 <div class="status-box" (click)="toggleStatusDropdown()">
-                    {{ task.status || 'TO_DO' }}
+                    {{ getTranslatedStatus(task?.status) }}
                 </div>
                 <div class="dropdown-menu" *ngIf="showStatusDropdown">
                     <div class="dropdown-item" *ngFor="let status of statusOptions" (click)="selectStatus(status)">
-                        {{ status }}
+                        {{ getTranslatedStatus(status) }}
                     </div>
                 </div>
             </div>
@@ -174,7 +175,7 @@
                             </div>
                         </div>
                     </div>
-                    <mat-error *ngIf="taskForm.get('assigneeId')?.hasError('required')">Assignee is required</mat-error>
+                    <mat-error *ngIf="taskForm.get('assigneeId')?.hasError('required') && taskForm.get('assigneeId')?.touched"> Un responsable est requis </mat-error>
                 </div>
             </div>
 
@@ -193,7 +194,7 @@
                     <svg *ngIf="task.priority === 'HIGH'" class="priority-icon" viewBox="0 0 24 24" fill="none" stroke="#FF5630">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                     </svg>
-                    <span>{{ task.priority || 'LOW' }}</span>
+                    <span>{{ task.priority ? getTranslatedPriority(task.priority) : 'Unknown Priority' }}</span>
                 </div>
                 <div class="dropdown-menu" *ngIf="showPriorityDropdown">
                     <div class="dropdown-item" *ngFor="let priority of priorityOptions" (click)="selectPriority(priority)">
@@ -207,7 +208,7 @@
                             <svg *ngIf="priority === 'HIGH'" class="priority-icon" viewBox="0 0 24 24" fill="none" stroke="#FF5630">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                             </svg>
-                            <span>{{ priority }}</span>
+                            <span>{{ getTranslatedPriority(priority) }}</span>
                         </div>
                     </div>
                 </div>
@@ -232,32 +233,26 @@
                         <button (click)="saveXpPoint()" class="save-button">Enregistrer</button>
                         <button (click)="cancelEditXpPoint()" class="cancel-edit-button">Annuler</button>
                     </div>
+                    <mat-error *ngIf="taskForm.get('xpPoint')?.hasError('min') && taskForm.get('xpPoint')?.touched"> Les points XP doivent être positifs ou nuls </mat-error>
                 </div>
             </div>
 
             <!-- Attachments Section -->
             <div class="section">
                 <div class="section-header-task-update">
-                    <h3>PIÈCES JOINTES</h3>
+                    <h3>PIÈCE JOINTE</h3>
                 </div>
-                <div *ngIf="task" class="attachments-list">
-                    <div *ngIf="!task?.attachments?.length" class="no-attachments">Aucune pièce jointe disponible</div>
-                    <div class="attachment-item" *ngFor="let attachment of task?.attachments; trackBy: trackByAttachments">
+                <div class="attachments-list">
+                    <div *ngIf="!task?.attachment?.fileId" class="no-attachments">Aucune pièce jointe disponible</div>
+                    <div class="attachment-item" *ngIf="task?.attachment?.fileId">
                         <div class="attachment-info">
                             <svg class="attachment-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <span>{{ attachment?.name }}</span>
-                        </div>
-                        <div class="attachment-actions">
-                            <button class="download-button" (click)="downloadAttachment(attachment)" title="Télécharger">
+                            <span>{{ attachmentName || 'Chargement...' }}</span>
+                            <button class="download-button" (click)="downloadAttachment()" title="Télécharger">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                </svg>
-                            </button>
-                            <button class="delete-button" (click)="deleteAttachment(attachment)" title="Supprimer">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
                         </div>
@@ -275,11 +270,14 @@
                                 <input matInput [matDatepicker]="startPicker" formControlName="startDate" [matDatepickerFilter]="startDateFilter" (dateChange)="saveStartDate()" />
                                 <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
                                 <mat-datepicker #startPicker></mat-datepicker>
+                                <mat-error *ngIf="taskForm.get('startDate')?.hasError('required') && taskForm.get('startDate')?.touched"> La date de début est requise </mat-error>
+                                <mat-error *ngIf="taskForm.hasError('invalidStartDateEarly') && taskForm.get('startDate')?.touched">
+                                    La date de début doit être postérieure ou égale à {{ taskForm.errors?.['invalidStartDateEarly']?.requiredAfter | date: 'dd/MM/yyyy' }}
+                                </mat-error>
+                                <mat-error *ngIf="taskForm.hasError('startDateAfterPhaseEnd') && taskForm.get('startDate')?.touched">
+                                    La date de début doit être antérieure ou égale à {{ taskForm.errors?.['startDateAfterPhaseEnd']?.requiredBefore | date: 'dd/MM/yyyy' }}
+                                </mat-error>
                             </mat-form-field>
-                            <div class="date-actions">
-                                <button class="save-button" (click)="saveStartDate()">Mettre à jour</button>
-                                <button class="cancel-edit-button" (click)="cancelEditStartDate()">Annuler</button>
-                            </div>
                         </div>
                     </div>
                     <div class="date-field">
@@ -289,11 +287,15 @@
                                 <input matInput [matDatepicker]="endPicker" formControlName="endDate" [matDatepickerFilter]="endDateFilter" (dateChange)="saveEndDate()" />
                                 <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
                                 <mat-datepicker #endPicker></mat-datepicker>
+                                <mat-error *ngIf="taskForm.get('endDate')?.hasError('required') && taskForm.get('endDate')?.touched"> La date d'échéance est requise </mat-error>
+                                <mat-error *ngIf="taskForm.hasError('endDateBeforePhaseStart') && taskForm.get('endDate')?.touched">
+                                    La date d'échéance doit être postérieure ou égale à {{ taskForm.errors?.['endDateBeforePhaseStart']?.requiredAfter | date: 'dd/MM/yyyy' }}
+                                </mat-error>
+                                <mat-error *ngIf="taskForm.hasError('endDateAfterPhaseEnd') && taskForm.get('endDate')?.touched">
+                                    La date d'échéance doit être antérieure ou égale à {{ taskForm.errors?.['endDateAfterPhaseEnd']?.requiredBefore | date: 'dd/MM/yyyy' }}
+                                </mat-error>
+                                <mat-error *ngIf="taskForm.hasError('dateRangeInvalid') && taskForm.get('endDate')?.touched"> La date d'échéance doit être postérieure ou égale à la date de début </mat-error>
                             </mat-form-field>
-                            <div class="date-actions">
-                                <button class="save-button" (click)="saveEndDate()">Mettre à jour</button>
-                                <button class="cancel-edit-button" (click)="cancelEditEndDate()">Annuler</button>
-                            </div>
                         </div>
                     </div>
                 </div>

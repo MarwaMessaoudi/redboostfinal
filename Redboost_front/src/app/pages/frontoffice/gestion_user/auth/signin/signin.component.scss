@@ -235,6 +235,7 @@ input:focus {
 .signup-prompt {
   margin-top: 2rem;
 }
+
 .google-logo {
   width: 20px; /* Adjust size as needed */
   height: 20px;
@@ -263,7 +264,7 @@ input:focus {
 .error-message {
   color: red;
   font-size: 0.875rem;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
 }
 
 .google-logo {
@@ -285,6 +286,19 @@ input:focus {
   width: 100%;
   margin-bottom: 1rem;
 }
+
+/* Style for the resend link */
+.resend-link {
+  color: #DB1E37; /* custom-red */
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.resend-link:hover {
+  color: #E44D62; /* custom-pink */
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .login-wrapper {

@@ -7,7 +7,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { RippleModule } from 'primeng/ripple';
 import { AuthService } from '../../../service/auth.service';
-import { MessageService } from 'primeng/api';
 import { environment } from '../../../../../../environment';
 import { CommonModule } from '@angular/common';
 
@@ -23,19 +22,22 @@ export class SigninComponent {
     password: string = '';
     selectedRole: string = '';
     isSubmitted: boolean = false;
+    isGoogleSubmitted: boolean = false;
     loginError: string | null = null;
+    errorMessage: string | null = null;
 
     constructor(
         private authService: AuthService,
-        private router: Router,
-        private messageService: MessageService
+        private router: Router
     ) {}
 
     onLogin() {
         this.isSubmitted = true;
-        this.loginError = null; // Reset error state
+        this.loginError = null;
+        this.errorMessage = null;
+
         if (!this.email || !this.password) {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Email et mot de passe requis' });
+            this.errorMessage = 'Email et mot de passe requis';
             return;
         }
 
@@ -51,22 +53,22 @@ export class SigninComponent {
                     localStorage.setItem('refreshToken', refreshToken);
                 }
 
-                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Connexion réussie' });
                 this.router.navigate(['dashboard']);
             },
             error: (error) => {
                 console.error('Login failed:', error);
                 let errorMessage = 'Échec de la connexion';
-                this.loginError = null; // Reset by default
+                this.loginError = null;
 
                 if (error.error && typeof error.error === 'object') {
                     this.loginError = error.error.errorCode;
                     switch (error.error.errorCode) {
-                        case 'AUTH008':
-                            errorMessage = 'Utilisateur non trouvé avec cet email';
+                        case 'AUTH008': // Incorrect email
+                        case 'AUTH010': // Incorrect password
+                            errorMessage = 'Coordonnées incorrectes';
                             break;
-                        case 'AUTH010':
-                            errorMessage = 'Mot de passe incorrect';
+                        case 'AUTH017':
+                            errorMessage = 'Veuillez confirmer votre email avant de vous connecter';
                             break;
                         case 'AUTH009':
                             errorMessage = error.error.message || 'Échec de l’authentification';
@@ -75,21 +77,34 @@ export class SigninComponent {
                             errorMessage = 'Une erreur inattendue s’est produite';
                     }
                 } else {
-                    // Handle non-JSON or unexpected errors
                     errorMessage = 'Erreur serveur ou réseau';
                     console.error('Unexpected error format:', error);
                 }
 
-                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: errorMessage });
+                this.errorMessage = errorMessage;
+            }
+        });
+    }
+
+    resendConfirmationEmail() {
+        this.authService.resendConfirmationEmail(this.email).subscribe({
+            next: () => {
+                this.router.navigate(['/confirm-email'], { queryParams: { email: this.email } });
+            },
+            error: (error) => {
+                console.error('Failed to resend confirmation email:', error);
+                this.errorMessage = 'Échec de l’envoi de l’email de confirmation';
             }
         });
     }
 
     async onGoogleLogin() {
-        this.isSubmitted = true;
-        this.loginError = null; // Reset error state
+        this.isGoogleSubmitted = true;
+        this.loginError = null;
+        this.errorMessage = null;
+
         if (!this.selectedRole) {
-            this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Veuillez sélectionner un rôle' });
+            this.errorMessage = 'Veuillez sélectionner un rôle';
             return;
         }
 
@@ -106,12 +121,11 @@ export class SigninComponent {
                     localStorage.setItem('refreshToken', refreshToken);
                 }
 
-                this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Connexion Google réussie' });
                 this.router.navigate(['dashboard']);
             },
             error: (error: any) => {
                 console.error('Google login failed:', error);
-                this.messageService.add({ severity: 'error', summary: 'Erreur', detail: 'Échec de la connexion Google' });
+                this.errorMessage = 'Échec de la connexion Google';
             }
         });
     }

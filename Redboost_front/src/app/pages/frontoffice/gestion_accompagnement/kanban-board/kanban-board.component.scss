@@ -14,10 +14,17 @@
         margin-bottom: 20px;
 
         h1 {
-            font-size: clamp(20px, 4vw, 28px); // Scales between 20px and 28px
+            font-size: clamp(20px, 4vw, 28px);
             font-weight: 600;
             margin: 0;
             color: #0a4955;
+            margin-right: auto;
+            margin-left: 10px;
+        }
+
+        .back-button {
+            color: #0a4955;
+            margin-right: 0;
         }
 
         .actions-container {
@@ -26,7 +33,7 @@
             gap: 15px;
 
             button {
-                border-radius: 50%;
+                border-radius: 50% !important;
                 width: 48px;
                 height: 48px;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -47,7 +54,7 @@
                 padding: 12px 15px;
                 border: 1px solid #e0e0e0;
                 border-radius: 8px;
-                font-size: clamp(12px, 2vw, 14px); // Responsive font size
+                font-size: clamp(12px, 2vw, 14px);
                 background-color: var(--surface-card);
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
@@ -125,8 +132,8 @@
     .kanban-column {
         background: var(--surface-ground);
         border-radius: 12px;
-        width: 33.33%;
-        min-width: 300px; // Reduced min-width for smaller screens
+        width: 25%; // Adjusted for four columns
+        min-width: 300px;
         display: flex;
         flex-direction: column;
         max-height: 100%;
@@ -156,6 +163,10 @@
 
     .kanban-column:nth-child(3) h2 {
         background-color: #0a4955;
+    }
+
+    .kanban-column:nth-child(4) h2 {
+        background-color: #43a047; // Green for validated
     }
 
     .cdk-drag-preview {
@@ -296,7 +307,7 @@
         }
 
         .kanban-column {
-            width: 50%; // Two columns on medium screens
+            width: 50%;
             min-width: 300px;
         }
     }

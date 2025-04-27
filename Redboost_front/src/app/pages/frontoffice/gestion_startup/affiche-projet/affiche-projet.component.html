@@ -15,19 +15,16 @@
         </div>
         <div class="filter-section">
             <div class="search-bar">
-                <mat-icon class="search-icon">search</mat-icon>
                 <input type="text" placeholder="Rechercher par nom, secteur ou localisation..." [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()" class="search-input" />
             </div>
             <div class="filters">
                 <div class="filter-item">
-                    <label for="sector-select">Secteur</label>
                     <select id="sector-select" [(ngModel)]="selectedSector" (ngModelChange)="onSectorChange()">
                         <option value="">Tous les Secteurs</option>
                         <option *ngFor="let sector of uniqueSectors" [value]="sector">{{ sector }}</option>
                     </select>
                 </div>
                 <div class="filter-item">
-                    <label for="location-select">Localisation</label>
                     <select id="location-select" [(ngModel)]="selectedLocation" (ngModelChange)="onLocationChange()">
                         <option value="">Toutes les Localisations</option>
                         <option *ngFor="let location of uniqueLocations" [value]="location">{{ location }}</option>
@@ -35,7 +32,6 @@
                 </div>
                 <div class="sort-controls">
                     <div class="filter-item">
-                        <label for="sort-select">Trier Par</label>
                         <div class="sort-wrapper">
                             <select id="sort-select" [(ngModel)]="sortField" (ngModelChange)="onSortFieldChange()">
                                 <option value="creationDate">Date de Création</option>
@@ -68,9 +64,12 @@
                                     <button mat-icon-button class="add-user-button" (click)="inviteUser(projet.id)" aria-label="Ajouter un utilisateur" *ngIf="projet.id !== undefined && projet.id !== 0">
                                         <mat-icon>person_add</mat-icon>
                                     </button>
+                                    <button mat-icon-button class="documents-button" (click)="navigateToDocuments(projet.id)" aria-label="Voir les documents" matTooltip="Voir les documents" *ngIf="projet.id !== undefined && projet.id !== 0">
+                                        <mat-icon>folder</mat-icon>
+                                    </button>
                                 </div>
                                 <div class="card-details">
-                                    <h2 class="project-title" [matTooltip]="projet.name">{{ projet.name }}</h2>
+                                    <h2 class="project-title">{{ projet.name }}</h2>
                                     <div class="price-tag">
                                         <span class="star-icon">⭐</span>
                                         {{ projet.globalScore | number: '1.2-2' }}
@@ -104,8 +103,8 @@
                                         </div>
                                     </div>
                                     <div class="card-actions">
-                                        <button mat-flat-button class="view-button" [routerLink]="['/details-projet', projet.id ?? 0]">VOIR DÉTAILS <mat-icon>chevron_right</mat-icon></button>
-                                        <button mat-flat-button class="phases-button" (click)="navigateToPhases(projet.id)">VOIR PHASES <mat-icon>chevron_right</mat-icon></button>
+                                        <button mat-flat-button class="view-button" [routerLink]="['/details-projet', projet.id ?? 0]">Détails</button>
+                                        <button mat-flat-button class="phases-button" (click)="navigateToPhases(projet.id)">Accompagnement</button>
                                     </div>
                                 </div>
                             </div>
@@ -113,8 +112,12 @@
                     </div>
                     <ng-template #noResults>
                         <div class="no-results">
-                            <mat-icon class="no-results-icon">mood_bad</mat-icon>
-                            <p>Aucun projet trouvé.</p>
+                            <div class="no-results-content">
+                                <mat-icon class="no-results-icon">folder_open</mat-icon>
+                                <h3 class="no-results-title">Aucun Projet Trouvé</h3>
+                                <p class="no-results-message">Il semble que vous n'ayez aucun projet pour le moment. Créez-en un pour commencer !</p>
+                                <button mat-flat-button class="create-button" (click)="navigateToCreateProject()">Créer un Projet</button>
+                            </div>
                         </div>
                     </ng-template>
                 </ng-container>
@@ -134,11 +137,14 @@
                 <div class="invitations-grid">
                     <div class="invitation-card" *ngFor="let invitation of pendingInvitations">
                         <div class="invitation-content">
-                            <h3 class="invitation-title">{{ invitation.projectName }}</h3>
+                            <div class="invitation-header">
+                                <h3 class="invitation-title">{{ invitation.projectName }}</h3>
+                                <span class="invitation-status">En attente</span>
+                            </div>
                             <p class="invitation-email">Invité par: {{ invitation.invitorName }} ({{ invitation.invitorEmail }})</p>
                             <div class="invitation-actions">
-                                <button mat-flat-button class="accept-button" (click)="acceptInvitation(invitation.projectId)" [disabled]="!invitation.projectId || invitation.projectId === 0">Accepter</button>
-                                <button mat-flat-button class="decline-button" (click)="declineInvitation(invitation.projectId)" [disabled]="!invitation.projectId || invitation.projectId === 0">Refuser</button>
+                                <button mat-flat-button class="accept-button" (click)="acceptInvitation(invitation.projectId)" [disabled]="!invitation.projectId || invitation.projectId === 0"><mat-icon>check_circle</mat-icon> Accepter</button>
+                                <button mat-flat-button class="decline-button" (click)="declineInvitation(invitation.projectId)" [disabled]="!invitation.projectId || invitation.projectId === 0"><mat-icon>cancel</mat-icon> Refuser</button>
                             </div>
                         </div>
                     </div>
@@ -146,8 +152,11 @@
             </section>
             <ng-template #noInvitations>
                 <div class="no-results">
-                    <mat-icon class="no-results-icon">mood_bad</mat-icon>
-                    <p>Aucune invitation en attente.</p>
+                    <div class="no-results-content">
+                        <mat-icon class="no-results-icon">mail_outline</mat-icon>
+                        <h3 class="no-results-title">Aucune Invitation</h3>
+                        <p class="no-results-message">Vous n'avez aucune invitation en attente. Collaborez avec d'autres pour en recevoir !</p>
+                    </div>
                 </div>
             </ng-template>
         </mat-tab>
@@ -159,74 +168,56 @@
                     <div class="projects-grid" *ngIf="projets.length > 0; else noResults">
                         <div class="project-card" *ngFor="let projet of projets">
                             <div class="card-content">
-                                <h2 class="project-title">{{ projet.name }}</h2>
-                                <div class="project-details" *ngIf="projet.id !== undefined && projet.id !== 0 && projetContacts[projet.id]">
-                                    <!-- Founder Section -->
-                                    <div class="contact-category">
-                                        <div class="contact-header">
-                                            <mat-icon class="contact-icon">person</mat-icon>
-                                            <span class="contact-label">Fondateur</span>
-                                        </div>
-                                        <div class="contact-content">
-                                            <p class="contact-info">{{ getFounderEmail(projet.id) }}</p>
-                                        </div>
+                                <div class="project-header">
+                                    <img
+                                        *ngIf="projet.logoUrl && projet.logoUrl !== 'null'"
+                                        [src]="sanitizedImageUrl(projet.logoUrl)"
+                                        alt="{{ projet.name }} Logo"
+                                        class="project-logo"
+                                        (error)="onImageError($event)"
+                                        (load)="onImageLoad(projet.logoUrl)"
+                                    />
+                                    <div class="project-name-wrapper">
+                                        <h2 class="project-title-header">{{ projet.name }}</h2>
                                     </div>
-
-                                    <!-- Entrepreneurs Section -->
-                                    <div class="contact-category">
-                                        <div class="contact-header">
-                                            <mat-icon class="contact-icon">group</mat-icon>
-                                            <span class="contact-label">Entrepreneurs</span>
+                                </div>
+                                <div class="contact-grid" *ngIf="projet.id !== undefined && projet.id !== 0 && projetContacts[projet.id]">
+                                    <!-- Group users by their email to handle multiple roles -->
+                                    <ng-container *ngFor="let userGroup of groupUsersByEmail(projetContacts[projet.id])">
+                                        <div class="user-card">
+                                            <div class="user-card-content">
+                                                <img [src]="getUserAvatar(userGroup.users[0])" alt="User Avatar" class="user-avatar" (error)="onAvatarError($event)" />
+                                                <div class="user-info">
+                                                    <div class="user-name-wrapper">
+                                                        <p class="user-name">{{ getUserName(userGroup.users[0]) }}</p>
+                                                        <div class="user-role">
+                                                            <span class="role-badge {{ role.toLowerCase() }}" *ngFor="let role of userGroup.roles">
+                                                                {{ role }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <p class="user-email">{{ userGroup.users[0].email || 'N/A' }}</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="contact-content">
-                                            <p class="contact-info" *ngIf="projetContacts[projet.id]?.entrepreneurs?.length; else noEntrepreneurs">
-                                                {{ getEntrepreneursEmails(projet.id) }}
-                                            </p>
-                                            <ng-template #noEntrepreneurs>
-                                                <p class="contact-empty">Aucun entrepreneur assigné</p>
-                                            </ng-template>
-                                        </div>
-                                    </div>
-
-                                    <!-- Coaches Section -->
-                                    <div class="contact-category">
-                                        <div class="contact-header">
-                                            <mat-icon class="contact-icon">school</mat-icon>
-                                            <span class="contact-label">Coaches</span>
-                                        </div>
-                                        <div class="contact-content">
-                                            <p class="contact-info" *ngIf="projetContacts[projet.id]?.coaches?.length; else noCoaches">
-                                                {{ getCoachesEmails(projet.id) }}
-                                            </p>
-                                            <ng-template #noCoaches>
-                                                <p class="contact-empty">Aucun coach assigné</p>
-                                            </ng-template>
-                                        </div>
-                                    </div>
-
-                                    <!-- Investors Section -->
-                                    <div class="contact-category">
-                                        <div class="contact-header">
-                                            <mat-icon class="contact-icon">monetization_on</mat-icon>
-                                            <span class="contact-label">Investisseurs</span>
-                                        </div>
-                                        <div class="contact-content">
-                                            <p class="contact-info" *ngIf="projetContacts[projet.id]?.investors?.length; else noInvestors">
-                                                {{ getInvestorsEmails(projet.id) }}
-                                            </p>
-                                            <ng-template #noInvestors>
-                                                <p class="contact-empty">Aucun investisseur assigné</p>
-                                            </ng-template>
-                                        </div>
-                                    </div>
+                                    </ng-container>
+                                </div>
+                                <div
+                                    class="contact-empty"
+                                    *ngIf="projet.id && !projetContacts[projet.id]?.founder && !projetContacts[projet.id]?.entrepreneurs?.length && !projetContacts[projet.id]?.coaches?.length && !projetContacts[projet.id]?.investors?.length"
+                                >
+                                    Aucun contact assigné à ce projet.
                                 </div>
                             </div>
                         </div>
                     </div>
                     <ng-template #noResults>
                         <div class="no-results">
-                            <mat-icon class="no-results-icon">mood_bad</mat-icon>
-                            <p>Aucun projet trouvé.</p>
+                            <div class="no-results-content">
+                                <mat-icon class="no-results-icon">people_outline</mat-icon>
+                                <h3 class="no-results-title">Aucun Contact Trouvé</h3>
+                                <p class="no-results-message">Il semble que vous n'ayez aucun contact pour le moment. Ajoutez des projets pour collaborer !</p>
+                            </div>
                         </div>
                     </ng-template>
                 </ng-container>
@@ -237,6 +228,9 @@
                     </div>
                 </ng-template>
             </section>
+        </mat-tab>
+        <mat-tab label="Rendez Vous">
+            <app-coach-list [projects]="(filteredProjets$ | async) ?? []"></app-coach-list>
         </mat-tab>
     </mat-tab-group>
 </div>

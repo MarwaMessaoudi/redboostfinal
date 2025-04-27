@@ -38,8 +38,6 @@ export class AuthService {
             );
     }
 
-    // auth.service.ts
-    // auth.service.ts
     refreshToken(): Observable<any> {
         const refreshToken = localStorage.getItem('refreshToken');
 
@@ -56,6 +54,10 @@ export class AuthService {
                     //localStorage.setItem('refreshToken', response.refreshToken);
                 })
             );
+    }
+
+    resendConfirmationEmail(email: string): Observable<any> {
+        return this.http.post(`${this.API_URL}/resend-confirmation`, { email });
     }
 
     // Google Login using the new modular Firebase SDK
@@ -97,6 +99,7 @@ export class AuthService {
             return null;
         }
     }
+
     verifyToken(): Observable<any> {
         const accessToken = localStorage.getItem('accessToken');
 
@@ -128,14 +131,6 @@ export class AuthService {
             return null;
         }
     }
-
-    /* linkedInLogin(): Observable<any> {
-    // Redirect to backend LinkedIn OAuth2 endpoint
-    window.location.href = `${this.API_URL}/oauth/login`;
-    return new Observable((observer) => {
-      observer.next();
-    });
-  } */
 
     // auth.service.ts
     logout(): Observable<any> {

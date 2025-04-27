@@ -6,34 +6,54 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import team.project.redboost.entities.Projet;
+import team.project.redboost.entities.Coach;
 import team.project.redboost.entities.Role;
 import team.project.redboost.entities.User;
 import team.project.redboost.repositories.ProjetRepository;
 import team.project.redboost.repositories.UserRepository;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 @Service
 public class ProjetService {
     private final ProjetRepository projetRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final CloudinaryService cloudinaryService;
+    private final GoogleDriveService googleDriveService;
+
+    private static final int FREE_PROJECT_LIMIT = 3;
 
     @Autowired
-    public ProjetService(ProjetRepository projetRepository, UserRepository userRepository, NotificationService notificationService) {
+    public ProjetService(
+            ProjetRepository projetRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            CloudinaryService cloudinaryService,
+            GoogleDriveService googleDriveService) {
         this.projetRepository = projetRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.cloudinaryService = cloudinaryService;
+        this.googleDriveService = googleDriveService;
     }
 
+    @Transactional
     public Projet createProjet(Projet projet, String imageUrl, Long creatorId) {
+        User founder = userRepository.findById(creatorId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + creatorId));
+
+        // Check project count for the user
+        long projectCount = projetRepository.countByFounder(founder);
+        if (projectCount >= FREE_PROJECT_LIMIT) {
+            throw new IllegalStateException("You have reached the free project limit of " + FREE_PROJECT_LIMIT + ". Please upgrade your account to create more projects.");
+        }
+
         if (projetRepository.existsByNameIgnoreCase(projet.getName())) {
             throw new IllegalArgumentException("A project with the name '" + projet.getName() + "' already exists. Please join it or use a different name.");
         }
@@ -45,26 +65,47 @@ public class ProjetService {
         if (projet.getLastUpdated() == null) projet.setLastUpdated(LocalDate.now());
         if (projet.getLastEvaluationDate() == null) projet.setLastEvaluationDate(LocalDate.now());
 
-        User founder = userRepository.findById(creatorId)
-                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + creatorId));
         if (founder.getRole() != Role.ENTREPRENEUR) {
             throw new IllegalArgumentException("User with ID " + creatorId + " is not an Entrepreneur");
         }
         projet.setFounder(founder);
         projet.getEntrepreneurs().add(founder);
 
+        // Create a Google Drive folder for the project and an 'Accompagnement' subfolder
+        try {
+            // Create the main project folder
+            String folderId = googleDriveService.createFolder(projet.getName());
+            projet.setDriveFolderId(folderId);
+
+            // Share the main folder with the founder
+            googleDriveService.shareFolder(folderId, founder.getEmail(), "writer");
+
+            // Create the 'Accompagnement' subfolder inside the project folder
+            String accompagnementFolderId = googleDriveService.createSubFolder("Accompagnement", folderId);
+            projet.setAccompagnementFolderId(accompagnementFolderId);
+
+            // Share the 'Accompagnement' subfolder with the founder
+            googleDriveService.shareFolder(accompagnementFolderId, founder.getEmail(), "writer");
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create or share Google Drive folder or subfolder", e);
+        }
+
         return projetRepository.save(projet);
     }
 
+    @Transactional
     public Projet updateProjet(Long id, Projet updatedProjet, String imageUrl) {
         Projet projet = projetRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Projet non trouvé avec l'ID : " + id));
 
         if (imageUrl != null && !imageUrl.isEmpty() && projet.getLogoUrl() != null) {
             try {
-                Files.deleteIfExists(Paths.get(projet.getLogoUrl().substring(1)));
+                String oldPublicId = extractPublicIdFromUrl(projet.getLogoUrl());
+                if (oldPublicId != null) {
+                    cloudinaryService.deleteImage(oldPublicId);
+                }
             } catch (Exception e) {
-                System.err.println("Failed to delete old logo file: " + e.getMessage());
+                System.err.println("Failed to delete old Cloudinary image: " + e.getMessage());
             }
         }
 
@@ -93,13 +134,25 @@ public class ProjetService {
 
         if (projet.getLogoUrl() != null) {
             try {
-                Files.deleteIfExists(Paths.get(projet.getLogoUrl().substring(1)));
+                String publicId = extractPublicIdFromUrl(projet.getLogoUrl());
+                if (publicId != null) {
+                    cloudinaryService.deleteImage(publicId);
+                }
             } catch (Exception e) {
-                System.err.println("Failed to delete logo file: " + e.getMessage());
+                System.err.println("Failed to delete Cloudinary image: " + e.getMessage());
             }
         }
 
         projetRepository.delete(projet);
+    }
+
+    private String extractPublicIdFromUrl(String url) {
+        if (url == null || !url.contains("cloudinary.com")) {
+            return null;
+        }
+        String[] parts = url.split("/");
+        String fileName = parts[parts.length - 1];
+        return fileName.substring(0, fileName.lastIndexOf('.'));
     }
 
     public List<Object[]> getProjetCardByUserId(Long userId) {
@@ -151,6 +204,16 @@ public class ProjetService {
         }
         projet.getEntrepreneurs().add(collaborator);
         projet.setPendingCollaborator(null);
+
+        // Share the project folder with the new collaborator
+        try {
+            if (projet.getDriveFolderId() != null) {
+                googleDriveService.shareFolder(projet.getDriveFolderId(), collaborator.getEmail(), "writer");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to share Google Drive folder with collaborator", e);
+        }
+
         return projetRepository.save(projet);
     }
 
@@ -170,6 +233,7 @@ public class ProjetService {
         return projetRepository.save(projet);
     }
 
+    @Transactional
     public Projet addEntrepreneurToProjet(Long projetId, Long userId) {
         Projet projet = projetRepository.findById(projetId)
                 .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
@@ -178,25 +242,60 @@ public class ProjetService {
         if (user.getRole() != Role.ENTREPRENEUR) {
             throw new IllegalArgumentException("User with ID " + userId + " is not an Entrepreneur");
         }
-        projet.getEntrepreneurs().add(user);
+        if (!projet.getEntrepreneurs().contains(user)) {
+            projet.getEntrepreneurs().add(user);
+
+            // Share the project folder with the new entrepreneur
+            try {
+                if (projet.getDriveFolderId() != null) {
+                    googleDriveService.shareFolder(projet.getDriveFolderId(), user.getEmail(), "writer");
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to share Google Drive folder with entrepreneur", e);
+            }
+        }
+
         return projetRepository.save(projet);
     }
 
+    @Transactional
     public Projet addCoachToProjet(Long projetId, Long userId) {
         Projet projet = projetRepository.findById(projetId)
                 .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
-        User user = userRepository.findById(userId)
+        User coach = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
-        projet.getCoaches().add(user);
+
+        // Validate that the user is a coach
+        if (coach.getRole() != Role.COACH) {
+            throw new IllegalArgumentException("User with ID " + userId + " is not a Coach");
+        }
+
+        // Add coach to the project's coaches list if not already present
+        if (!projet.getCoaches().contains(coach)) {
+            projet.getCoaches().add(coach);
+
+            // Share the project folder with the new coach
+            try {
+                if (projet.getDriveFolderId() != null) {
+                    googleDriveService.shareFolder(projet.getDriveFolderId(), coach.getEmail(), "writer");
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to share Google Drive folder with coach", e);
+            }
+        }
+
         return projetRepository.save(projet);
     }
 
+    @Transactional
     public Projet addInvestorToProjet(Long projetId, Long userId) {
         Projet projet = projetRepository.findById(projetId)
                 .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
-        projet.getInvestors().add(user);
+        if (!projet.getInvestors().contains(user)) {
+            projet.getInvestors().add(user);
+        }
         return projetRepository.save(projet);
     }
 
@@ -226,7 +325,6 @@ public class ProjetService {
         return user;
     }
 
-    // NEW METHOD: Fetch project contacts directly as a map of User lists
     @Transactional
     public Map<String, Object> getProjectContacts(Long projetId) {
         Projet projet = projetRepository.findById(projetId)
@@ -237,10 +335,21 @@ public class ProjetService {
         contacts.put("entrepreneurs", projet.getEntrepreneurs());
         contacts.put("coaches", projet.getCoaches());
         contacts.put("investors", projet.getInvestors());
+        contacts.put("driveFolderId", projet.getDriveFolderId());
 
         return contacts;
     }
+
     public List<Projet> getAllProjectsLimited() {
         return projetRepository.findAllProjectsLimited();
     }
+
+    public List<Coach> getCoachesForEntrepreneur(Long userId) {
+        List<Coach> coaches = projetRepository.findCoachesByEntrepreneurId(userId);
+        if (coaches.isEmpty()) {
+            throw new RuntimeException("Aucun coach trouvé pour l'entrepreneur avec l'ID : " + userId);
+        }
+        return coaches;
+    }
+
 }

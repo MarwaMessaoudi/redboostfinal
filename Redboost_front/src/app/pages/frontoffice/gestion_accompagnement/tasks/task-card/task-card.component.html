@@ -1,7 +1,15 @@
-<div class="task-card" cdkDrag>
+<div class="task-card" [cdkDragDisabled]="!isDraggable()" cdkDrag>
     <div class="task-content" (click)="openEditTaskDialog(task)">
         <div class="task-header">
             <div class="task-title">{{ task.title }}</div>
+            <div class="task-actions" *ngIf="isCoach && task.status === TaskStatus.DONE">
+                <button class="action-button validate" (click)="validateTask(); $event.stopPropagation()" matTooltip="Valider la tâche">
+                    <mat-icon>check</mat-icon>
+                </button>
+                <button class="action-button reject" (click)="rejectTask(); $event.stopPropagation()" matTooltip="Rejeter la tâche">
+                    <mat-icon>close</mat-icon>
+                </button>
+            </div>
         </div>
         <div class="task-category" *ngIf="task.taskCategory || task.taskCategoryId">
             <span class="category-badge">{{ categoryName }}</span>

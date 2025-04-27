@@ -106,22 +106,23 @@ input:focus {
   border-color: #DB1E37; /* custom-red */
 }
 
-/* Role Selection */
-.role-selection .radio-group {
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
+//role selection
+.role-selection {
+  margin-bottom: 1rem;
 }
 
-.radio-group label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #245C67;
+.role-selection label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
 }
 
-.radio-group input[type="radio"] {
-  width: auto;
+.role-selection select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
 }
 
 /* Error Messages */
@@ -344,6 +345,69 @@ input:focus {
   filter: none !important; /* Ensure the content is not blurred */
 }
 
+
+
+/* Password Field */
+.password-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem; /* Space between input and toggle icon */
+}
+
+.password-field input {
+  flex: 1; /* Input takes remaining space */
+  padding: 0.75rem; /* Restore default padding */
+}
+
+.password-field .toggle-icon {
+  font-size: 1rem;
+  color: #245C67; /* custom-dark-blue */
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.password-field .toggle-icon:hover {
+  color: #DB1E37; /* custom-red */
+}
+
+/* Password Strength Feedback */
+.password-strength {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.password-strength.strong {
+  color: #28a745; /* Green for strong password */
+}
+
+.password-strength.weak {
+  color: #DB1E37; /* Red for weak password */
+}
+
+/* Ensure existing input styles are not overridden */
+input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #568086; /* custom-light-blue */
+  border-radius: 5px;
+  font-size: 1rem;
+  color: #245C67; /* custom-dark-blue */
+}
+
+input:focus {
+  outline: none;
+  border-color: #DB1E37; /* custom-red */
+}
+
+.invalid-input {
+  border-color: #DB1E37; /* custom-red */
+}
+.google-logo {
+  width: 24px; /* Default size for larger screens */
+  height: 24px;
+  margin-right: 10px; /* Space between logo and text */
+  vertical-align: middle; /* Align with text */
+}
 /* Responsive Design */
 @media (max-width: 768px) {
   .registration-wrapper {
@@ -367,10 +431,5 @@ input:focus {
   }
 
 
-  .google-logo {
-    width: 20px; /* Adjust size as needed */
-    height: 20px;
-    margin-right: 8px; /* Space between logo and text */
-    vertical-align: middle; /* Align with text */
-}
+
 }

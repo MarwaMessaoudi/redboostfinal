@@ -1,109 +1,105 @@
-<div class="app-task-form-task-form-unique-container">
-    <h1 mat-dialog-title class="app-task-form-mat-dialog-title">
-        {{ data.isEdit ? 'Modifier la Tâche' : 'Créer une Nouvelle Tâche' }}
-    </h1>
+<div class="modal-overlay animate-fadeIn">
+    <div class="modal-box animate-slideIn">
+        <!-- Close Button -->
+        <button class="close-icon" (click)="onCancel()" aria-label="Close modal">
+            <i class="fas fa-times"></i>
+        </button>
 
-    <div mat-dialog-content class="app-task-form-mat-dialog-content">
-        <form [formGroup]="taskForm" (ngSubmit)="onSubmit()" class="app-task-form-task-form">
-            <div class="app-task-form-form-container">
-                <mat-form-field appearance="outline" class="app-task-form-mat-form-field app-task-form-full-width">
-                    <mat-label class="app-task-form-mat-label">Titre de la Tâche</mat-label>
-                    <input matInput formControlName="title" placeholder="Entrez le titre de la tâche" required class="app-task-form-mat-input" />
-                    <mat-hint class="app-task-form-mat-hint">Un titre concis pour la tâche</mat-hint>
-                    <mat-error *ngIf="taskForm.get('title')?.hasError('required')" class="app-task-form-mat-error">Le titre est obligatoire</mat-error>
-                </mat-form-field>
+        <!-- Modal Title -->
+        <h3 class="modal-title">
+            <i class="fas fa-plus-circle"></i>
+            {{ data.isEdit ? 'Modifier la Tâche' : 'Nouvelle Tâche' }}
+        </h3>
 
-                <mat-form-field appearance="outline" class="app-task-form-mat-form-field">
-                    <mat-label class="app-task-form-mat-label">Catégorie</mat-label>
-                    <mat-select formControlName="taskCategory" required class="app-task-form-mat-select">
-                        <mat-option *ngFor="let category of taskCategories" [value]="category.id" class="app-task-form-mat-option">{{ category.name }}</mat-option>
-                    </mat-select>
-                    <mat-hint class="app-task-form-mat-hint">Sélectionnez une catégorie pour cette tâche</mat-hint>
-                    <mat-error *ngIf="taskForm.get('taskCategory')?.hasError('required')" class="app-task-form-mat-error">La catégorie est obligatoire</mat-error>
-                </mat-form-field>
+        <!-- Form -->
+        <form [formGroup]="taskForm" (ngSubmit)="onSubmit()" class="activity-form">
+            <div class="form-group">
+                <label for="title">Titre:</label>
+                <input id="title" formControlName="title" placeholder="Entrez le titre de la tâche" required aria-required="true" />
+                <small *ngIf="taskForm.get('title')?.touched && taskForm.get('title')?.hasError('required')" class="error-msg"> Le titre est obligatoire </small>
+            </div>
 
-                <mat-form-field appearance="outline" class="app-task-form-mat-form-field">
-                    <mat-label class="app-task-form-mat-label">Points XP</mat-label>
-                    <input matInput type="number" formControlName="xpPoint" placeholder="Entrez les points XP" required class="app-task-form-mat-input" />
-                    <mat-hint class="app-task-form-mat-hint">La récompense XP pour avoir terminé cette tâche</mat-hint>
-                    <mat-error *ngIf="taskForm.get('xpPoint')?.hasError('required')" class="app-task-form-mat-error">Les points XP sont obligatoires</mat-error>
-                    <mat-error *ngIf="taskForm.get('xpPoint')?.hasError('min')">Les points XP doivent être au moins 0</mat-error>
-                </mat-form-field>
+            <div class="form-group">
+                <label for="taskCategory">Catégorie:</label>
+                <select id="taskCategory" formControlName="taskCategory" required aria-required="true">
+                    <option value="" disabled selected>Sélectionnez une catégorie</option>
+                    <option *ngFor="let category of taskCategories" [value]="category.id">{{ category.name }}</option>
+                </select>
+                <small *ngIf="taskForm.get('taskCategory')?.touched && taskForm.get('taskCategory')?.hasError('required')" class="error-msg"> La catégorie est obligatoire </small>
+            </div>
 
-                <mat-form-field appearance="outline" class="app-task-form-mat-form-field app-task-form-full-width">
-                    <mat-label class="app-task-form-mat-label">Description</mat-label>
-                    <textarea matInput formControlName="description" rows="3" placeholder="Entrez une description" class="app-task-form-mat-textarea"></textarea>
-                    <mat-hint class="app-task-form-mat-hint">Une description détaillée de la tâche</mat-hint>
-                </mat-form-field>
+            <div class="form-group">
+                <label for="xpPoint">Points XP:</label>
+                <input id="xpPoint" type="number" formControlName="xpPoint" placeholder="Entrez les points XP" required aria-required="true" min="0" />
+                <small *ngIf="taskForm.get('xpPoint')?.touched && taskForm.get('xpPoint')?.hasError('required')" class="error-msg"> Les points XP sont obligatoires </small>
+                <small *ngIf="taskForm.get('xpPoint')?.touched && taskForm.get('xpPoint')?.hasError('min')" class="error-msg"> Les points XP doivent être au moins 0 </small>
+            </div>
 
-                <mat-form-field appearance="outline" class="app-task-form-mat-form-field">
-                    <mat-label class="app-task-form-mat-label">Assigné à</mat-label>
-                    <mat-select formControlName="assigneeId" class="app-task-form-mat-select">
-                        <mat-option *ngFor="let assignee of data.entrepreneurs" [value]="assignee.id" class="app-task-form-mat-option"> {{ assignee.firstName }} {{ assignee.lastName }} </mat-option>
-                    </mat-select>
-                    <mat-hint class="app-task-form-mat-hint">Sélectionnez un responsable pour cette tâche</mat-hint>
-                    <mat-error *ngIf="taskForm.get('assigneeId')?.hasError('required')" class="app-task-form-mat-error">Assigné est obligatoire</mat-error>
-                </mat-form-field>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <textarea id="description" formControlName="description" placeholder="Entrez une description" rows="3" aria-required="false"></textarea>
+            </div>
 
-                <mat-form-field appearance="outline" class="app-task-form-mat-form-field">
-                    <mat-label class="app-task-form-mat-label">Priorité</mat-label>
-                    <mat-select formControlName="priority" required class="app-task-form-mat-select">
-                        <mat-option *ngFor="let priority of priorityOptions" [value]="priority" class="app-task-form-mat-option">{{ priority }}</mat-option>
-                    </mat-select>
-                    <mat-hint class="app-task-form-mat-hint">L'importance de cette tâche</mat-hint>
-                    <mat-error *ngIf="taskForm.get('priority')?.hasError('required')" class="app-task-form-mat-error">La priorité est obligatoire</mat-error>
-                </mat-form-field>
+            <div class="form-group">
+                <label for="assigneeId">Assigné à:</label>
+                <select id="assigneeId" formControlName="assigneeId" required aria-required="true">
+                    <option value="" disabled selected>Sélectionnez un responsable</option>
+                    <option *ngFor="let assignee of data.entrepreneurs" [value]="assignee.id">{{ assignee.firstName }} {{ assignee.lastName }}</option>
+                </select>
+                <small *ngIf="taskForm.get('assigneeId')?.touched && taskForm.get('assigneeId')?.hasError('required')" class="error-msg"> Assigné est obligatoire </small>
+            </div>
 
-                <div class="app-task-form-date-range">
-                    <mat-form-field appearance="outline" class="app-task-form-mat-form-field">
-                        <mat-label class="app-task-form-mat-label">Date de Début</mat-label>
-                        <input matInput [matDatepicker]="startPicker" [min]="minStartDate" [matDatepickerFilter]="startDateFilter" formControlName="startDate" required class="app-task-form-mat-input" />
-                        <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
-                        <mat-datepicker #startPicker></mat-datepicker>
-                        <mat-hint class="app-task-form-mat-hint">La date de début prévue de la tâche</mat-hint>
-                        <mat-error *ngIf="taskForm.get('startDate')?.hasError('required')" class="app-task-form-mat-error">La date de début est obligatoire</mat-error>
-                        <mat-error *ngIf="taskForm.get('startDate')?.hasError('matDatepickerMin')" class="app-task-form-mat-error">La date ne peut pas être antérieure à aujourd'hui</mat-error>
-                    </mat-form-field>
+            <div class="form-group">
+                <label for="priority">Priorité:</label>
+                <select id="priority" formControlName="priority" required aria-required="true">
+                    <option value="" disabled selected>Sélectionnez une priorité</option>
+                    <option *ngFor="let priority of priorityOptions" [value]="priority">{{ getTranslatedPriority(priority) }}</option>
+                </select>
+                <small *ngIf="taskForm.get('priority')?.touched && taskForm.get('priority')?.hasError('required')" class="error-msg"> La priorité est obligatoire </small>
+            </div>
 
-                    <mat-form-field appearance="outline" class="app-task-form-mat-form-field">
-                        <mat-label class="app-task-form-mat-label">Date de Fin</mat-label>
-                        <input matInput [matDatepicker]="endPicker" [matDatepickerFilter]="endDateFilter" formControlName="endDate" required class="app-task-form-mat-input" />
-                        <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
-                        <mat-datepicker #endPicker></mat-datepicker>
-                        <mat-hint class="app-task-form-mat-hint">La date de fin prévue de la tâche</mat-hint>
-                        <mat-error *ngIf="taskForm.get('endDate')?.hasError('required')" class="app-task-form-mat-error">La date de fin est obligatoire</mat-error>
-                        <mat-error *ngIf="taskForm.get('endDate')?.hasError('matDatepickerFilter')" class="app-task-form-mat-error">La date de fin ne peut pas être antérieure à la date de début</mat-error>
-                    </mat-form-field>
+            <div class="form-group date-range">
+                <div class="date-field">
+                    <label for="startDate">Date de début:</label>
+                    <!-- Bind min attribute to the calculated effective minimum (max of today and phase start) -->
+                    <input id="startDate" type="date" formControlName="startDate" [min]="effectiveMinStartDate" [max]="phaseEndDate || null" (change)="onStartDateChange($event)" required aria-required="true" />
+                    <small *ngIf="taskForm.get('startDate')?.touched && taskForm.get('startDate')?.hasError('required')" class="error-msg"> La date de début est obligatoire </small>
+                    <!-- Error messages from startDatePhaseValidator -->
+                    <small *ngIf="taskForm.hasError('invalidStartDateEarly')" class="error-msg"> La date de début ne peut pas être antérieure au {{ effectiveMinStartDate | date: 'mediumDate' }}. </small>
+                    <small *ngIf="taskForm.hasError('startDateAfterPhaseEnd')" class="error-msg"> La date de début ne peut pas être postérieure à la date de fin de la phase ({{ phaseEndDate | date: 'mediumDate' }}). </small>
                 </div>
-
-                <!-- Attachment -->
-                <div class="app-task-form-attachments-section">
-                    <h3 class="app-task-form-section-title">Pièces jointes</h3>
-                    <p *ngIf="attachmentControls.length === 0" class="app-task-form-no-attachments">Aucune pièce jointe ajoutée</p>
-                    <div *ngIf="attachmentControls.length > 0" class="app-task-form-attachment-list">
-                        <mat-chip-set>
-                            <mat-chip *ngFor="let attachment of attachmentControls.controls; let i = index" class="app-task-form-mat-chip">
-                                {{ attachment.value }}
-                                <button matChipRemove type="button" (click)="removeAttachment(i)" class="app-task-form-mat-chip-remove">
-                                    <mat-icon class="app-task-form-mat-icon">cancel</mat-icon>
-                                </button>
-                            </mat-chip>
-                        </mat-chip-set>
-                    </div>
-
-                    <div class="app-task-form-add-attachment-container">
-                        <button mat-button color="primary" type="button" (click)="addAttachment()" class="app-task-form-mat-button">Ajouter une pièce jointe</button>
-                    </div>
-                    <input type="file" #fileInput style="display: none" (change)="onFileSelected($event)" />
+                <div class="date-field">
+                    <label for="endDate">Date de fin:</label>
+                    <!-- Bind min to the selected startDate (or effectiveMinStartDate if startDate isn't set yet) -->
+                    <!-- Bind max to the phaseEndDate -->
+                    <input id="endDate" type="date" formControlName="endDate" [min]="taskForm.get('startDate')?.value || effectiveMinStartDate" [max]="phaseEndDate || null" (change)="onEndDateChange($event)" required aria-required="true" />
+                    <small *ngIf="taskForm.get('endDate')?.touched && taskForm.get('endDate')?.hasError('required')" class="error-msg"> La date de fin est obligatoire </small>
+                    <!-- Error messages from group validators -->
+                    <small *ngIf="taskForm.hasError('dateRangeInvalid')" class="error-msg"> La date de fin ne peut pas être antérieure à la date de début. </small>
+                    <small *ngIf="taskForm.hasError('endDateBeforePhaseStart')" class="error-msg"> La date de fin ne peut pas être antérieure à la date de début de la phase ({{ phaseStartDate | date: 'mediumDate' }}). </small>
+                    <small *ngIf="taskForm.hasError('endDateAfterPhaseEnd')" class="error-msg"> La date de fin ne peut pas être postérieure à la date de fin de la phase ({{ phaseEndDate | date: 'mediumDate' }}). </small>
                 </div>
             </div>
 
-            <mat-dialog-actions align="end" class="app-task-form-form-actions">
-                <button mat-button mat-dialog-close class="app-task-form-mat-button">Annuler</button>
-                <button mat-raised-button color="primary" [disabled]="taskForm.invalid || submitting" (click)="onSubmit()" class="app-task-form-mat-raised-button">
+            <div class="form-group attachments-section">
+                <label>Pièce jointe:</label>
+                <div class="attachment-list" *ngIf="selectedFile">
+                    <span class="attachment-chip">{{ selectedFile.name }}</span>
+                    <button type="button" class="remove-attachment" (click)="removeAttachment()" aria-label="Remove attachment">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <p *ngIf="!selectedFile" class="no-attachments">Aucune pièce jointe sélectionnée</p>
+                <button type="button" class="btn-add-attachment" (click)="addAttachment()" [disabled]="selectedFile != null" aria-label="Ajouter une pièce jointe">Ajouter une pièce jointe</button>
+                <input type="file" #fileInput style="display: none" (change)="onFileSelected($event)" />
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" (click)="onCancel()" aria-label="Annuler">Annuler</button>
+                <button type="submit" class="btn-send" [disabled]="taskForm.invalid || submitting" [attr.aria-label]="data.isEdit ? 'Mettre à jour la tâche' : 'Créer la tâche'">
                     {{ data.isEdit ? 'Mettre à jour' : 'Créer' }}
                 </button>
-            </mat-dialog-actions>
+            </div>
         </form>
     </div>
 </div>

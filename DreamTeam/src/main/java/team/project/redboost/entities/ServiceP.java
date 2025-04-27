@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @Setter
@@ -21,13 +24,10 @@ public class ServiceP {
     private String name;
     private String description;
     private Double price;
-    private Integer duree;
-    private String modePrestation;
-    private Boolean disponible;
     private String typeservice;
-    private String temoinage;
-    private String languesdisponible;
 
-    @Lob
-    private String image; // Will store base64 encoded string
+    @ElementCollection
+    @CollectionTable(name = "service_subservices", joinColumns = @JoinColumn(name = "service_id"))
+    @Column(name = "sub_service")
+    private List<String> subServices = new ArrayList<>();
 }

@@ -365,7 +365,7 @@ export class SignupModalComponent implements OnInit {
     if (this.registerForm.invalid) {
       return;
     }
-
+  
     // Envoi de la requête HTTP pour l'enregistrement
     this.http.post('http://localhost:8085/users/adduser', this.registerForm.value).subscribe({
       next: (response: any) => {
@@ -375,24 +375,21 @@ export class SignupModalComponent implements OnInit {
           summary: 'Succès',
           detail: 'Utilisateur enregistré avec succès !'
         });
-
-        // Fermer la modale
-        this.activeModal.close(response);
+  
+        // Fermer la modale et indiquer que la création a réussi
+        this.activeModal.close({ success: true, newUser: response });
+        
       },
       error: (error) => {
         // Gérer les erreurs spécifiques
         if (error.status === 409) {
-          // 409 Conflict: Email already exists
           this.errorMessage = 'Cet email est déjà utilisé. Veuillez en choisir un autre.';
         } else if (error.status === 400) {
-          // 400 Bad Request: Validation errors
           this.errorMessage = 'Erreur de validation. Veuillez vérifier vos informations.';
         } else {
-          // Autres erreurs (500, etc.)
           this.errorMessage = 'Échec de l\'inscription. Veuillez réessayer.';
         }
-
-        // Afficher un message d'erreur
+  
         this.messageService.add({
           severity: 'error',
           summary: 'Erreur',

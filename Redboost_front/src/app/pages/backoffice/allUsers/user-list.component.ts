@@ -35,18 +35,36 @@ export class UserListComponent implements OnInit {
   ngOnInit(): void {
     this.loadUsers();
   }
-
-  // Load users based on the selected role
   loadUsers(): void {
     const roleParam = this.selectedRole === 'TOUS' ? null : this.selectedRole;
     const url = roleParam ? `${this.apiUrl}?role=${roleParam}` : this.apiUrl;
-
-    this.http.get<any[]>(url).subscribe({
+  
+    const headers = {
+      Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`
+    };
+  
+    console.log('Fetching users from:', url);
+    this.http.get<any[]>(url, { headers }).subscribe({
       next: (data) => {
-        this.users = data;
+        console.log('Raw API response:', data);
+        this.users = data.map(user => ({
+          id: user.id,
+          firstName: user.firstName || user.first_name, // Adjust based on API response
+          lastName: user.lastName || user.last_name,
+          role: user.role,
+          phoneNumber: user.phoneNumber || user.phone_number,
+          email: user.email
+        }));
+        console.log('Mapped users:', this.users);
       },
       error: (error) => {
-        console.error('Erreur lors du chargement des utilisateurs', error);
+        console.error('Erreur lors du chargement des utilisateurs:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          error: error.error,
+          url: error.url
+        });
       }
     });
   }
@@ -59,12 +77,23 @@ export class UserListComponent implements OnInit {
 
   deleteUser(id: number): void {
     if (confirm('Voulez-vous vraiment supprimer cet utilisateur ?')) {
-      this.http.delete<void>(`${this.apiUrl}/${id}`).subscribe({
+      const headers = {
+        Authorization: `Bearer ${localStorage.getItem('authToken') || ''}`
+      };
+  
+      this.http.delete<void>(`${this.apiUrl}/${id}`, { headers }).subscribe({
         next: () => {
+          console.log(`Utilisateur ${id} supprimé avec succès`);
           this.loadUsers();
         },
         error: (error) => {
-          console.error('Erreur lors de la suppression', error);
+          console.error('Erreur lors de la suppression:', {
+            status: error.status,
+            statusText: error.statusText,
+            message: error.message,
+            error: error.error,
+            url: error.url
+          });
         }
       });
     }
@@ -88,25 +117,24 @@ export class UserListComponent implements OnInit {
   showCreateUserDialog(): void {
     if (this.isSubmitting) return;
     this.isSubmitting = true;
-
+  
     const modalRef = this.modalService.open(SignupModalComponent, {
       centered: true,
       size: 'sm',
       backdrop: true,
       keyboard: true
     });
-
-    modalRef.componentInstance.userCreated.subscribe((user: any) => {
-      this.loadUsers();
-      modalRef.close();
-    });
-
-    modalRef.componentInstance.onCancel.subscribe(() => {
-      modalRef.close();
-    });
-
-    modalRef.result.finally(() => {
+  
+    modalRef.result.then((result) => {
+      if (result?.success) {
+        this.loadUsers(); // Recharge la liste des utilisateurs si l'inscription a réussi
+      }
+    }).catch((error) => {
+      // Ignorer les erreurs si la modale est juste fermée sans action
+      console.log('Modal dismissed:', error);
+    }).finally(() => {
       this.isSubmitting = false;
     });
   }
+  
 }

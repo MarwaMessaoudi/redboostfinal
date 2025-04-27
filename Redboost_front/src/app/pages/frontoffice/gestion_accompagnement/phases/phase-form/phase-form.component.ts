@@ -4,11 +4,6 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { PhaseService } from '../../../service/phase.service';
 import { Phase, PhaseStatus } from '../../../../../models/phase';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatDatepickerModule, MatDatepickerInputEvent } from '@angular/material/datepicker';
-import { MatNativeDateModule } from '@angular/material/core';
-import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
 
 interface DialogData {
@@ -20,7 +15,7 @@ interface DialogData {
 @Component({
     selector: 'app-phase-form',
     standalone: true,
-    imports: [CommonModule, FormsModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatDialogModule, MatDatepickerModule, MatNativeDateModule, MatButtonModule],
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule],
     templateUrl: './phase-form.component.html',
     styleUrls: ['./phase-form.component.scss'],
     encapsulation: ViewEncapsulation.ShadowDom
@@ -28,11 +23,10 @@ interface DialogData {
 export class PhaseFormComponent implements OnInit {
     phaseForm!: FormGroup;
     isEditMode: boolean;
-    loading = false;
     submitting = false;
     error = '';
-    minDate: Date;
-    minStartDate: Date;
+    minDate: string;
+    minStartDate: string;
     phaseStatusOptions = Object.values(PhaseStatus);
     projectId: number | null = null;
 
@@ -44,7 +38,8 @@ export class PhaseFormComponent implements OnInit {
     ) {
         this.isEditMode = data.isEdit;
         this.projectId = data.projectId || null;
-        this.minDate = new Date();
+        const today = new Date();
+        this.minDate = this.formatDate(today);
         this.minStartDate = this.minDate;
     }
 
@@ -74,9 +69,9 @@ export class PhaseFormComponent implements OnInit {
     }
 
     loadPhase(phase: Phase): void {
-        const startDate = phase.startDate ? new Date(phase.startDate).toISOString().split('T')[0] : '';
-        const endDate = phase.endDate ? new Date(phase.endDate).toISOString().split('T')[0] : '';
-        this.minStartDate = startDate ? new Date(startDate) : this.minDate;
+        const startDate = phase.startDate ? this.formatDate(new Date(phase.startDate)) : '';
+        const endDate = phase.endDate ? this.formatDate(new Date(phase.endDate)) : '';
+        this.minStartDate = startDate || this.minDate;
 
         this.phaseForm.patchValue({
             phaseName: phase.phaseName,
@@ -98,17 +93,12 @@ export class PhaseFormComponent implements OnInit {
         this.submitting = true;
         const formValue = this.phaseForm.value;
 
-        const startDate = new Date(formValue.startDate);
-        const endDate = new Date(formValue.endDate);
-        const normalizedStartDate = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
-        const normalizedEndDate = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
-
         const phaseData: Phase = {
             ...(this.isEditMode && this.data.phase?.phaseId ? { phaseId: this.data.phase.phaseId } : {}),
             phaseName: formValue.phaseName,
             status: formValue.status,
-            startDate: normalizedStartDate,
-            endDate: normalizedEndDate,
+            startDate: formValue.startDate,
+            endDate: formValue.endDate,
             description: formValue.description,
             projetId: formValue.projetId
         };
@@ -154,33 +144,10 @@ export class PhaseFormComponent implements OnInit {
         return this.phaseForm.controls;
     }
 
-    getFormControlClass(controlName: string): string {
-        const control = this.phaseForm.get(controlName);
-        if (control?.invalid && (control?.dirty || control?.touched)) {
-            return 'is-invalid';
-        }
-        return '';
-    }
-
-    getErrorMessage(controlName: string): string {
-        const control = this.phaseForm.get(controlName);
-        if (control?.errors) {
-            if (control.errors['required']) return 'Ce champ est obligatoire';
-            if (control.errors['maxlength']) return `La longueur maximale est de ${control.errors['maxlength'].requiredLength} caractères`;
-            if (control.errors['min']) return "L'ID du projet doit être supérieur à 0";
-        }
-        return '';
-    }
-
-    validateDates(): boolean {
-        const startDate = new Date(this.phaseForm.value.startDate);
-        const endDate = new Date(this.phaseForm.value.endDate);
-        return startDate <= endDate;
-    }
-
-    startDateChanged(event: MatDatepickerInputEvent<Date>) {
-        if (event.value) {
-            this.minStartDate = event.value;
+    startDateChanged(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (input.value) {
+            this.minStartDate = input.value;
             this.phaseForm.updateValueAndValidity();
         }
     }
@@ -206,5 +173,9 @@ export class PhaseFormComponent implements OnInit {
             if (start < today) return { startDateInPast: true };
         }
         return null;
+    }
+
+    private formatDate(date: Date): string {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
 }

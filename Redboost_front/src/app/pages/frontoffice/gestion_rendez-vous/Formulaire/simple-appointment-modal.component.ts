@@ -6,49 +6,48 @@ import { AppointmentService } from '../../service/appointment.service';
 import { RendezVous } from '../../../../models/rendez-vous.model';
 import { catchError, of } from 'rxjs';
 import { ToastrService } from 'ngx-toastr';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 @Component({
     selector: 'app-create-appointment-modal',
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule],
     template: `
-        <div class="modal-container">
-            <div class="modal-content">
+        <div class="modal-container" [@fadeAnimation]>
+            <div class="modal-content" [@slideAnimation]>
                 <div class="modal-header">
                     <h4 class="modal-title">Créer un rendez-vous</h4>
+                    <button class="close-button" (click)="activeModal.dismiss('Cross click')">×</button>
                 </div>
                 <div class="modal-body">
                     <form [formGroup]="createForm" (ngSubmit)="onSubmit()">
                         <div class="input-group">
                             <label for="title">Titre <span class="required">*</span></label>
-                            <input id="title" type="text" class="form-control" formControlName="title" required />
+                            <input id="title" type="text" class="form-control" formControlName="title" required placeholder="Entrez le titre du rendez-vous" />
                         </div>
                         <div class="input-row">
                             <div class="input-group half">
                                 <label for="date">Date <span class="required">*</span></label>
                                 <div class="input-with-icon">
-                                    <input id="date" type="date" class="form-control" formControlName="date" required />
+                                    <input id="date" type="date" class="form-control" formControlName="date" [min]="minDate" required />
                                 </div>
                             </div>
                             <div class="input-group half">
                                 <label for="heure">Heure <span class="required">*</span></label>
                                 <div class="input-with-icon">
-                                    <input id="heure" type="time" class="form-control" formControlName="heure" (change)="checkAvailability()" required />
+                                    <input id="heure" type="time" class="form-control" formControlName="heure" required />
                                 </div>
                             </div>
                         </div>
                         <div class="input-group">
-                            <label for="email">Email <span class="required">*</span></label>
-                            <input id="email" type="email" class="form-control" formControlName="email" required />
-                        </div>
-                        <div class="input-group">
                             <label for="description">Description</label>
-                            <textarea id="description" class="form-control" formControlName="description"></textarea>
+                            <textarea id="description" class="form-control" formControlName="description" placeholder="Ajoutez une description" rows="4"></textarea>
                         </div>
-                        <div *ngIf="isHourUnavailable" class="alert alert-danger">Cette heure n’est pas disponible ou trop proche d’un rendez-vous existant.</div>
                         <div class="modal-footer">
                             <button type="button" class="btn-cancel" (click)="activeModal.dismiss('Cancel')">Annuler</button>
-                            <button type="submit" class="btn-submit" [disabled]="createForm.invalid || isHourUnavailable || isSubmitting">Créer</button>
+                            <button type="submit" class="btn-submit" [disabled]="createForm.invalid || isSubmitting" [class.loading]="isSubmitting">
+                                {{ isSubmitting ? 'Création...' : 'Créer' }}
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -57,6 +56,28 @@ import { ToastrService } from 'ngx-toastr';
     `,
     styles: [
         `
+            /* Animations */
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+
+            @keyframes slideIn {
+                from {
+                    transform: translateY(-20px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            /* Container styles */
             .modal-container {
                 display: flex;
                 align-items: center;
@@ -66,234 +87,284 @@ import { ToastrService } from 'ngx-toastr';
                 left: 0;
                 width: 100%;
                 height: 100%;
-                background: rgba(0, 0, 0, 0.3);
-                z-index: 1050 !important;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1050;
+                animation: fadeIn 0.3s ease-out;
+                backdrop-filter: blur(5px);
             }
 
             .modal-content {
-                width: 600px;
-                background: #f5f7fa;
-                border-radius: 10px;
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-                z-index: 1060 !important;
-                color: #333;
+                width: 90%;
+                max-width: 600px;
+                background: #ffffff;
+                border-radius: 15px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                animation: slideIn 0.3s ease-out;
+                overflow: hidden;
             }
 
+            /* Header styles */
             .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
                 padding: 20px 30px;
-                border-bottom: none;
+                background: #f8f9fa;
+                border-bottom: 1px solid #eee;
             }
 
             .modal-title {
                 font-size: 1.5rem;
                 font-weight: 600;
-                color: #1a3c34;
+                color: #245c67;
                 margin: 0;
             }
 
+            .close-button {
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                color: #666;
+                cursor: pointer;
+                padding: 0;
+                transition: color 0.3s ease;
+            }
+
+            .close-button:hover {
+                color: #245c67;
+            }
+
+            /* Form styles */
             .modal-body {
-                padding: 20px 30px;
+                padding: 30px;
             }
 
             .input-group {
-                margin-bottom: 20px;
+                margin-bottom: 25px;
             }
 
             .input-row {
                 display: flex;
                 gap: 20px;
-                margin-bottom: 20px;
+                margin-bottom: 25px;
             }
 
             .half {
                 flex: 1;
             }
 
-            .input-group label {
-                font-size: 0.9rem;
-                color: #666;
-                margin-bottom: 5px;
+            label {
                 display: block;
+                font-size: 0.95rem;
+                color: #444;
+                margin-bottom: 8px;
+                font-weight: 500;
             }
 
             .required {
-                color: #ff0000;
-                font-size: 0.9rem;
-            }
-
-            .input-group input,
-            .input-group textarea {
-                width: 100%;
-                padding: 10px 15px;
-                font-size: 1rem;
-                border: 1px solid #e0e0e0;
-                border-radius: 5px;
-                background: #fff;
-                color: #333;
-                transition: border-color 0.3s ease;
-            }
-
-            .input-group input:focus,
-            .input-group textarea:focus {
-                outline: none;
-                border-color: #1a73e8;
-            }
-
-            .input-group textarea {
-                height: 80px;
-                resize: vertical;
+                color: #dc3545;
+                margin-left: 3px;
             }
 
             .input-with-icon {
                 position: relative;
             }
 
-            .input-with-icon input {
-                padding-right: 40px;
-            }
-
-            .calendar-icon {
+            .input-with-icon i {
                 position: absolute;
-                right: 10px;
+                right: 12px;
                 top: 50%;
                 transform: translateY(-50%);
                 color: #666;
-                font-size: 1.2rem;
+                pointer-events: none;
             }
 
-            .calendar-icon svg {
-                display: block;
+            .form-control {
+                width: 100%;
+                padding: 12px 15px;
+                font-size: 1rem;
+                border: 2px solid #e0e0e0;
+                border-radius: 8px;
+                background: #fff;
+                transition: all 0.3s ease;
             }
 
-            .alert-danger {
-                margin-top: 10px;
-                background-color: rgba(255, 0, 0, 0.1);
-                border: 1px solid #ff0000;
-                color: #ff0000;
-                padding: 10px;
-                border-radius: 5px;
-                font-size: 0.9rem;
+            .form-control:focus {
+                outline: none;
+                border-color: #245c67;
+                box-shadow: 0 0 0 3px rgba(36, 92, 103, 0.1);
             }
 
+            textarea.form-control {
+                min-height: 100px;
+                resize: vertical;
+            }
+
+            /* Button styles */
             .modal-footer {
                 display: flex;
                 justify-content: flex-end;
-                gap: 10px;
+                gap: 15px;
                 padding: 20px 30px;
-                border-top: none;
+                background: #f8f9fa;
+                border-top: 1px solid #eee;
             }
 
             .btn-cancel,
             .btn-submit {
-                padding: 10px 20px;
+                padding: 12px 25px;
                 font-size: 1rem;
-                border-radius: 5px;
+                font-weight: 500;
+                border-radius: 8px;
                 border: none;
                 cursor: pointer;
-                transition: background-color 0.3s ease;
+                transition: all 0.3s ease;
             }
 
             .btn-cancel {
-                background: transparent;
+                background: #f8f9fa;
                 color: #666;
-                border: 1px solid #e0e0e0;
+                border: 2px solid #e0e0e0;
             }
 
             .btn-cancel:hover {
-                background: #e0e0e0;
+                background: #e9ecef;
+                border-color: #ddd;
             }
 
             .btn-submit {
-                background: #1a73e8;
-                color: #fff;
+                background: #245c67;
+                color: white;
+                position: relative;
+                overflow: hidden;
             }
 
-            .btn-submit:hover {
-                background: #1557b0;
+            .btn-submit:not(:disabled):hover {
+                background: #1d4951;
+                transform: translateY(-1px);
             }
 
             .btn-submit:disabled {
                 background: #b0c4de;
                 cursor: not-allowed;
+                opacity: 0.7;
+            }
+
+            .btn-submit.loading {
+                padding-right: 45px;
+            }
+
+            .btn-submit.loading::after {
+                content: '';
+                position: absolute;
+                right: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 20px;
+                height: 20px;
+                border: 3px solid #fff;
+                border-top-color: transparent;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: translateY(-50%) rotate(360deg);
+                }
+            }
+
+            /* Responsive styles */
+            @media (max-width: 576px) {
+                .modal-content {
+                    width: 95%;
+                    margin: 10px;
+                }
+
+                .input-row {
+                    flex-direction: column;
+                    gap: 15px;
+                }
+
+                .modal-header,
+                .modal-body,
+                .modal-footer {
+                    padding: 15px;
+                }
+
+                .btn-cancel,
+                .btn-submit {
+                    width: 100%;
+                }
+
+                .modal-footer {
+                    flex-direction: column-reverse;
+                }
             }
         `
+    ],
+    animations: [
+        trigger('fadeAnimation', [transition(':enter', [style({ opacity: 0 }), animate('300ms ease-out', style({ opacity: 1 }))]), transition(':leave', [animate('300ms ease-in', style({ opacity: 0 }))])]),
+        trigger('slideAnimation', [
+            transition(':enter', [style({ transform: 'translateY(-20px)', opacity: 0 }), animate('300ms ease-out', style({ transform: 'translateY(0)', opacity: 1 }))]),
+            transition(':leave', [animate('300ms ease-in', style({ transform: 'translateY(-20px)', opacity: 0 }))])
+        ])
     ]
 })
 export class CreateAppointmentModalComponent implements OnInit {
     @Input() coachId?: number;
     createForm!: FormGroup;
-    isHourUnavailable: boolean = false;
-    acceptedAppointments: RendezVous[] = [];
     isSubmitting: boolean = false;
+    minDate: string;
 
     constructor(
         public activeModal: NgbActiveModal,
         private fb: FormBuilder,
         private appointmentService: AppointmentService,
         private toastr: ToastrService
-    ) {}
+    ) {
+        const today = new Date();
+        this.minDate = today.toISOString().split('T')[0];
+    }
 
     ngOnInit() {
         this.createForm = this.fb.group({
             title: ['', Validators.required],
             date: ['', Validators.required],
             heure: ['', Validators.required],
-            email: ['', [Validators.required, Validators.email]],
             description: [''],
             status: ['PENDING']
         });
     }
 
-    checkAvailability(): void {
-        const date = this.createForm.get('date')?.value;
-        const heure = this.createForm.get('heure')?.value;
-
-        if (date && heure) {
-            const fullDateTime = new Date(`${date}T${heure}:00`);
-            this.appointmentService.getAcceptedAppointmentsByDate(date).subscribe({
-                next: (appointments) => {
-                    this.acceptedAppointments = appointments || [];
-                    this.isHourUnavailable = this.isHourConflict(fullDateTime, this.acceptedAppointments);
-                },
-                error: (error) => {
-                    this.toastr.error('Impossible de vérifier les disponibilités. Veuillez réessayer.', 'Erreur');
-                    this.isHourUnavailable = true;
-                    this.acceptedAppointments = [];
-                }
-            });
-        }
-    }
-
-    isHourConflict(newAppointmentTime: Date, existingAppointments: RendezVous[]): boolean {
-        if (!Array.isArray(existingAppointments)) {
-            return false;
-        }
-        const bufferMinutes = 45;
-        return existingAppointments.some((appointment) => {
-            if (!appointment.date || !appointment.heure) return false;
-            const existingTime = new Date(`${appointment.date}T${appointment.heure}:00`);
-            const timeDiff = Math.abs(newAppointmentTime.getTime() - existingTime.getTime()) / 60000;
-            return timeDiff < bufferMinutes || timeDiff === 0;
-        });
-    }
-
     onSubmit(): void {
-        if (this.createForm.valid && !this.isHourUnavailable && !this.isSubmitting) {
+        if (this.createForm.valid && !this.isSubmitting) {
             this.isSubmitting = true;
+
+            const formValues = this.createForm.value;
+            const dateStr = formValues.date;
+            const timeStr = formValues.heure;
+
             const newAppointment: RendezVous = {
-                ...this.createForm.value
+                ...formValues,
+                date: dateStr,
+                heure: timeStr,
+                email: 'default@email.com' // Valeur par défaut
             };
+
             if (!this.coachId) {
                 this.toastr.error('Aucun coach sélectionné.', 'Erreur');
                 this.isSubmitting = false;
                 return;
             }
+
             this.appointmentService
                 .createAppointment(newAppointment, this.coachId)
                 .pipe(
                     catchError((error) => {
                         if (error.status === 400) {
-                            this.toastr.error('Cette heure n’est pas disponible ou trop proche d’un rendez-vous existant.', 'Erreur');
+                            const errorMessage = error.error?.message || "Cette heure n'est pas disponible ou trop proche d'un rendez-vous existant.";
+                            this.toastr.error(errorMessage, 'Erreur');
                         } else {
                             this.toastr.error('Échec de la création du rendez-vous : ' + (error.message || 'Erreur inconnue'), 'Erreur');
                         }
@@ -311,5 +382,24 @@ export class CreateAppointmentModalComponent implements OnInit {
                     }
                 });
         }
+    }
+
+    isHourConflict(newAppointmentTime: Date, existingAppointments: RendezVous[]): boolean {
+        if (!Array.isArray(existingAppointments)) {
+            return false;
+        }
+        const bufferMinutes = 45;
+        const newTime = newAppointmentTime.getHours() * 60 + newAppointmentTime.getMinutes();
+
+        return existingAppointments.some((appointment) => {
+            if (!appointment.date || !appointment.heure) return false;
+
+            const [hours, minutes] = appointment.heure.split(':').map(Number);
+            const existingTime = hours * 60 + minutes;
+
+            const timeDiff = Math.abs(newTime - existingTime);
+
+            return timeDiff < bufferMinutes || timeDiff === 0;
+        });
     }
 }

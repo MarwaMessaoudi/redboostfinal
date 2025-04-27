@@ -1,28 +1,31 @@
 <div class="container">
     <p-toast></p-toast>
     <div class="page-header">
-        <h2>Filter Staff</h2>
-        <p>Select staff types and attributes to filter the staff data.</p>
+        <h2>Filtrer le personnel</h2>
+        <p>Sélectionnez les types de personnel et les attributs pour filtrer les données du personnel.</p>
     </div>
 
     <div class="filter-section">
         <div class="p-field">
-            <label for="staffTypes">Select Staff Types</label>
-            <p-multiSelect id="staffTypes" [options]="staffTypes" [(ngModel)]="selectedTypeIds" optionLabel="typeName" optionValue="id" placeholder="Select Staff Types"></p-multiSelect>
+            <label for="staffTypes">Sélectionner les types de personnel</label>
+            <p-multiSelect id="staffTypes" [options]="staffTypes" [(ngModel)]="selectedTypeIds" optionLabel="typeName" optionValue="id" placeholder="Sélectionner les types de personnel"></p-multiSelect>
         </div>
 
         <div class="p-field">
-            <label for="attributes">Select Attributes</label>
-            <p-multiSelect id="attributes" [options]="attributes" [(ngModel)]="selectedAttributeIds" optionLabel="attributeName" optionValue="id" placeholder="Select Attributes"></p-multiSelect>
+            <label for="attributes">Sélectionner les attributs</label>
+            <p-multiSelect id="attributes" [options]="attributes" [(ngModel)]="selectedAttributeIds" optionLabel="attributeName" optionValue="id" placeholder="Sélectionner les attributs"></p-multiSelect>
         </div>
 
-        <button pButton type="button" label="Filter" icon="pi pi-filter" (click)="filterStaff()" [disabled]="selectedTypeIds.length === 0 || selectedAttributeIds.length === 0"></button>
+        <div class="button-group">
+            <button pButton type="button" label="Filtrer" icon="pi pi-filter" (click)="filterStaff()" [disabled]="selectedTypeIds.length === 0 || selectedAttributeIds.length === 0" class="filter-btn"></button>
+            <button pButton type="button" label="Réinitialiser" icon="pi pi-refresh" (click)="resetFilters()" class="reset-btn"></button>
+        </div>
     </div>
 
-    <p-table [value]="staffList" styleClass="p-datatable-gridlines" [loading]="loading">
+    <p-table [value]="staffList" styleClass="p-datatable-gridlines custom-table" [loading]="loading">
         <ng-template pTemplate="header">
             <tr>
-                <th>Staff Type</th>
+                <th>Type de personnel</th>
                 <th *ngFor="let attr of filteredAttributes">{{ attr.attributeName }}</th>
             </tr>
         </ng-template>
@@ -34,7 +37,7 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td [attr.colspan]="filteredAttributes.length + 1">No staff found.</td>
+                <td [attr.colspan]="filteredAttributes.length + 1">Aucun personnel trouvé.</td>
             </tr>
         </ng-template>
     </p-table>

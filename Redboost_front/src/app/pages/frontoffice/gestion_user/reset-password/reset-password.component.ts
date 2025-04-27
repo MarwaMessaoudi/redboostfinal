@@ -69,7 +69,6 @@ export class ResetPasswordComponent implements OnInit {
         if (response) {
           this.successMessage = 'Password reset successfully! You can now login with your new password.';
           this.resetForm.reset();
-          setTimeout(() => this.router.navigate(['/signin']), 3000);
         }
       });
   }

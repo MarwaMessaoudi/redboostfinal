@@ -1,15 +1,18 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { User } from '../../../../models/user';
 import { ProgramService } from '../../service/program.service';
 import { UserService } from '../../../frontoffice/service/UserService';
 import { Program } from '../../../../models/program.modal';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
     selector: 'app-program-monitoring',
-    imports: [CommonModule, FormsModule, ReactiveFormsModule],
+    standalone: true,
+    imports: [CommonModule, FormsModule, ReactiveFormsModule, MatIconModule, MatButtonModule],
     templateUrl: './program-monitoring.component.html',
     styleUrls: ['./program-monitoring.component.scss']
 })
@@ -17,16 +20,25 @@ export class ProgramMonitoringComponent implements OnInit {
     programs: Program[] = [];
     filteredPrograms: Program[] = [];
     users: User[] = [];
+
     programForm: FormGroup;
     editProgramForm: FormGroup;
+
+    searchTerm: string = '';
+    selectedStatus: string = 'all';
+    selectedDate: string = 'all';
+
     showAddProgramForm: boolean = false;
     showEditProgramForm: boolean = false;
     showRequiredAlert: boolean = false;
     loading: boolean = true;
+
     selectedFile: File | null = null;
     selectedEditFile: File | null = null;
+
     minEndDate: string = '';
     editProgramId: number | null = null;
+    today: string = new Date().toISOString().split('T')[0]; // Added for min start date
 
     constructor(
         private programService: ProgramService,
@@ -64,12 +76,14 @@ export class ProgramMonitoringComponent implements OnInit {
         this.programForm.get('startDate')?.valueChanges.subscribe((value) => {
             if (value) {
                 this.minEndDate = value;
+                this.programForm.get('endDate')?.updateValueAndValidity();
             }
         });
 
         this.editProgramForm.get('startDate')?.valueChanges.subscribe((value) => {
             if (value) {
                 this.minEndDate = value;
+                this.editProgramForm.get('endDate')?.updateValueAndValidity();
             }
         });
     }
@@ -83,7 +97,7 @@ export class ProgramMonitoringComponent implements OnInit {
                 this.loading = false;
             },
             (error) => {
-                console.error('Error loading programs:', error);
+                console.error('Erreur chargement programmes:', error);
                 this.loading = false;
             }
         );
@@ -95,73 +109,73 @@ export class ProgramMonitoringComponent implements OnInit {
                 this.users = data;
             },
             (error) => {
-                console.error('Error loading users:', error);
+                console.error('Erreur chargement users:', error);
             }
         );
     }
 
-    searchPrograms(event: any): void {
-        const searchTerm = event.target.value.toLowerCase();
+    searchPrograms(term: string): void {
+        const searchTerm = term.toLowerCase().trim();
+
         if (!searchTerm) {
             this.filteredPrograms = [...this.programs];
+            this.applyFilters();
             return;
         }
 
         this.filteredPrograms = this.programs.filter((program) => program.name.toLowerCase().includes(searchTerm) || program.description.toLowerCase().includes(searchTerm));
+        this.applyFilters();
     }
 
     filterByStatus(event: any): void {
         const status = event.target.value;
-        if (status === 'all') {
-            this.filteredPrograms = [...this.programs];
-            return;
-        }
-
-        this.filteredPrograms = this.programs.filter((program) => program.status === status);
+        this.selectedStatus = status;
+        this.applyFilters();
     }
 
     filterByDate(event: any): void {
         const dateFilter = event.target.value;
+        this.selectedDate = dateFilter;
+        this.applyFilters();
+    }
+
+    applyFilters(): void {
+        let filtered = [...this.programs];
+
+        // Filtrage par statut
+        if (this.selectedStatus !== 'all') {
+            filtered = filtered.filter((program) => program.status === this.selectedStatus);
+        }
+
+        // Filtrage par date
         const today = new Date();
+        if (this.selectedDate !== 'all') {
+            filtered = filtered.filter((program) => {
+                const startDate = new Date(program.startDate);
+                const diffDays = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-        if (dateFilter === 'all') {
-            this.filteredPrograms = [...this.programs];
-            return;
+                if (this.selectedDate === 'upcoming') {
+                    return diffDays >= 0 && diffDays <= 30;
+                } else if (this.selectedDate === 'recent') {
+                    return diffDays < 0 && Math.abs(diffDays) <= 30;
+                } else if (this.selectedDate === 'distant') {
+                    return diffDays > 30;
+                }
+                return true;
+            });
         }
 
-        switch (dateFilter) {
-            case 'upcoming':
-                this.filteredPrograms = this.programs.filter((program) => {
-                    const startDate = new Date(program.startDate);
-                    const diff = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                    return diff >= 0 && diff <= 30;
-                });
-                break;
-            case 'recent':
-                this.filteredPrograms = this.programs.filter((program) => {
-                    const startDate = new Date(program.startDate);
-                    const diff = Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-                    return diff >= 0 && diff <= 30;
-                });
-                break;
-            case 'distant':
-                this.filteredPrograms = this.programs.filter((program) => {
-                    const startDate = new Date(program.startDate);
-                    const diff = Math.ceil((startDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                    return diff > 30;
-                });
-                break;
+        // Apply search term filter if present
+        if (this.searchTerm) {
+            const searchTerm = this.searchTerm.toLowerCase().trim();
+            filtered = filtered.filter((program) => program.name.toLowerCase().includes(searchTerm) || program.description.toLowerCase().includes(searchTerm));
         }
+
+        this.filteredPrograms = filtered;
     }
 
     openAddProgramForm(): void {
         this.showAddProgramForm = true;
-        this.resetForm();
-    }
-
-    closeAddProgramForm(): void {
-        this.showAddProgramForm = false;
-        this.showRequiredAlert = false;
         this.resetForm();
     }
 
@@ -179,6 +193,23 @@ export class ProgramMonitoringComponent implements OnInit {
             logoUrl: program.logoUrl
         });
         this.selectedEditFile = null;
+        this.minEndDate = program.startDate; // Set minEndDate for edit form
+    }
+
+    closeForm(event?: Event): void {
+        if (event && (event.target as HTMLElement).classList.contains('modal-overlay')) {
+            this.closeAddProgramForm();
+            this.closeEditProgramForm();
+        } else if (!event) {
+            this.closeAddProgramForm();
+            this.closeEditProgramForm();
+        }
+    }
+
+    closeAddProgramForm(): void {
+        this.showAddProgramForm = false;
+        this.showRequiredAlert = false;
+        this.resetForm();
     }
 
     closeEditProgramForm(): void {
@@ -192,6 +223,7 @@ export class ProgramMonitoringComponent implements OnInit {
     resetForm(): void {
         this.programForm.reset();
         this.selectedFile = null;
+        this.minEndDate = this.today; // Reset minEndDate
     }
 
     onFileSelected(event: any): void {
@@ -263,9 +295,34 @@ export class ProgramMonitoringComponent implements OnInit {
                 this.loadPrograms();
             },
             (error) => {
-                console.error('Error adding program:', error);
+                console.error('Erreur ajout programme:', error);
             }
         );
+    }
+    getStatusIcon(status: string): string {
+        switch (status) {
+            case 'ACTIVE':
+                return 'play_circle'; // 🟢 En cours
+            case 'ENATTENTE':
+                return 'pending_actions'; // 🟡 En file d'attente
+            case 'TERMINE':
+                return 'task_alt'; // 🔵 Terminé avec succès
+            default:
+                return 'help'; // En cas de problème
+        }
+    }
+
+    getStatusClass(status: string): string {
+        switch (status) {
+            case 'ACTIVE':
+                return 'active';
+            case 'ENATTENTE':
+                return 'waiting';
+            case 'TERMINE':
+                return 'completed';
+            default:
+                return '';
+        }
     }
 
     updateProgram(): void {
@@ -297,7 +354,7 @@ export class ProgramMonitoringComponent implements OnInit {
                     this.loadPrograms();
                 },
                 (error) => {
-                    console.error('Error updating program:', error);
+                    console.error('Erreur mise à jour programme:', error);
                 }
             );
         }
@@ -310,13 +367,13 @@ export class ProgramMonitoringComponent implements OnInit {
                     this.loadPrograms();
                 },
                 (error) => {
-                    console.error('Error deleting program:', error);
+                    console.error('Erreur suppression programme:', error);
                 }
             );
         }
     }
 
-    viewProgram(programId: number) {
+    viewProgram(programId: number): void {
         this.router.navigate(['/programs', programId]);
     }
 }

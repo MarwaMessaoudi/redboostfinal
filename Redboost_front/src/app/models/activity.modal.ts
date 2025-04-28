@@ -4,15 +4,15 @@ export enum ActivityStatus {
     COMPLETED = 'COMPLETED'
 }
 export interface Activity {
-    
-    id?: number; // optionnel à la création
+    ActivityStatus: ActivityStatus;
+    id?: number;
     name: string;
     description?: string;
-    startDate: string; // Format ISO: 'YYYY-MM-DD' ou 'YYYY-MM-DDTHH:mm:ss'
+    startDate: string; // format ISO
     endDate: string;
-    ActivityStatus:string;
+    color: string; // 💥 couleur hexadécimale (#FF0000, #00AEEF etc.)
+    status?: ActivityStatus;
     program: {
-      id: number;
+        id: number;
     };
-  }
-  
+}

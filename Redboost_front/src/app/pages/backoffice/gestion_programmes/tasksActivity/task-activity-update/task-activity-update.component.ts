@@ -185,7 +185,7 @@ export class TaskActivityUpdateComponent implements OnInit {
         this.taskActivityService.getTaskActivityById(id).subscribe({
             next: (taskActivity) => {
                 this.taskActivity = taskActivity;
-                this.subTasks = taskActivity.subTaskActivitys || [];
+                this.subTasks = taskActivity.subTasks || [];
                 this.comments = taskActivity.comments || [];
                 this.patchForm(taskActivity);
                 this.selectedCategoryId = taskActivity.taskCategoryActivityId;
@@ -291,7 +291,7 @@ export class TaskActivityUpdateComponent implements OnInit {
             this.taskActivityService.updateTaskActivity(this.taskActivity.taskActivityId, taskActivityData).subscribe({
                 next: (updatedTaskActivity) => {
                     this.taskActivity = { ...updatedTaskActivity };
-                    this.subTasks = updatedTaskActivity.subTaskActivitys || [];
+                    this.subTasks = updatedTaskActivity.subTasks || [];
                     this.comments = updatedTaskActivity.comments || [];
                     this.selectedCategoryId = updatedTaskActivity.taskCategoryActivityId;
                     this.patchForm(this.taskActivity);
@@ -312,7 +312,7 @@ export class TaskActivityUpdateComponent implements OnInit {
                 next: (newTaskActivity) => {
                     this.submitting = false;
                     this.taskActivity = newTaskActivity;
-                    this.subTasks = newTaskActivity.subTaskActivitys || [];
+                    this.subTasks = newTaskActivity.subTasks || [];
                     this.comments = newTaskActivity.comments || [];
                     this.taskActivityUpdated.emit(newTaskActivity);
                     this.close();

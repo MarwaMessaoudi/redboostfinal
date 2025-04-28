@@ -6,7 +6,7 @@ import lombok.*; // Import ToString specifically if needed
 
 import java.time.LocalDate;
 import java.util.List;
-import team.project.redboost.entities.ProgramStatus; 
+import team.project.redboost.entities.ProgramStatus;
 
 @Data // Includes @ToString by default
 @Entity
@@ -30,7 +30,7 @@ public class Program {
     @ManyToOne
     @JoinColumn(name = "program_lead_id", nullable = false)
     private User programLead; // Assuming User entity exists and doesn't cause cycles
-    
+
     @Enumerated(EnumType.STRING)
     private ProgramStatus status;
 
@@ -41,14 +41,4 @@ public class Program {
     @JsonManagedReference // Keep for JSON serialization
     private List<Activity> activities;
     // --- End Fix ---
-
-    @PrePersist
-    protected void onCreate() {
-        // Set createdAt or any necessary logic for the Program
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        // Set updatedAt or any necessary logic for the Program
-    }
 }

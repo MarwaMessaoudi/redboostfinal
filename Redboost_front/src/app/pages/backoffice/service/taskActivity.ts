@@ -34,7 +34,7 @@ export class TaskActivityService {
             ...taskActivity,
             attachments: taskActivity.attachments?.map((attachment) => attachment.name) || [],
             taskCategoryActivity: taskActivity.taskCategoryActivity ? { id: taskActivity.taskCategoryActivity.id } : null,
-            subTaskActivitys: taskActivity.subTaskActivitys || [], // Updated to subTaskActivitys
+            subTaskActivitys: taskActivity.subTasks || [], // Updated to subTaskActivitys
             comments: taskActivity.comments || []
         };
         return this.http.post<TaskActivity>(this.apiUrl, taskActivityToSend).pipe(map(this.transformTaskActivity));
@@ -46,7 +46,7 @@ export class TaskActivityService {
             ...taskActivity,
             attachments: taskActivity.attachments?.map((attachment) => attachment.name) || [],
             taskCategoryActivity: taskActivity.taskCategoryActivity ? { id: taskActivity.taskCategoryActivity.id } : null,
-            subTaskActivitys: taskActivity.subTaskActivitys || [], // Updated to subTaskActivitys
+            subTaskActivitys: taskActivity.subTasks || [], // Updated to subTaskActivitys
             comments: taskActivity.comments || []
         };
         return this.http.put<TaskActivity>(`${this.apiUrl}/${id}`, taskActivityToSend).pipe(map(this.transformTaskActivity));
@@ -116,7 +116,7 @@ export class TaskActivityService {
                     };
                 }) || [],
 
-            subTaskActivitys: taskActivity.subTaskActivitys || [],
+            subTasks: taskActivity.subTasks || [],
             comments: taskActivity.comments || []
         };
     }

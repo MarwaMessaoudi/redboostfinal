@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 @Entity
-@Table(name = "task_categories")  
+@Table(name = "task_categories")
 public class TaskCategory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

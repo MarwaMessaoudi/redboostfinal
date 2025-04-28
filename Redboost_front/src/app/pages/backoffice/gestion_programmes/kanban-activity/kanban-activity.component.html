@@ -17,7 +17,6 @@
         </div>
         <div class="filters">
             <div class="filter-group">
-                <label for="categoryActivityFilter">Catégorie :</label>
                 <select id="categoryActivityFilter" [(ngModel)]="categoryActivityFilter" (change)="applyFilters()">
                     <option value="ALL">Toutes les catégories</option>
                     <option *ngFor="let category of taskCategoryActivities" [value]="category.id">
@@ -27,7 +26,6 @@
             </div>
 
             <div class="filter-group">
-                <label for="statusActivityFilter">Statut :</label>
                 <select id="statusActivityFilter" [(ngModel)]="statusActivityFilter" (change)="applyFilters()">
                     <option value="ALL">Tous les statuts</option>
                     <option [value]="TaskStatusActivity.TO_DO">À faire</option>
@@ -36,7 +34,6 @@
                 </select>
             </div>
             <div class="filter-group">
-                <label for="priorityActivityFilter">Priorité :</label>
                 <select id="priorityActivityFilter" [(ngModel)]="priorityActivityFilter" (change)="applyFilters()">
                     <option value="ALL">Toutes les priorités</option>
                     <option *ngFor="let priority of TaskPriorityActivity | keyvalue" [value]="priority.value">
@@ -90,10 +87,6 @@
                 </app-task-activity-card>
             </div>
         </div>
-        <app-task-activity-update
-            [taskActivity]="selectedTaskActivity"
-            [isOpen]="isPanelOpen"
-            (closeEvent)="closePanel()"
-        ></app-task-activity-update>
+        <app-task-activity-update [taskActivity]="selectedTaskActivity" [isOpen]="isPanelOpen" (closeEvent)="closePanel()"></app-task-activity-update>
     </div>
 </div>

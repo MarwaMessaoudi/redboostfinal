@@ -20,6 +20,9 @@ public class Activity {
 
     @NotBlank(message = "Activity name is mandatory")
     private String name;
+    @Column(name = "color", length = 10) // Exemple avec un code hexadÃ©cimal (#FF0000)
+    private String color;
+
 
     @Enumerated(EnumType.STRING)
     private ActivityStatus status;
@@ -85,7 +88,7 @@ public class Activity {
             // Avoid creating a new Program instance if program already exists.
             // This method is generally problematic with JPA. It's better to set the actual Program object.
             if (this.program == null) {
-               this.program = new Program();
+                this.program = new Program();
             }
             // Setting only the ID on a JPA entity like this is usually not recommended.
             // You should fetch the Program entity and set it.

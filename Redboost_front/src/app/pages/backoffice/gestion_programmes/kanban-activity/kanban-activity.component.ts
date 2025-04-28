@@ -43,9 +43,9 @@ import { TaskCategoryActivityService } from '../../service/TaskCategorieActivity
         MatSelectModule,
         MatInputModule,
         TaskActivityCardComponent, // Added to imports
-        TaskActivityUpdateComponent, // Added to imports
-        TaskActivityComponent, // Added to imports
-        TaskCategoryActivityFormComponent // Added to imports
+        TaskActivityUpdateComponent // Added to imports
+        // TaskActivityComponent removed as it is not used
+        // TaskCategoryActivityFormComponent // Added to imports
     ],
     templateUrl: './kanban-activity.component.html',
     styleUrls: ['./kanban-activity.component.scss']

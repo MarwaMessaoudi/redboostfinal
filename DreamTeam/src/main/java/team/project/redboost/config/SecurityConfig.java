@@ -10,7 +10,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserService;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.client.RestTemplate;
@@ -24,7 +23,7 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final team.project.redboost.config.JwtRequestFilter jwtAuthFilter;
+    private final JwtRequestFilter jwtAuthFilter;
 
     public SecurityConfig(JwtRequestFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
@@ -35,17 +34,10 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers("/Auth/**").permitAll()
-                        // Protected endpoints
-                        .anyRequest().authenticated()  // All other endpoints require authentication
+                        .requestMatchers("/Auth/**", "/ws/**", "/api/coach/request").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .oauth2Login(oauth2 -> oauth2
-                        // .loginPage("/oauth2/authorization/google-calendar")  // Trigger Google OAuth2 login
-                        .defaultSuccessUrl("/api/rendezvous/update-status", true)  // Redirect after login
-                        .userInfoEndpoint(userInfo -> userInfo.oidcUserService(new OidcUserService()))
-                )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
@@ -56,7 +48,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200","http://localhost:8085"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:4200"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
@@ -71,12 +63,11 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
+    @Bean
     @Primary
-    @Bean(name = "apiPasswordEncoder")
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
 
     @Bean
     public RestTemplate restTemplate() {

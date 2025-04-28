@@ -127,4 +127,5 @@ public class TaskActivity {
         comments.add(comment);
         comment.setTaskActivity(this);
     }
+
 }

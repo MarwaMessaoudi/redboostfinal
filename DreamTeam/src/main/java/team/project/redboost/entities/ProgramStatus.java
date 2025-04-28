@@ -6,4 +6,3 @@ public enum ProgramStatus {
     ENATTENTE,
     TERMINE
 }
-

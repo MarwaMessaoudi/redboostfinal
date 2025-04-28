@@ -181,12 +181,11 @@
                                         <h2 class="project-title-header">{{ projet.name }}</h2>
                                     </div>
                                 </div>
-                                <div class="contact-grid" *ngIf="projet.id !== undefined && projet.id !== 0 && projetContacts[projet.id]">
-                                    <!-- Group users by their email to handle multiple roles -->
-                                    <ng-container *ngFor="let userGroup of groupUsersByEmail(projetContacts[projet.id])">
+                                <div class="contact-grid" *ngIf="projet.id !== undefined && projet.id !== 0 && projetContacts[projet.id] && !isLoadingContacts">
+                                    <ng-container *ngFor="let userGroup of groupUsersByEmail(projetContacts[projet.id]); trackBy: trackByUserGroup">
                                         <div class="user-card">
                                             <div class="user-card-content">
-                                                <img [src]="getUserAvatar(userGroup.users[0])" alt="User Avatar" class="user-avatar" (error)="onAvatarError($event)" />
+                                                <img [src]="projectContactAvatars[projet.id][userGroup.users[0].id] || defaultAvatar" alt="User Avatar" class="user-avatar" (error)="onAvatarError($event)" />
                                                 <div class="user-info">
                                                     <div class="user-name-wrapper">
                                                         <p class="user-name">{{ getUserName(userGroup.users[0]) }}</p>
@@ -204,9 +203,20 @@
                                 </div>
                                 <div
                                     class="contact-empty"
-                                    *ngIf="projet.id && !projetContacts[projet.id]?.founder && !projetContacts[projet.id]?.entrepreneurs?.length && !projetContacts[projet.id]?.coaches?.length && !projetContacts[projet.id]?.investors?.length"
+                                    *ngIf="
+                                        projet.id &&
+                                        !isLoadingContacts &&
+                                        !projetContacts[projet.id]?.founder &&
+                                        !projetContacts[projet.id]?.entrepreneurs?.length &&
+                                        !projetContacts[projet.id]?.coaches?.length &&
+                                        !projetContacts[projet.id]?.investors?.length
+                                    "
                                 >
                                     Aucun contact assigné à ce projet.
+                                </div>
+                                <div *ngIf="isLoadingContacts" class="loading-container">
+                                    <mat-spinner diameter="30" color="primary"></mat-spinner>
+                                    <p>Chargement des contacts...</p>
                                 </div>
                             </div>
                         </div>

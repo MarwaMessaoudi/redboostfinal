@@ -26,4 +26,16 @@ public class ConversationDTO {
         private String name;
         private List<Long> memberIds;
     }
+
+    public static class AddMemberRequest {
+        private Long memberId;
+
+        public Long getMemberId() {
+            return memberId;
+        }
+
+        public void setMemberId(Long memberId) {
+            this.memberId = memberId;
+        }
+    }
 }

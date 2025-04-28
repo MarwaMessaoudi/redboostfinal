@@ -34,7 +34,7 @@ export class UserService {
         const headers = new HttpHeaders({
             Authorization: `Bearer ${localStorage.getItem('token')}` // Adjust based on your auth mechanism
         });
-        return this.http.get(`http://localhost:8085/api/users/${userId}`, { headers }).pipe(
+        return this.http.get(`http://localhost:8085/users/${userId}`, { headers }).pipe(
             tap((user) => {
                 this.userCache.set(userId, user);
             }),

@@ -1,4 +1,4 @@
-import { Activity } from "./activity.modal";
+import { Activity } from './activity.modal';
 
 // Renamed from TaskCategory to TaskCategoryActivity
 export interface TaskCategoryActivity {
@@ -52,13 +52,13 @@ export interface TaskActivity {
     startDate?: string;
     endDate?: string;
     priorityActivity: PriorityActivity; // Updated to use PriorityActivity
-    statusActivity: StatusActivity;     // Updated to use StatusActivity
-    activity: Activity;                 // Replaced phase with activity
+    statusActivity: StatusActivity; // Updated to use StatusActivity
+    activity: Activity; // Replaced phase with activity
     taskCategoryActivity: TaskCategoryActivity; // Updated to use TaskCategoryActivity
     createdAt?: string;
     updatedAt?: string;
     attachments?: AttachmentActivity[];
-    taskCategoryActivityId?: number;    // Updated to taskCategoryActivityId
-    subTaskActivitys?: SubTaskActivity[]; // Updated to subTaskActivitys
+    taskCategoryActivityId?: number; // Updated to taskCategoryActivityId
+    subTasks?: SubTaskActivity[]; // Updated to subTaskActivitys
     comments?: CommentActivity[]; // Kept as is since it's unrelated to task/activity naming
 }

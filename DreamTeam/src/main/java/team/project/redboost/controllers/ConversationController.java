@@ -136,4 +136,39 @@ public class ConversationController {
             return ResponseEntity.internalServerError().body("Erreur: " + e.getMessage());
         }
     }
+
+
+
+    @PatchMapping("/{id}/members")
+    public ResponseEntity<ConversationDTO> addMemberToConversation(
+            @PathVariable Long id,
+            @RequestBody ConversationDTO.AddMemberRequest request,
+            Authentication authentication) {
+        try {
+            // Get current user email from authentication
+            String userEmail = authentication.getName();
+            User currentUser = userService.findByEmail(userEmail);
+
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // Add member to the conversation via the service
+            Conversation updatedConversation = conversationService.addMemberToConversation(
+                    id,
+                    currentUser.getId(),
+                    request.getMemberId()
+            );
+
+            // Convert to DTO and return
+            return ResponseEntity.ok(convertToDTO(updatedConversation));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+
+
 }

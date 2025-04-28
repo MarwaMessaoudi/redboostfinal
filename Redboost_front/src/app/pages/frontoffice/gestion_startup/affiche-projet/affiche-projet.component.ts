@@ -64,12 +64,16 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     currentUserId: number | null = null;
     pendingInvitations: PendingInvitation[] = [];
     projetContacts: { [key: number]: ProjectContacts } = {};
+    projectContactAvatars: { [projectId: number]: { [userId: number]: SafeUrl } } = {};
+    isLoadingContacts: boolean = false;
     private searchSubject = new Subject<string>();
     imageErrorCount: { [key: string]: number } = {};
     imageLoadStatus: { [key: string]: 'loaded' | 'failed' | 'loading' } = {};
     avatarErrorCount: { [key: string]: number } = {};
+    private avatarUrlCache = new Map<string, SafeUrl>();
     defaultImage = '/assets/images/default-logo.png';
-    defaultAvatar = 'https://via.placeholder.com/80?text=User'; // Placeholder to avoid 404
+    defaultAvatar =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADPSURBVHhe7dEBDQAgAMAw3/yvOQ9NswkJoQMIAAEgAASAABAAAkAACAABIAACQAAIAAEgAASAABAAAkAACAABIAACQAAIAAEgAASAABAAAkAACAABIAACQAAIAAEgAASAABAAAkAACAABIAACQAAIAAEgAASAABAAAkAACAABIAACQAAIAAEgAASAABAAAkAACAABIAACQAAIAAEgAASAABAAAkAACAABIAACQAAIAAEgAASAABAAAkAACAABIAACQAAIAAEgAASAABAAAgAAQAAIAAEgAASAABAAAgAAQAALWot3pD5K6gAAAABJRU5ErkJggg==';
     baseUrl = 'http://localhost:8085';
 
     constructor(
@@ -88,6 +92,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
 
     ngOnDestroy() {
         this.searchSubject.unsubscribe();
+        this.avatarUrlCache.clear();
     }
 
     setupSearchDebounce() {
@@ -153,100 +158,135 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     }
 
     loadProjectContacts(projets: Projet[]) {
-        this.avatarErrorCount = {}; // Reset to prevent stale errors
-        projets.forEach((projet) => {
+        this.isLoadingContacts = true;
+        this.avatarErrorCount = {};
+        const contactRequests = projets.map((projet) => {
             const projectId = projet.id ?? 0;
-            if (projectId) {
-                this.projetService.getProjectContacts(projectId).subscribe({
-                    next: (contacts) => {
-                        const projectContacts: ProjectContacts = {
-                            founder: contacts.founder,
-                            entrepreneurs: contacts.entrepreneurs || [],
-                            coaches: contacts.coaches || [],
-                            investors: contacts.investors || []
-                        };
-                        console.log(`Project ${projectId} Initial Contacts:`, projectContacts);
-
-                        // Collect all user IDs to fetch profiles
-                        const userIds: number[] = [];
-                        if (projectContacts.founder?.id) userIds.push(projectContacts.founder.id);
-                        projectContacts.entrepreneurs.forEach((user) => user.id && userIds.push(user.id));
-                        projectContacts.coaches.forEach((user) => user.id && userIds.push(user.id));
-                        projectContacts.investors.forEach((user) => user.id && userIds.push(user.id));
-                        console.log(`Project ${projectId} User IDs to fetch:`, userIds);
-
-                        // Fetch all user profiles in a single batch
-                        if (userIds.length > 0) {
-                            forkJoin(
-                                userIds.map((id) =>
-                                    this.userService.getUserById(id).pipe(
-                                        tap((profile) => console.log(`Fetched profile for user ${id}:`, profile)),
-                                        catchError((err) => {
-                                            console.error(`Failed to load profile for user ${id}:`, err);
-                                            return of(null);
-                                        })
-                                    )
-                                )
-                            ).subscribe((profiles) => {
-                                const profileMap = new Map<number, User>();
-                                profiles.forEach((profile, index) => {
-                                    if (profile && profile.id) {
-                                        profileMap.set(userIds[index], profile);
-                                    }
-                                });
-                                console.log(`Project ${projectId} Profile Map:`, Array.from(profileMap.entries()));
-
-                                // Update founder
-                                if (projectContacts.founder?.id) {
-                                    const profile = profileMap.get(projectContacts.founder.id);
-                                    if (profile) {
-                                        projectContacts.founder = {
-                                            ...projectContacts.founder,
-                                            profilePictureUrl: profile.profilePictureUrl || projectContacts.founder.profilePictureUrl
-                                        };
-                                    }
-                                }
-
-                                // Update entrepreneurs
-                                projectContacts.entrepreneurs = projectContacts.entrepreneurs.map((user) => {
-                                    const profile = user.id ? profileMap.get(user.id) : null;
-                                    return profile ? { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl } : user;
-                                });
-
-                                // Update coaches
-                                projectContacts.coaches = projectContacts.coaches.map((user) => {
-                                    const profile = user.id ? profileMap.get(user.id) : null;
-                                    return profile ? { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl } : user;
-                                });
-
-                                // Update investors
-                                projectContacts.investors = projectContacts.investors.map((user) => {
-                                    const profile = user.id ? profileMap.get(user.id) : null;
-                                    return profile ? { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl } : user;
-                                });
-
-                                this.projetContacts[projectId] = projectContacts;
-                                console.log(`Project ${projectId} Updated Contacts:`, this.projetContacts[projectId]);
-                                this.cdr.detectChanges(); // Force change detection
-                            });
-                        } else {
-                            this.projetContacts[projectId] = projectContacts;
-                            console.log(`Project ${projectId} Contacts (No Users):`, this.projetContacts[projectId]);
-                            this.cdr.detectChanges();
-                        }
-                    },
-                    error: (error) => {
-                        console.error(`Failed to load contacts for project ${projectId}:`, error);
-                        this.projetContacts[projectId] = {
-                            founder: null,
-                            entrepreneurs: [],
-                            coaches: [],
-                            investors: []
-                        };
-                        this.cdr.detectChanges();
-                    }
-                });
+            if (!projectId) {
+                return of(null);
             }
+            this.projectContactAvatars[projectId] = {};
+            return this.projetService.getProjectContacts(projectId).pipe(
+                tap((contacts) => {
+                    const projectContacts: ProjectContacts = {
+                        founder: contacts.founder,
+                        entrepreneurs: contacts.entrepreneurs || [],
+                        coaches: contacts.coaches || [],
+                        investors: contacts.investors || []
+                    };
+                    console.log(`Project ${projectId} Initial Contacts:`, {
+                        founder: projectContacts.founder ? { id: projectContacts.founder.id, profilePictureUrl: projectContacts.founder.profilePictureUrl } : null,
+                        entrepreneurs: projectContacts.entrepreneurs.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl, profile_pictureurl: (u as any).profile_pictureurl, avatar: (u as any).avatar })),
+                        coaches: projectContacts.coaches.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl, profile_pictureurl: (u as any).profile_pictureurl, avatar: (u as any).avatar })),
+                        investors: projectContacts.investors.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl, profile_pictureurl: (u as any).profile_pictureurl, avatar: (u as any).avatar }))
+                    });
+
+                    const userIds: number[] = [];
+                    if (projectContacts.founder?.id) userIds.push(projectContacts.founder.id);
+                    projectContacts.entrepreneurs.forEach((user) => user.id && userIds.push(user.id));
+                    projectContacts.coaches.forEach((user) => user.id && userIds.push(user.id));
+                    projectContacts.investors.forEach((user) => user.id && userIds.push(user.id));
+                    console.log(`Project ${projectId} User IDs to fetch:`, userIds);
+
+                    if (userIds.length > 0) {
+                        forkJoin(
+                            userIds.map((id) =>
+                                this.userService.getUserById(id).pipe(
+                                    tap((profile) =>
+                                        console.log(`Fetched profile for user ${id}:`, { id: profile?.id, profilePictureUrl: profile?.profilePictureUrl, profile_pictureurl: (profile as any)?.profile_pictureurl, avatar: (profile as any)?.avatar })
+                                    ),
+                                    catchError((err) => {
+                                        console.error(`Failed to load profile for user ${id}:`, err);
+                                        return of(null);
+                                    })
+                                )
+                            )
+                        ).subscribe((profiles) => {
+                            const profileMap = new Map<number, User>();
+                            profiles.forEach((profile, index) => {
+                                if (profile && profile.id) {
+                                    const normalizedProfile = {
+                                        ...profile,
+                                        profilePictureUrl: profile.profilePictureUrl || (profile as any).profile_pictureurl || (profile as any).avatar
+                                    };
+                                    profileMap.set(userIds[index], normalizedProfile);
+                                }
+                            });
+                            console.log(
+                                `Project ${projectId} Profile Map:`,
+                                Array.from(profileMap.entries()).map(([id, p]) => ({ id, profilePictureUrl: p.profilePictureUrl }))
+                            );
+
+                            if (projectContacts.founder?.id) {
+                                const profile = profileMap.get(projectContacts.founder.id);
+                                if (profile) {
+                                    projectContacts.founder = {
+                                        ...projectContacts.founder,
+                                        profilePictureUrl: profile.profilePictureUrl || projectContacts.founder.profilePictureUrl
+                                    };
+                                    this.projectContactAvatars[projectId][projectContacts.founder.id] = this.getUserAvatar(projectContacts.founder);
+                                }
+                            }
+
+                            projectContacts.entrepreneurs = projectContacts.entrepreneurs.map((user) => {
+                                const profile = user.id ? profileMap.get(user.id) : null;
+                                if (profile && user.id) {
+                                    const updatedUser = { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl };
+                                    this.projectContactAvatars[projectId][user.id] = this.getUserAvatar(updatedUser);
+                                    return updatedUser;
+                                }
+                                return user;
+                            });
+
+                            projectContacts.coaches = projectContacts.coaches.map((user) => {
+                                const profile = user.id ? profileMap.get(user.id) : null;
+                                if (profile && user.id) {
+                                    const updatedUser = { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl };
+                                    this.projectContactAvatars[projectId][user.id] = this.getUserAvatar(updatedUser);
+                                    return updatedUser;
+                                }
+                                return user;
+                            });
+
+                            projectContacts.investors = projectContacts.investors.map((user) => {
+                                const profile = user.id ? profileMap.get(user.id) : null;
+                                if (profile && user.id) {
+                                    const updatedUser = { ...user, profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl };
+                                    this.projectContactAvatars[projectId][user.id] = this.getUserAvatar(updatedUser);
+                                    return updatedUser;
+                                }
+                                return user;
+                            });
+
+                            this.projetContacts[projectId] = projectContacts;
+                            console.log(`Project ${projectId} Updated Contacts:`, {
+                                founder: projectContacts.founder ? { id: projectContacts.founder.id, profilePictureUrl: projectContacts.founder.profilePictureUrl } : null,
+                                entrepreneurs: projectContacts.entrepreneurs.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl })),
+                                coaches: projectContacts.coaches.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl })),
+                                investors: projectContacts.investors.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl }))
+                            });
+                        });
+                    } else {
+                        this.projetContacts[projectId] = projectContacts;
+                        console.log(`Project ${projectId} Contacts (No Users):`, this.projetContacts[projectId]);
+                    }
+                }),
+                catchError((error) => {
+                    console.error(`Failed to load contacts for project ${projectId}:`, error);
+                    this.projetContacts[projectId] = {
+                        founder: null,
+                        entrepreneurs: [],
+                        coaches: [],
+                        investors: []
+                    };
+                    return of(null);
+                })
+            );
+        });
+
+        forkJoin(contactRequests).subscribe(() => {
+            this.isLoadingContacts = false;
+            this.cdr.detectChanges();
         });
     }
 
@@ -301,22 +341,26 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                         return this.sortAscending ? (aValue > bValue ? 1 : -1) : aValue < bValue ? 1 : -1;
                     })
             ),
-            tap(() => this.cdr.markForCheck())
+            tap(() => setTimeout(() => this.cdr.markForCheck(), 0))
         );
     }
 
     onSearchChange() {
         this.searchSubject.next(this.searchTerm);
     }
+
     onSectorChange() {
         this.applyFilters();
     }
+
     onLocationChange() {
         this.applyFilters();
     }
+
     onSortFieldChange() {
         this.applyFilters();
     }
+
     toggleSortDirection() {
         this.sortAscending = !this.sortAscending;
         this.applyFilters();
@@ -333,15 +377,21 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
 
     getUserAvatar(user: User | null): SafeUrl {
         if (!user) {
-            console.warn('No user provided for avatar');
+            console.warn(`No user provided for avatar`);
             return this.defaultAvatar;
         }
-        if (!user.profilePictureUrl || (user.profilePictureUrl && this.avatarErrorCount[user.profilePictureUrl])) {
-            console.warn(`No valid profilePictureUrl for user ${user.id}, profilePictureUrl: ${user.profilePictureUrl || 'null/undefined'}, errorCount: ${user.profilePictureUrl ? this.avatarErrorCount[user.profilePictureUrl] || 0 : 0}`);
+        const profilePictureUrl = user.profilePictureUrl || (user as any).profile_pictureurl || (user as any).avatar;
+        if (!profilePictureUrl || profilePictureUrl === 'null' || !profilePictureUrl.startsWith('http') || this.avatarErrorCount[profilePictureUrl]) {
+            console.warn(`Invalid or missing profilePictureUrl for user ${user.id} (role: ${user.role}): ${profilePictureUrl || 'null/undefined'}`);
             return this.defaultAvatar;
         }
-        console.log(`Loading avatar for user ${user.id}: ${user.profilePictureUrl}`);
-        return this.sanitizer.bypassSecurityTrustUrl(user.profilePictureUrl);
+        if (this.avatarUrlCache.has(profilePictureUrl)) {
+            return this.avatarUrlCache.get(profilePictureUrl)!;
+        }
+        console.debug(`Loading avatar for user ${user.id} (role: ${user.role}): ${profilePictureUrl}`);
+        const safeUrl = this.sanitizer.bypassSecurityTrustUrl(profilePictureUrl);
+        this.avatarUrlCache.set(profilePictureUrl, safeUrl);
+        return safeUrl;
     }
 
     onImageError(event: Event) {
@@ -355,7 +405,6 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
         img.src = this.defaultImage;
         img.onerror = null;
         console.warn(`Project logo load failed for ${src}, using default: ${this.defaultImage}`);
-        this.cdr.markForCheck();
     }
 
     onAvatarError(event: Event) {
@@ -368,7 +417,6 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
         img.src = this.defaultAvatar;
         img.onerror = null;
         console.warn(`Avatar load failed for ${src}, using default: ${this.defaultAvatar}`);
-        this.cdr.markForCheck();
     }
 
     onImageLoad(logoUrl: string) {
@@ -491,11 +539,11 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                 Swal.fire({
                     title: 'Inviter un Collaborateur',
                     html: `
-            <select id="userSelect" class="swal-custom-select">
-              <option value="">Sélectionnez un utilisateur</option>
-              ${userOptions.map((option) => `<option value="${option.value}">${option.text}</option>`).join('')}
-            </select>
-          `,
+                        <select id="userSelect" class="swal-custom-select">
+                            <option value="">Sélectionnez un utilisateur</option>
+                            ${userOptions.map((option) => `<option value="${option.value}">${option.text}</option>`).join('')}
+                        </select>
+                    `,
                     showCancelButton: true,
                     confirmButtonText: "Envoyer l'invitation",
                     cancelButtonText: 'Annuler',
@@ -552,7 +600,6 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     groupUsersByEmail(contacts: ProjectContacts): { users: User[]; roles: string[] }[] {
         const userMap = new Map<string, { users: User[]; roles: string[] }>();
 
-        // Helper function to add a user to the map
         const addUserToMap = (user: User, role: string) => {
             if (!user || !user.email) return;
             const email = user.email;
@@ -566,21 +613,19 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
             }
         };
 
-        // Add founder
         if (contacts.founder) {
             addUserToMap(contacts.founder, 'Fondateur');
         }
 
-        // Add entrepreneurs
         contacts.entrepreneurs?.forEach((user) => addUserToMap(user, 'Entrepreneur'));
-
-        // Add coaches
         contacts.coaches?.forEach((user) => addUserToMap(user, 'Coach'));
-
-        // Add investors
         contacts.investors?.forEach((user) => addUserToMap(user, 'Investisseur'));
 
         return Array.from(userMap.values());
+    }
+
+    trackByUserGroup(index: number, userGroup: { users: User[]; roles: string[] }): string {
+        return userGroup.users[0]?.id?.toString() || index.toString();
     }
 
     navigateToCreateProject() {

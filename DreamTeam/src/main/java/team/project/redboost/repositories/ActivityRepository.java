@@ -13,6 +13,6 @@ public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     // Find activities by start date range
     List<Activity> findByStartDateBetween(LocalDate start, LocalDate end);
- // Added method to find activities by program ID
+    // Added method to find activities by program ID
     List<Activity> findByProgram_Id(Long programId);
 }

@@ -53,8 +53,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     // Messages for a conversation with custom sorting (excluant les messages supprimés)
     @Query("SELECT m FROM Message m LEFT JOIN FETCH m.reactionMessages WHERE " +
             "m.conversation.id = :conversationId AND m.deleted = false")
-    List<Message> findNonDeletedByConversationId(@Param("conversationId") Long conversationId,
-                                                 Sort sort);
+    List<Message> findNonDeletedByConversationId(@Param("conversationId") Long conversationId,Sort sort);
 
     // Messages non lus pour un utilisateur (incluant les messages supprimés)
     @Query("SELECT m FROM Message m LEFT JOIN FETCH m.reactionMessages WHERE " +
@@ -93,4 +92,17 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     // Message par ID avec reactions
     @Query("SELECT m FROM Message m LEFT JOIN FETCH m.reactionMessages WHERE m.id = :messageId")
     Optional<Message> findByIdWithReactionMessages(@Param("messageId") Long messageId);
+
+
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.conversation.id = :conversationId " +
+            "AND (m.recipient.id = :userId OR m.conversation.estGroupe = true) " +
+            "AND m.estLu = false AND m.deleted = false")
+    Long countUnreadMessagesByConversationIdAndUserId(
+            @Param("conversationId") Long conversationId,
+            @Param("userId") Long userId);
+
+
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.recipient.id = :userId AND m.estLu = false AND m.deleted = false")
+    Long countAllUnreadMessagesByUserId(Long userId);
+
 }

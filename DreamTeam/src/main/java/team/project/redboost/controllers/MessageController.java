@@ -1,10 +1,6 @@
 package team.project.redboost.controllers;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +10,7 @@ import team.project.redboost.entities.Message;
 import team.project.redboost.services.MessageService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,32 +20,6 @@ import java.util.stream.Collectors;
 public class MessageController {
 
     private final MessageService messageService;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class PrivateMessageRequest {
-        private Long senderId;
-        private Long recipientId;
-        private String content;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class GroupMessageRequest {
-        private Long senderId;
-        private Long conversationId;
-        private String content;
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class UpdateMessageRequest {
-        private Long userId;
-        private String newContent;
-    }
 
     @PostMapping("/private")
     public ResponseEntity<MessageDTO> sendPrivateMessage(
@@ -128,6 +99,63 @@ public class MessageController {
         return ResponseEntity.ok(convertToDTO(updatedMessage));
     }
 
+    @GetMapping("/{messageId}")
+    public ResponseEntity<MessageDTO> getMessageById(
+            @PathVariable Long messageId) {
+        Message message = messageService.getMessageById(messageId)
+                .orElseThrow(() -> new RuntimeException("Message non trouvÃ©"));
+        return ResponseEntity.ok(convertToDTO(message));
+    }
+
+    @GetMapping("/conversation/{conversationId}")
+    public ResponseEntity<List<MessageDTO>> getConversationMessages(
+            @PathVariable Long conversationId,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size) {
+        List<Message> messages;
+        Pageable pageable = PageRequest.of(page, size, Sort.by("dateEnvoi").descending());
+        messages = messageService.getAllMessagesByConversationId(conversationId, pageable);
+        System.out.println("Fetched " + messages.size() + " messages for conversation " + conversationId + ": " + messages);
+        return ResponseEntity.ok(messages.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList()));
+    }
+
+    @GetMapping("/unread/count/{conversationId}")
+    public ResponseEntity<Long> getUnreadMessageCount(
+            @PathVariable Long conversationId,
+            @RequestParam Long userId) {
+        Long count = messageService.getUnreadMessageCount(conversationId, userId);
+        return ResponseEntity.ok(count);
+    }
+
+    @GetMapping("/unread/total-count/{userId}")
+    public ResponseEntity<Long> getTotalUnreadMessageCount(
+            @PathVariable Long userId) {
+        Long count = messageService.getTotalUnreadMessageCount(userId);
+        return ResponseEntity.ok(count);
+    }
+
+    @PostMapping("/{messageId}/reactions")
+    public ResponseEntity<MessageDTO> addReaction(
+            @PathVariable Long messageId,
+            @RequestParam Long userId,
+            @RequestParam String emoji) {
+        MessageDTO updatedMessage = messageService.addReaction(messageId, userId, emoji);
+        return ResponseEntity.ok(updatedMessage);
+    }
+
+    @DeleteMapping("/{messageId}/reactions")
+    public ResponseEntity<MessageDTO> removeReaction(
+            @PathVariable Long messageId,
+            @RequestParam Long userId) {
+        MessageDTO updatedMessage = messageService.removeReaction(messageId, userId);
+        return ResponseEntity.ok(updatedMessage);
+    }
+
+
+
+
     private MessageDTO convertToDTO(Message message) {
         MessageDTO.MessageDTOBuilder builder = MessageDTO.builder()
                 .id(message.getId())
@@ -159,47 +187,23 @@ public class MessageController {
         return builder.build();
     }
 
-    @GetMapping("/{messageId}")
-    public ResponseEntity<MessageDTO> getMessageById(
-            @PathVariable Long messageId) {
-        Message message = messageService.getMessageById(messageId)
-                .orElseThrow(() -> new RuntimeException("Message non trouvÃ©"));
-        return ResponseEntity.ok(convertToDTO(message));
+    @lombok.Data
+    public static class PrivateMessageRequest {
+        private Long senderId;
+        private Long recipientId;
+        private String content;
     }
 
-    @GetMapping("/conversation/{conversationId}")
-    public ResponseEntity<List<MessageDTO>> getConversationMessages(
-            @PathVariable Long conversationId,
-            @RequestParam(required = false, defaultValue = "0") Integer page,
-            @RequestParam(required = false, defaultValue = "10") Integer size) {
-        List<Message> messages;
-        if (page != null && size != null) {
-            messages = messageService.getAllMessagesByConversationId(
-                    conversationId,
-                    PageRequest.of(page, size, Sort.by("dateEnvoi").ascending())
-            );
-        } else {
-            messages = messageService.getAllMessagesByConversationId(conversationId);
-        }
-        return ResponseEntity.ok(messages.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList()));
+    @lombok.Data
+    public static class GroupMessageRequest {
+        private Long senderId;
+        private Long conversationId;
+        private String content;
     }
 
-    @PostMapping("/{messageId}/reactions")
-    public ResponseEntity<MessageDTO> addReaction(
-            @PathVariable Long messageId,
-            @RequestParam Long userId,
-            @RequestParam String emoji) {
-        MessageDTO updatedMessage = messageService.addReaction(messageId, userId, emoji);
-        return ResponseEntity.ok(updatedMessage);
-    }
-
-    @DeleteMapping("/{messageId}/reactions")
-    public ResponseEntity<MessageDTO> removeReaction(
-            @PathVariable Long messageId,
-            @RequestParam Long userId) {
-        MessageDTO updatedMessage = messageService.removeReaction(messageId, userId);
-        return ResponseEntity.ok(updatedMessage);
+    @lombok.Data
+    public static class UpdateMessageRequest {
+        private Long userId;
+        private String newContent;
     }
 }

@@ -1,201 +1,220 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CalendarOptions } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import { FullCalendarModule } from '@fullcalendar/angular';
 import { CommonModule } from '@angular/common';
+import { FullCalendarModule } from '@fullcalendar/angular';
 import { ProgramService } from '../../service/program.service';
 import { ActivityService } from '../../service/activity.service';
 import { EventService } from '../../service/event.service';
 
 @Component({
-  selector: 'app-program-detail',
-  standalone: true,
-  imports: [FullCalendarModule, CommonModule, ReactiveFormsModule,FormsModule],
-  templateUrl: './program-details.component.html',
-  styleUrls: ['./program-details.component.scss']
+    selector: 'app-program-detail',
+    standalone: true,
+    imports: [CommonModule, FullCalendarModule, ReactiveFormsModule, FormsModule],
+    templateUrl: './program-details.component.html',
+    styleUrls: ['./program-details.component.scss']
 })
 export class ProgramDetailComponent implements OnInit {
-  program: any;
-  activities: any[] = [];
+    program: any;
+    selectedStatus: string = 'all'; // 'all', 'NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'
+    selectedDateFilter: string = 'all'; // 'all', 'upcoming', 'recent', 'distant'
 
-  activityForm: FormGroup;
-  eventForm: FormGroup;
+    activities: any[] = [];
+    filteredActivities: any[] = [];
+    activityForm: FormGroup;
+    showAddActivityModal = false;
+    activityFilter: string = '';
+    editingActivity: any = null;
 
-  showAddActivityModal = false;
-  showAddEventForm = false;
-  // Add these properties to the class
-activityFilter: string = '';
-filteredActivities: any[] = [];
-
-  calendarOptions: CalendarOptions = {
-    initialView: 'dayGridMonth',
-    plugins: [dayGridPlugin],
-    events: [],
-    height: 'auto'
-  };
-
-  constructor(
-    private route: ActivatedRoute,
-    private programService: ProgramService,
-    private activityService: ActivityService,
-    private eventService: EventService,
-    private fb: FormBuilder,
-    private router: Router
-  ) {
-    this.activityForm = this.fb.group({
-      name: ['', Validators.required],
-      description: ['', Validators.required],
-      startDate: ['', Validators.required],
-      endDate: ['', Validators.required]
-    });
-
-    this.eventForm = this.fb.group({
-      name: ['', Validators.required],
-      description: [''],
-      startDate: ['', Validators.required]
-    });
-  }
-
-  ngOnInit(): void {
-    const programId = Number(this.route.snapshot.paramMap.get('id'));
-    if (programId) {
-      this.loadProgram(programId);
-      this.loadActivities(programId);
-      this.loadEvents(programId);
-    }
-    this.filteredActivities = this.activities; // Initialize
-  }
-
-  loadProgram(programId: number): void {
-    this.programService.getProgramById(programId).subscribe({
-      next: (data) => {
-        this.program = data;
-      },
-      error: (err) => {
-        console.error('❌ Error fetching program', err);
-      }
-    });
-  }
-
- // Update loadActivities to refresh filteredActivities
-loadActivities(programId: number): void {
-  this.activityService.getActivitiesByProgram(programId).subscribe({
-    next: (data) => {
-      this.activities = data;
-      this.filteredActivities = data; // Update filtered list
-      this.calendarOptions.events = data.map((activity: any) => ({
-        title: activity.name,
-        start: activity.startDate,
-        end: activity.endDate
-      }));
-    },
-    error: (err) => {
-      console.error('❌ Error loading activities', err);
-    }
-  });}
-
-  loadEvents(programId: number): void {
-    this.eventService.getEventsByProgram(programId).subscribe({
-      next: (events) => {
-        this.calendarOptions.events = [
-          ...this.calendarOptions.events as any[],
-          ...events.map(event => ({
-            title: event.title,
-            start: event.startDate
-          }))
-        ];
-      },
-      error: (err) => {
-        console.error('❌ Error loading events', err);
-      }
-    });
-  }
-
-  toggleActivityModal(): void {
-    this.showAddActivityModal = !this.showAddActivityModal;
-    if (!this.showAddActivityModal) {
-      this.activityForm.reset();
-    }
-  }
-
-  addActivity(): void {
-    if (this.activityForm.invalid || !this.program?.id) return;
-
-    const newActivity = {
-      ...this.activityForm.value,
-      program: { id: this.program.id }
+    calendarOptions: CalendarOptions = {
+        initialView: 'dayGridMonth',
+        plugins: [dayGridPlugin],
+        events: [],
+        height: 'auto'
     };
 
-    this.activityService.createActivity(newActivity, this.program.id).subscribe({
-      next: () => {
-        this.activityForm.reset();
-        this.showAddActivityModal = false;
-        this.loadActivities(this.program.id);
-      },
-      error: (err) => {
-        console.error('❌ Error adding activity', err);
-      }
-    });
-  }
-
-  toggleEventForm(): void {
-    this.showAddEventForm = !this.showAddEventForm;
-    if (!this.showAddEventForm) {
-      this.eventForm.reset();
+    constructor(
+        private route: ActivatedRoute,
+        private programService: ProgramService,
+        private activityService: ActivityService,
+        private eventService: EventService,
+        private fb: FormBuilder,
+        private router: Router
+    ) {
+        this.activityForm = this.fb.group({
+            name: ['', Validators.required],
+            description: ['', Validators.required],
+            startDate: ['', Validators.required],
+            endDate: ['', Validators.required],
+            color: ['#C8223A', Validators.required]
+        });
     }
-  }
 
-  addEvent(): void {
-    if (this.eventForm.invalid || !this.program?.id) return;
+    ngOnInit(): void {
+        const programId = Number(this.route.snapshot.paramMap.get('id'));
+        if (programId) {
+            this.loadProgram(programId);
+            this.loadActivities(programId);
+        }
+    }
 
-    const formValue = this.eventForm.value;
-    const newEvent = {
-      name: formValue.name,
-      description: formValue.description,
-      startDate: formValue.startDate
-    };
+    loadProgram(programId: number): void {
+        this.programService.getProgramById(programId).subscribe({
+            next: (data) => (this.program = data),
+            error: (err) => console.error('Erreur programme:', err)
+        });
+    }
 
-    this.eventService.createEvent(newEvent, this.program.id).subscribe({
-      next: (savedEvent) => {
-        const calendarApi = (document.querySelector('full-calendar') as any)?.getApi?.();
-        const calendarEvent = {
-          title: savedEvent.title,
-          start: savedEvent.startDate
+    loadActivities(programId: number): void {
+        this.activityService.getActivitiesByProgram(programId).subscribe({
+            next: (data) => {
+                this.activities = data;
+                this.filteredActivities = [...this.activities];
+                this.calendarOptions.events = this.activities.map((act: any) => ({
+                    title: act.name,
+                    start: act.startDate,
+                    end: act.endDate,
+                    color: act.color
+                }));
+            },
+            error: (err) => console.error('Erreur activités:', err)
+        });
+    }
+    translateStatus(status: string): string {
+        switch (status) {
+            case 'NOT_STARTED':
+                return 'Pas commencé';
+            case 'IN_PROGRESS':
+                return 'En cours';
+            case 'COMPLETED':
+                return 'Terminé';
+            default:
+                return 'Inconnu';
+        }
+    }
+
+    toggleActivityModal(): void {
+        this.showAddActivityModal = !this.showAddActivityModal;
+        if (!this.showAddActivityModal) {
+            this.activityForm.reset({ color: '#C8223A' });
+        }
+    }
+
+    addActivity(): void {
+        if (this.activityForm.invalid || !this.program?.id) return;
+
+        const newActivity = {
+            ...this.activityForm.value,
+            program: { id: this.program.id },
+            status: 'NOT_STARTED'
         };
 
-        if (calendarApi) {
-          calendarApi.addEvent(calendarEvent);
+        this.activityService.createActivity(newActivity, this.program.id).subscribe({
+            next: () => {
+                this.activityForm.reset({ color: '#C8223A' });
+                this.showAddActivityModal = false;
+                this.loadActivities(this.program.id);
+            },
+            error: (err) => console.error('Erreur ajout activité:', err)
+        });
+    }
+
+    goToKanban(activityId: number): void {
+        this.router.navigate(['/Activities', activityId]);
+    }
+
+    filterActivities(): void {
+        const today = new Date();
+        this.filteredActivities = this.activities.filter((act) => {
+            const matchesName = !this.activityFilter || act.name.toLowerCase().includes(this.activityFilter.toLowerCase());
+
+            const matchesStatus = this.selectedStatus === 'all' || act.status === this.selectedStatus;
+
+            const activityStartDate = new Date(act.startDate);
+            let matchesDate = true;
+
+            if (this.selectedDateFilter === 'upcoming') {
+                matchesDate = activityStartDate > today;
+            } else if (this.selectedDateFilter === 'recent') {
+                const recentDate = new Date();
+                recentDate.setDate(today.getDate() - 7); // Moins de 7 jours
+                matchesDate = activityStartDate >= recentDate && activityStartDate <= today;
+            } else if (this.selectedDateFilter === 'distant') {
+                const distantDate = new Date();
+                distantDate.setDate(today.getDate() + 30); // Plus de 30 jours
+                matchesDate = activityStartDate > distantDate;
+            }
+
+            return matchesName && matchesStatus && matchesDate;
+        });
+    }
+
+    editActivity(activity: any): void {
+        this.editingActivity = activity;
+        this.showAddActivityModal = true;
+
+        this.activityForm.patchValue({
+            name: activity.name,
+            description: activity.description,
+            startDate: activity.startDate,
+            endDate: activity.endDate,
+            color: activity.color
+        });
+    }
+
+    addOrUpdateActivity(): void {
+        if (this.activityForm.invalid || !this.program?.id) return;
+
+        const activityData = {
+            ...this.activityForm.value,
+            program: { id: this.program.id }
+        };
+
+        if (this.editingActivity) {
+            // ➡️ Mode édition
+            this.activityService.updateActivity(this.editingActivity.id, activityData).subscribe({
+                next: () => {
+                    this.resetActivityModal();
+                    this.loadActivities(this.program.id);
+                },
+                error: (err) => console.error('Erreur mise à jour activité:', err)
+            });
         } else {
-          this.calendarOptions.events = [
-            ...(this.calendarOptions.events as any[]),
-            calendarEvent
-          ];
+            // ➡️ Mode création
+            this.activityService.createActivity(activityData, this.program.id).subscribe({
+                next: () => {
+                    this.resetActivityModal();
+                    this.loadActivities(this.program.id);
+                },
+                error: (err) => console.error('Erreur création activité:', err)
+            });
         }
+    }
 
-        this.eventForm.reset();
-        this.showAddEventForm = false;
-      },
-      error: (err) => {
-        console.error('❌ Error saving event', err);
-      }
-    });
-  }
+    // Reset modal
+    resetActivityModal(): void {
+        this.activityForm.reset({ color: '#C8223A' });
+        this.showAddActivityModal = false;
+        this.editingActivity = null;
+    }
 
-  goToKanban(activityId: number): void {
-    this.router.navigate(['/Activities', activityId]);
-  }
-  // Add filter method
-filterActivities(): void {
-  if (!this.activityFilter) {
-    this.filteredActivities = this.activities;
-    return;
-  }
-  this.filteredActivities = this.activities.filter(act =>
-    act.name.toLowerCase().includes(this.activityFilter.toLowerCase())
-  );
+    deleteActivity(activityId: number): void {
+        if (confirm('Supprimer cette activité ?')) {
+            this.activityService.deleteActivity(activityId).subscribe({
+                next: () => this.loadActivities(this.program.id),
+                error: (err) => console.error('Erreur suppression activité:', err)
+            });
+        }
+    }
+
+    private calculateActivityStatus(tasks: any[]): string {
+        if (!tasks.length) return 'pas_commence';
+        const allCompleted = tasks.every((t) => t.status === 'Terminé');
+        const someInProgress = tasks.some((t) => t.status === 'En cours');
+        if (allCompleted) return 'termine';
+        if (someInProgress) return 'en_cours';
+        return 'pas_commence';
+    }
 }
-
-
-  }

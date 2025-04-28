@@ -5,6 +5,9 @@ import { HttpClient } from '@angular/common/http';
 import { ChatComponent } from '../chat/chat.component';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../service/auth.service';
+import { Client, IFrame, IMessage } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+import { NotificationService } from '../notification.service';
 
 interface ChatItem {
   id: number;
@@ -24,6 +27,25 @@ interface ConversationDTO {
   estGroupe: boolean;
   creatorId?: number;
   participantIds: number[];
+}
+
+interface MessageDTO {
+  id?: number;
+  content: string;
+  timestamp: string;
+  senderId: number;
+  senderName: string;
+  recipientId?: number;
+  conversationId?: number;
+  groupId?: number;
+  isRead: boolean;
+  senderAvatar?: string;
+  reactionMessages?: {
+    id: number;
+    userId: number;
+    username: string;
+    emoji: string;
+  }[];
 }
 
 interface RoleSpecificUser {
@@ -63,6 +85,8 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
   chats: ChatItem[] = [];
   groups: ChatItem[] = [];
   searchTerm: string = '';
+  userSearchTerm: string = ''; // Added for modal search
+  filteredAvailableUsers: RoleSpecificUser[] = []; // Added for modal search
   selectedChat: ChatItem | null = null;
   showChatDetail: boolean = false;
   isMobileView: boolean = false;
@@ -74,20 +98,22 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
   initialGroupUser: RoleSpecificUser | null = null;
   private subscriptions: Subscription[] = [];
   private userCache: Map<number, RoleSpecificUser> = new Map();
+  private stompClient: Client | null = null;
 
-  constructor(private http: HttpClient, private authService: AuthService) {
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+    private notificationService: NotificationService
+  ) {
     this.checkScreenSize();
   }
 
   ngOnInit(): void {
-    // Fetch current user dynamically
     this.subscriptions.push(
       this.authService.getCurrentUser().subscribe({
         next: (userData) => {
           if (userData) {
             this.currentUserId = userData.id;
-            
-            // Fetch complete user data using the ID
             this.getUserProfile(userData.id).then(userDetails => {
               if (userDetails) {
                 this.currentUser = {
@@ -96,16 +122,17 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
                   avatar: userDetails.profile_pictureurl || 'assets/avatars/user.jpg'
                 };
                 this.loadConversations();
+                this.setupWebSocket();
               }
             }).catch(err => {
               console.error('Error fetching user profile:', err);
-              // Set default user and try to load conversations anyway
               this.currentUser = {
                 id: userData.id,
                 name: 'Unknown User',
                 avatar: 'assets/avatars/user.jpg'
               };
               this.loadConversations();
+              this.setupWebSocket();
             });
           } else {
             console.error('No user logged in');
@@ -120,9 +147,72 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
+    if (this.stompClient) {
+      this.stompClient.deactivate();
+    }
   }
 
-  // User profile fetching with caching
+  private setupWebSocket(): void {
+    if (!this.currentUserId) {
+      console.error('Impossible de configurer WebSocket: Aucun ID utilisateur disponible');
+      return;
+    }
+
+    this.stompClient = new Client({
+      webSocketFactory: () => new SockJS('http://localhost:8085/ws'),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      connectHeaders: {
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+      },
+      onConnect: (frame: IFrame) => {
+        console.log('STOMP Connected for conversation list:', frame);
+        this.chats.concat(this.groups).forEach(chat => {
+          this.stompClient!.subscribe(`/topic/conversation/${chat.conversationId}`, (message: IMessage) => {
+            const messageDTO: MessageDTO = JSON.parse(message.body);
+            this.updateChatItem(chat.conversationId, messageDTO);
+          });
+        });
+      },
+      onStompError: (frame: IFrame) => {
+        console.error('STOMP Error:', frame);
+      },
+      onWebSocketClose: () => {
+        console.log('WebSocket Closed');
+      },
+      onWebSocketError: (error) => {
+        console.error('WebSocket Error:', error);
+      }
+    });
+
+    this.stompClient.activate();
+  }
+
+  private updateChatItem(conversationId: number, message: MessageDTO): void {
+    const chatList = this.activeTab === 'groups' ? this.groups : this.chats;
+    const chatIndex = chatList.findIndex(c => c.conversationId === conversationId);
+    if (chatIndex !== -1) {
+      const chat = chatList[chatIndex];
+      chat.lastMessage = message.content.length > 50 ? message.content.substring(0, 47) + '...' : message.content;
+      chat.time = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (
+        !message.isRead &&
+        message.senderId !== this.currentUserId &&
+        (message.recipientId === this.currentUserId || message.groupId)
+      ) {
+        chat.unreadCount = (chat.unreadCount || 0) + 1;
+      }
+      chatList.splice(chatIndex, 1);
+      chatList.unshift(chat);
+      if (this.activeTab === 'groups') {
+        this.groups = [...chatList];
+      } else {
+        this.chats = [...chatList];
+      }
+    }
+  }
+
   private getUserProfile(userId: number): Promise<RoleSpecificUser> {
     if (this.userCache.has(userId)) {
       return Promise.resolve(this.userCache.get(userId)!);
@@ -132,7 +222,6 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
       this.http.get<RoleSpecificUser>(`http://localhost:8085/users/${userId}`).subscribe({
         next: (userDetails) => {
           if (userDetails) {
-            // Clean and validate the user data
             const validatedUser: RoleSpecificUser = {
               id: userDetails.id ?? userId,
               firstName: userDetails.firstName || 'Unknown',
@@ -157,7 +246,6 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
         },
         error: (err) => {
           console.error(`Failed to fetch user ${userId}:`, err);
-          // Create a fallback user when fetch fails
           const fallbackUser: RoleSpecificUser = {
             id: userId,
             firstName: 'Unknown',
@@ -170,7 +258,6 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
             showOptions: false,
             selected: false
           };
-          // Still cache the fallback to avoid repeated failed requests
           this.userCache.set(userId, fallbackUser);
           resolve(fallbackUser);
         }
@@ -178,21 +265,35 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadConversations(): void {
+  private async loadConversations(): Promise<void> {
     if (!this.currentUserId) {
       console.error('Cannot load conversations: No user ID available');
       return;
     }
-    
+
     this.subscriptions.push(
       this.http.get<ConversationDTO[]>('http://localhost:8085/api/conversations').subscribe({
         next: conversations => {
-          // Use Promise.all to wait for all mapping operations to complete
           Promise.all(
-            conversations.map(conv => this.mapToChatItem(conv))
+            conversations.map(async conv => {
+              const chatItem = await this.mapToChatItem(conv);
+              const unreadCount = await this.http.get<number>(
+                `http://localhost:8085/api/messages/unread/count/${conv.id}?userId=${this.currentUserId}`
+              ).toPromise();
+              chatItem.unreadCount = unreadCount;
+              return chatItem;
+            })
           ).then(chatItems => {
             this.chats = chatItems.filter(chat => !chat.isGroup);
             this.groups = chatItems.filter(chat => chat.isGroup);
+            if (this.stompClient && this.stompClient.connected) {
+              chatItems.forEach(chat => {
+                this.stompClient!.subscribe(`/topic/conversation/${chat.conversationId}`, (message: IMessage) => {
+                  const messageDTO: MessageDTO = JSON.parse(message.body);
+                  this.updateChatItem(chat.conversationId, messageDTO);
+                });
+              });
+            }
           }).catch(err => {
             console.error('Error mapping conversations:', err);
           });
@@ -204,26 +305,23 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
 
   private async mapToChatItem(conv: ConversationDTO): Promise<ChatItem> {
     const isGroup = conv.estGroupe;
-    
+
     if (isGroup) {
-      // Handle group conversation
       try {
-        // Map participant IDs to usernames and avatars
         const participants = await Promise.all(
           conv.participantIds
             .filter(id => id !== this.currentUserId)
-            .slice(0, 4) // Limit to 4 participants for the combined avatar
+            .slice(0, 4)
             .map(id => this.getUserProfile(id))
         );
-        
+
         const participantNames = participants.map(p => `${p.firstName}`).join(', ');
         const participantAvatars = participants.map(p => p.profile_pictureurl || 'assets/avatars/user.jpg');
-        
-        // Generate combined avatar for group
+
         const groupAvatar = await this.generateCombinedAvatar(participantAvatars);
-        
+
         return {
-          id: Number(`group${conv.id}`), // Use a special ID format for groups
+          id: Number(`group${conv.id}`),
           name: conv.titre || `Group (${participantNames})`,
           avatar: groupAvatar,
           lastMessage: '',
@@ -246,9 +344,8 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
         };
       }
     } else {
-      // Handle private conversation
       const otherUserId = conv.participantIds.find(id => id !== this.currentUserId);
-      
+
       if (!otherUserId) {
         return {
           id: 0,
@@ -261,7 +358,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
           isGroup: false
         };
       }
-      
+
       try {
         const otherUser = await this.getUserProfile(otherUserId);
         return {
@@ -292,21 +389,19 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
 
   private async generateCombinedAvatar(imageUrls: string[]): Promise<string> {
     if (imageUrls.length === 0) {
-      return 'assets/avatars/group.jpg'; // Fallback for empty groups
+      return 'assets/avatars/group.jpg';
     }
-  
+
     const canvas = document.createElement('canvas');
-    canvas.width = 100; // Size of the combined avatar
+    canvas.width = 100;
     canvas.height = 100;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      return 'assets/avatars/group.jpg'; // Fallback if canvas context is unavailable
+      return 'assets/avatars/group.jpg';
     }
-  
-    // Clear canvas
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-    // Define layout based on number of images
+
     const layouts: { [key: number]: { x: number; y: number; width: number; height: number }[] } = {
       1: [{ x: 0, y: 0, width: 100, height: 100 }],
       2: [
@@ -325,15 +420,15 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
         { x: 50, y: 50, width: 50, height: 50 }
       ]
     };
-  
+
     const layout = layouts[Math.min(imageUrls.length, 4)] || layouts[1];
-    
+
     try {
       const images = await Promise.all(
         imageUrls.slice(0, 4).map(url =>
           new Promise<HTMLImageElement>((resolve, reject) => {
             const img = new Image();
-            img.crossOrigin = 'Anonymous'; // Handle cross-origin images if needed
+            img.crossOrigin = 'Anonymous';
             img.onload = () => resolve(img);
             img.onerror = () => {
               const fallbackImg = new Image();
@@ -345,8 +440,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
           })
         )
       );
-    
-      // Draw images onto canvas
+
       images.forEach((img, index) => {
         if (index >= layout.length) return;
         const { x, y, width, height } = layout[index];
@@ -357,8 +451,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
         ctx.drawImage(img, x, y, width, height);
         ctx.restore();
       });
-    
-      // Convert canvas to data URL
+
       return canvas.toDataURL('image/png');
     } catch (err) {
       console.error('Error generating combined avatar:', err);
@@ -376,7 +469,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
   }
 
   searchChats(): void {
-    // Implement if needed
+    // Already implemented in filteredChats getter
   }
 
   addNewChat(): void {
@@ -384,17 +477,20 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
       console.error('Cannot retrieve users: No user ID available');
       return;
     }
+    this.userSearchTerm = ''; // Reset search term
     this.subscriptions.push(
       this.http.get<RoleSpecificUser[]>('http://localhost:8085/users/role-specific').subscribe({
         next: (users) => {
           this.availableUsers = users
             .filter(user => user.id !== this.currentUserId)
             .map(user => ({ ...user, showOptions: false, selected: false }));
+          this.filteredAvailableUsers = [...this.availableUsers]; // Initialize filtered list
           this.showUserModal = true;
         },
         error: (err) => {
           console.error('Error retrieving users:', err);
           this.availableUsers = [];
+          this.filteredAvailableUsers = [];
           this.showUserModal = true;
         }
       })
@@ -404,18 +500,26 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
   closeUserModal(): void {
     this.showUserModal = false;
     this.availableUsers = [];
+    this.filteredAvailableUsers = [];
+    this.userSearchTerm = '';
   }
 
   closeGroupModal(): void {
     this.showGroupModal = false;
     this.availableUsers = [];
+    this.filteredAvailableUsers = [];
     this.selectedUsers = [];
     this.groupName = '';
     this.initialGroupUser = null;
+    this.userSearchTerm = '';
   }
 
   toggleUserOptions(userId: number): void {
     this.availableUsers = this.availableUsers.map(user => ({
+      ...user,
+      showOptions: user.id === userId ? !user.showOptions : false
+    }));
+    this.filteredAvailableUsers = this.filteredAvailableUsers.map(user => ({
       ...user,
       showOptions: user.id === userId ? !user.showOptions : false
     }));
@@ -455,6 +559,12 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
             isGroup: false
           };
           this.chats.push(newChat);
+          if (this.stompClient && this.stompClient.connected) {
+            this.stompClient.subscribe(`/topic/conversation/${conv.id}`, (message: IMessage) => {
+              const messageDTO: MessageDTO = JSON.parse(message.body);
+              this.updateChatItem(conv.id, messageDTO);
+            });
+          }
           this.openChat(newChat);
           this.closeUserModal();
         },
@@ -469,6 +579,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
       return;
     }
     this.initialGroupUser = user;
+    this.userSearchTerm = ''; // Reset search term
     this.subscriptions.push(
       this.http.get<RoleSpecificUser[]>('http://localhost:8085/users/role-specific').subscribe({
         next: (users) => {
@@ -479,6 +590,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
               selected: u.id === user.id,
               showOptions: false
             }));
+          this.filteredAvailableUsers = [...this.availableUsers]; // Initialize filtered list
           this.selectedUsers = [user];
           this.groupName = `Groupe avec ${user.firstName} ${user.lastName}`;
           this.showUserModal = false;
@@ -487,6 +599,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
         error: (err) => {
           console.error('Error retrieving users for group chat:', err);
           this.availableUsers = [];
+          this.filteredAvailableUsers = [];
           this.showGroupModal = true;
         }
       })
@@ -503,6 +616,10 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
     } else {
       this.selectedUsers = this.selectedUsers.filter(u => u.id !== user.id);
     }
+    // Update filteredAvailableUsers to reflect selection
+    this.filteredAvailableUsers = this.filteredAvailableUsers.map(u =>
+      u.id === user.id ? { ...u, selected: user.selected } : u
+    );
   }
 
   createGroup(): void {
@@ -528,15 +645,14 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.http.post<ConversationDTO>('http://localhost:8085/api/conversations/group', payload).subscribe({
         next: async (conv) => {
-          // Get avatars for the combined group avatar
           const avatarUrls = await Promise.all(
             this.selectedUsers.slice(0, 4).map(async user => {
               return user.profile_pictureurl || 'assets/avatars/user.jpg';
             })
           );
-          
+
           const groupAvatar = await this.generateCombinedAvatar(avatarUrls);
-          
+
           const newGroup: ChatItem = {
             id: Number(`group${conv.id}`),
             name: this.groupName,
@@ -548,6 +664,12 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
             isGroup: true
           };
           this.groups.push(newGroup);
+          if (this.stompClient && this.stompClient.connected) {
+            this.stompClient.subscribe(`/topic/conversation/${conv.id}`, (message: IMessage) => {
+              const messageDTO: MessageDTO = JSON.parse(message.body);
+              this.updateChatItem(conv.id, messageDTO);
+            });
+          }
           this.openChat(newGroup);
           this.closeGroupModal();
         },
@@ -560,7 +682,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
   }
 
   deleteConversation(conversationId: number, event: Event): void {
-    event.stopPropagation(); // Prevent opening the chat
+    event.stopPropagation();
 
     if (!confirm('Are you sure you want to delete this conversation? This action is irreversible.')) {
       return;
@@ -569,11 +691,8 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.http.delete(`http://localhost:8085/api/conversations/${conversationId}`).subscribe({
         next: () => {
-          // Remove from chats or groups
           this.chats = this.chats.filter(chat => chat.conversationId !== conversationId);
           this.groups = this.groups.filter(group => group.conversationId !== conversationId);
-          
-          // If the deleted conversation is open, close the chat detail
           if (this.selectedChat?.conversationId === conversationId) {
             this.selectedChat = null;
             this.showChatDetail = false;
@@ -601,8 +720,20 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
   openChat(chat: ChatItem): void {
     this.selectedChat = { ...chat };
     this.showChatDetail = true;
-    if (chat.unreadCount) {
+    chat.unreadCount = 0;
+  }
+
+  onMessagesMarkedAsRead(conversationId: number): void {
+    const chatList = this.activeTab === 'groups' ? this.groups : this.chats;
+    const chat = chatList.find(c => c.conversationId === conversationId);
+    if (chat) {
       chat.unreadCount = 0;
+      if (this.activeTab === 'groups') {
+        this.groups = [...this.groups];
+      } else {
+        this.chats = [...this.chats];
+      }
+      this.notificationService.updateUnreadMessageCount();
     }
   }
 
@@ -611,5 +742,20 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
       this.showChatDetail = false;
       this.selectedChat = null;
     }
+  }
+
+  filterUsers(): void {
+    if (!this.userSearchTerm || this.userSearchTerm.trim() === '') {
+      this.filteredAvailableUsers = [...this.availableUsers];
+      return;
+    }
+
+    const searchTerm = this.userSearchTerm.toLowerCase().trim();
+    this.filteredAvailableUsers = this.availableUsers.filter(user => {
+      const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      const role = (user.role || '').toLowerCase();
+      return fullName.includes(searchTerm) || email.includes(searchTerm) || role.includes(searchTerm);
+    });
   }
 }

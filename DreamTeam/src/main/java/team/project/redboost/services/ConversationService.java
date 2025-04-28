@@ -83,4 +83,39 @@ public class ConversationService {
 
         conversationRepository.delete(conversation);
     }
+
+
+    // Ajouter un membre à une conversation de groupe
+    @Transactional
+    public Conversation addMemberToConversation(Long conversationId, Long currentUserId, Long memberId) {
+        // Trouver la conversation
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new EntityNotFoundException("Conversation non trouvée"));
+
+        // Vérifier que c'est une conversation de groupe
+        if (!conversation.isEstGroupe()) {
+            throw new IllegalArgumentException("Impossible d'ajouter des membres à une conversation privée");
+        }
+
+        // Vérifier que l'utilisateur actuel est un participant
+        boolean isParticipant = conversation.getParticipants().stream()
+                .anyMatch(user -> user.getId().equals(currentUserId));
+        if (!isParticipant) {
+            throw new SecurityException("L'utilisateur n'est pas autorisé à modifier cette conversation");
+        }
+
+        // Trouver le nouveau membre
+        User newMember = userRepository.findById(memberId)
+                .orElseThrow(() -> new EntityNotFoundException("Utilisateur non trouvé"));
+
+        // Vérifier si le membre est déjà dans la conversation
+        if (conversation.getParticipants().contains(newMember)) {
+            throw new IllegalArgumentException("L'utilisateur est déjà membre de cette conversation");
+        }
+
+        // Ajouter le nouveau membre
+        conversation.getParticipants().add(newMember);
+        return conversationRepository.save(conversation);
+    }
+
 }

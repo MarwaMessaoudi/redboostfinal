@@ -1,6 +1,7 @@
 package team.project.redboost.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.stereotype.Service;
 import team.project.redboost.entities.TaskActivity;
 import team.project.redboost.entities.Activity;
@@ -56,6 +57,7 @@ public class TaskActivityService {
             }
         }
 
+
         TaskActivity savedTaskActivity = taskActivityRepository.save(taskActivity);
         updateActivityTotalXpPoints(activity);
 
@@ -89,7 +91,6 @@ public class TaskActivityService {
         TaskActivity taskActivity = taskActivityRepository.findById(taskActivityId)
                 .orElseThrow(() -> new RuntimeException("TaskActivity not found"));
 
-        // Update scalar fields
         taskActivity.setTitle(updatedTaskActivity.getTitle());
         taskActivity.setXpPoint(updatedTaskActivity.getXpPoint());
         taskActivity.setDescription(updatedTaskActivity.getDescription());
@@ -100,21 +101,18 @@ public class TaskActivityService {
         taskActivity.setStatusActivity(updatedTaskActivity.getStatusActivity());
         taskActivity.setAttachments(updatedTaskActivity.getAttachments());
 
-        // Update activity
         if (updatedTaskActivity.getActivity() != null && updatedTaskActivity.getActivity().getId() != null) {
             Activity activity = activityRepository.findById(updatedTaskActivity.getActivity().getId())
                     .orElseThrow(() -> new RuntimeException("Activity not found"));
             taskActivity.setActivity(activity);
         }
 
-        // Update task category activity
         if (updatedTaskActivity.getTaskCategoryActivity() != null && updatedTaskActivity.getTaskCategoryActivity().getId() != null) {
             TaskCategoryActivity category = taskCategoryActivityRepository.findById(updatedTaskActivity.getTaskCategoryActivity().getId())
                     .orElseThrow(() -> new RuntimeException("TaskCategoryActivity not found"));
             taskActivity.setTaskCategoryActivity(category);
         }
 
-        // Update sub-tasks
         if (updatedTaskActivity.getSubTasks() != null) {
             taskActivity.getSubTasks().clear();
             for (SubTaskActivity subTask : updatedTaskActivity.getSubTasks()) {
@@ -122,7 +120,6 @@ public class TaskActivityService {
             }
         }
 
-        // Update comments
         if (updatedTaskActivity.getComments() != null) {
             taskActivity.getComments().clear();
             for (CommentActivity comment : updatedTaskActivity.getComments()) {

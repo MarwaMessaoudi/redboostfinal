@@ -5,15 +5,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import team.project.redboost.entities.Projet;
-import team.project.redboost.entities.Coach;
-import team.project.redboost.entities.Role;
-import team.project.redboost.entities.User;
+import team.project.redboost.dto.StatisticsDTOs.*;
+import team.project.redboost.entities.*;
 import team.project.redboost.repositories.ProjetRepository;
 import team.project.redboost.repositories.UserRepository;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +27,7 @@ public class ProjetService {
     private final GoogleDriveService googleDriveService;
 
     private static final int FREE_PROJECT_LIMIT = 3;
+    private static final double REVIEW_READY_THRESHOLD = 0.8; // 80% tasks DONE
 
     @Autowired
     public ProjetService(
@@ -45,15 +45,18 @@ public class ProjetService {
 
     @Transactional
     public Projet createProjet(Projet projet, String imageUrl, Long creatorId) {
+        System.out.println("Starting createProjet for name: " + projet.getName() + ", creatorId: " + creatorId);
         User founder = userRepository.findById(creatorId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + creatorId));
 
-        // Check project count for the user
         long projectCount = projetRepository.countByFounder(founder);
         if (projectCount >= FREE_PROJECT_LIMIT) {
             throw new IllegalStateException("You have reached the free project limit of " + FREE_PROJECT_LIMIT + ". Please upgrade your account to create more projects.");
         }
 
+        if (projet.getName() == null || projet.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("Project name is required");
+        }
         if (projetRepository.existsByNameIgnoreCase(projet.getName())) {
             throw new IllegalArgumentException("A project with the name '" + projet.getName() + "' already exists. Please join it or use a different name.");
         }
@@ -71,26 +74,34 @@ public class ProjetService {
         projet.setFounder(founder);
         projet.getEntrepreneurs().add(founder);
 
-        // Create a Google Drive folder for the project and an 'Accompagnement' subfolder
+        System.out.println("Saving projet to database: " + projet.getName());
+        Projet savedProjet = projetRepository.saveAndFlush(projet);
+        System.out.println("Projet saved with ID: " + savedProjet.getId());
+
+        // Google Drive operations in a separate method
         try {
-            // Create the main project folder
-            String folderId = googleDriveService.createFolder(projet.getName());
-            projet.setDriveFolderId(folderId);
-
-            // Share the main folder with the founder
-            googleDriveService.shareFolder(folderId, founder.getEmail(), "writer");
-
-            // Create the 'Accompagnement' subfolder inside the project folder
-            String accompagnementFolderId = googleDriveService.createSubFolder("Accompagnement", folderId);
-            projet.setAccompagnementFolderId(accompagnementFolderId);
-
-            // Share the 'Accompagnement' subfolder with the founder
-            googleDriveService.shareFolder(accompagnementFolderId, founder.getEmail(), "writer");
+            setupGoogleDriveFolders(savedProjet, founder.getEmail());
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create or share Google Drive folder or subfolder", e);
+            System.err.println("Failed to set up Google Drive folders: " + e.getMessage());
+            // Log the error but don't throw to avoid rollback
+            savedProjet.setDriveFolderId("error-folder-id");
+            savedProjet.setAccompagnementFolderId("error-subfolder-id");
+            projetRepository.save(savedProjet);
         }
 
-        return projetRepository.save(projet);
+        return savedProjet;
+    }
+
+    private void setupGoogleDriveFolders(Projet projet, String founderEmail) throws IOException {
+        System.out.println("Creating Google Drive folder for projet: " + projet.getName());
+        String folderId = googleDriveService.createFolder(projet.getName());
+        projet.setDriveFolderId(folderId);
+        googleDriveService.shareFolder(folderId, founderEmail, "writer");
+        String accompagnementFolderId = googleDriveService.createSubFolder("Accompagnement", folderId);
+        projet.setAccompagnementFolderId(accompagnementFolderId);
+        googleDriveService.shareFolder(accompagnementFolderId, founderEmail, "writer");
+        System.out.println("Google Drive folders created: " + folderId + ", " + accompagnementFolderId);
+        projetRepository.save(projet);
     }
 
     @Transactional
@@ -205,7 +216,6 @@ public class ProjetService {
         projet.getEntrepreneurs().add(collaborator);
         projet.setPendingCollaborator(null);
 
-        // Share the project folder with the new collaborator
         try {
             if (projet.getDriveFolderId() != null) {
                 googleDriveService.shareFolder(projet.getDriveFolderId(), collaborator.getEmail(), "writer");
@@ -244,8 +254,6 @@ public class ProjetService {
         }
         if (!projet.getEntrepreneurs().contains(user)) {
             projet.getEntrepreneurs().add(user);
-
-            // Share the project folder with the new entrepreneur
             try {
                 if (projet.getDriveFolderId() != null) {
                     googleDriveService.shareFolder(projet.getDriveFolderId(), user.getEmail(), "writer");
@@ -254,7 +262,6 @@ public class ProjetService {
                 throw new RuntimeException("Failed to share Google Drive folder with entrepreneur", e);
             }
         }
-
         return projetRepository.save(projet);
     }
 
@@ -264,17 +271,11 @@ public class ProjetService {
                 .orElseThrow(() -> new NoSuchElementException("Projet not found with ID: " + projetId));
         User coach = userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
-
-        // Validate that the user is a coach
         if (coach.getRole() != Role.COACH) {
             throw new IllegalArgumentException("User with ID " + userId + " is not a Coach");
         }
-
-        // Add coach to the project's coaches list if not already present
         if (!projet.getCoaches().contains(coach)) {
             projet.getCoaches().add(coach);
-
-            // Share the project folder with the new coach
             try {
                 if (projet.getDriveFolderId() != null) {
                     googleDriveService.shareFolder(projet.getDriveFolderId(), coach.getEmail(), "writer");
@@ -283,7 +284,6 @@ public class ProjetService {
                 throw new RuntimeException("Failed to share Google Drive folder with coach", e);
             }
         }
-
         return projetRepository.save(projet);
     }
 
@@ -352,4 +352,231 @@ public class ProjetService {
         return coaches;
     }
 
+    public List<Projet> getProjectsByCoach(Long userId) {
+        User coach = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+        if (coach.getRole() != Role.COACH) {
+            throw new IllegalArgumentException("User with ID " + userId + " is not a Coach");
+        }
+        User currentUser = getCurrentUser();
+        if (currentUser == null || (!currentUser.getId().equals(userId) && currentUser.getRole() != Role.ADMIN)) {
+            throw new IllegalArgumentException("Unauthorized access to coach projects");
+        }
+        return projetRepository.findByCoachesId(userId);
+    }
+
+    public DashboardStatisticsDTO getCoachDashboardStatistics(Long userId) {
+        validateCoach(userId);
+        DashboardStatisticsDTO stats = new DashboardStatisticsDTO();
+        stats.setProjects(getCoachProjectStatistics(userId));
+        stats.setPhases(getCoachPhaseStatistics(userId));
+        stats.setTasks(getCoachTaskStatistics(userId));
+        stats.setPendingActions(getCoachPendingActions(userId));
+        stats.setEngagement(getCoachEngagementStatistics(userId));
+        return stats;
+    }
+
+    private ProjectStatisticsDTO getCoachProjectStatistics(Long userId) {
+        List<Projet> projects = projetRepository.findByCoachesId(userId);
+
+        ProjectStatisticsDTO stats = new ProjectStatisticsDTO();
+        stats.setTotalProjects(projects.size());
+
+        int activeProjects = (int) projects.stream()
+                .filter(p -> !p.getStatus().equals("TERMINE"))
+                .count();
+        stats.setActiveProjects(activeProjects);
+
+        double totalProgress = 0;
+        int reviewReadyProjects = 0;
+        for (Projet project : projects) {
+            List<Phase> phases = project.getPhases();
+            if (phases == null || phases.isEmpty()) continue;
+            long completedPhases = phases.stream()
+                    .filter(ph -> ph.getStatus().toString().equals("COMPLETED"))
+                    .count();
+            totalProgress += (double) completedPhases / phases.size() * 100;
+            boolean hasReviewReadyPhase = phases.stream().anyMatch(ph -> {
+                List<Task> tasks = ph.getTasks();
+                if (tasks == null || tasks.isEmpty()) return false;
+                long doneTasks = tasks.stream()
+                        .filter(t -> t.getStatus().toString().equals("DONE"))
+                        .count();
+                return (double) doneTasks / tasks.size() >= REVIEW_READY_THRESHOLD;
+            });
+            if (hasReviewReadyPhase) reviewReadyProjects++;
+        }
+        stats.setAverageProgress(projects.isEmpty() ? 0 : totalProgress / projects.size());
+        stats.setReviewReadyProjects(reviewReadyProjects);
+
+        return stats;
+    }
+
+    private List<PhaseStatisticsDTO> getCoachPhaseStatistics(Long userId) {
+        List<Projet> projects = projetRepository.findByCoachesId(userId);
+        List<PhaseStatisticsDTO> phaseStats = new ArrayList<>();
+
+        for (Projet project : projects) {
+            List<Phase> phases = project.getPhases();
+            if (phases == null) continue;
+            for (Phase phase : phases) {
+                PhaseStatisticsDTO stat = new PhaseStatisticsDTO();
+                stat.setProjectId(project.getId());
+                stat.setProjectName(project.getName());
+                stat.setPhaseId(phase.getPhaseId());
+                stat.setPhaseName(phase.getPhaseName());
+                stat.setStatus(phase.getStatus().toString());
+
+                List<Task> tasks = phase.getTasks();
+                if (tasks != null && !tasks.isEmpty()) {
+                    long doneTasks = tasks.stream()
+                            .filter(t -> t.getStatus().toString().equals("DONE"))
+                            .count();
+                    stat.setCompletionPercentage((double) doneTasks / tasks.size() * 100);
+                    stat.setReviewReady((double) doneTasks / tasks.size() >= REVIEW_READY_THRESHOLD);
+                    long overdueTasks = tasks.stream()
+                            .filter(t -> t.getEndDate() != null && t.getEndDate().isBefore(LocalDate.now()))
+                            .count();
+                    stat.setOverdueTasks((int) overdueTasks);
+                } else {
+                    stat.setCompletionPercentage(0);
+                    stat.setReviewReady(false);
+                    stat.setOverdueTasks(0);
+                }
+                phaseStats.add(stat);
+            }
+        }
+        return phaseStats;
+    }
+
+    private TaskStatisticsDTO getCoachTaskStatistics(Long userId) {
+        List<Projet> projects = projetRepository.findByCoachesId(userId);
+
+        TaskStatisticsDTO stats = new TaskStatisticsDTO();
+        int pendingValidations = 0;
+        int overdueTasks = 0;
+
+        for (Projet project : projects) {
+            List<Phase> phases = project.getPhases();
+            if (phases == null) continue;
+            for (Phase phase : phases) {
+                List<Task> tasks = phase.getTasks();
+                if (tasks == null) continue;
+                for (Task task : tasks) {
+                    if (task.getStatus().toString().equals("IN_PROGRESS") && task.getComments() != null && !task.getComments().isEmpty()) {
+                        pendingValidations++;
+                    }
+                    if (task.getEndDate() != null && task.getEndDate().isBefore(LocalDate.now())) {
+                        overdueTasks++;
+                    }
+                }
+            }
+        }
+        stats.setPendingValidations(pendingValidations);
+        stats.setOverdueTasks(overdueTasks);
+
+        return stats;
+    }
+
+    private List<PendingActionDTO> getCoachPendingActions(Long userId) {
+        List<Projet> projects = projetRepository.findByCoachesId(userId);
+        List<PendingActionDTO> actions = new ArrayList<>();
+
+        for (Projet project : projects) {
+            List<Phase> phases = project.getPhases();
+            if (phases == null) continue;
+            for (Phase phase : phases) {
+                List<Task> tasks = phase.getTasks();
+                if (tasks != null && !tasks.isEmpty()) {
+                    long doneTasks = tasks.stream()
+                            .filter(t -> t.getStatus().toString().equals("DONE"))
+                            .count();
+                    if ((double) doneTasks / tasks.size() >= REVIEW_READY_THRESHOLD) {
+                        PendingActionDTO action = new PendingActionDTO();
+                        action.setType("phase");
+                        action.setProjectId(project.getId());
+                        action.setProjectName(project.getName());
+                        action.setPhaseId(phase.getPhaseId());
+                        action.setPhaseName(phase.getPhaseName());
+                        action.setDetails("Ready for review, updated " + phase.getUpdatedAt());
+                        action.setUpdatedAt(phase.getUpdatedAt());
+                        actions.add(action);
+                    }
+                }
+                if (tasks != null) {
+                    for (Task task : tasks) {
+                        if (task.getStatus().toString().equals("IN_PROGRESS") && task.getComments() != null && !task.getComments().isEmpty()) {
+                            PendingActionDTO action = new PendingActionDTO();
+                            action.setType("task");
+                            action.setProjectId(project.getId());
+                            action.setProjectName(project.getName());
+                            action.setPhaseId(phase.getPhaseId());
+                            action.setPhaseName(phase.getPhaseName());
+                            action.setTaskId(task.getTaskId());
+                            action.setTaskTitle(task.getTitle());
+                            action.setDetails("Ready for review, comments: " + task.getComments().size());
+                            action.setUpdatedAt(task.getUpdatedAt());
+                            actions.add(action);
+                        }
+                        if (task.getEndDate() != null && task.getEndDate().isBefore(LocalDate.now())) {
+                            PendingActionDTO action = new PendingActionDTO();
+                            action.setType("task");
+                            action.setProjectId(project.getId());
+                            action.setProjectName(project.getName());
+                            action.setPhaseId(phase.getPhaseId());
+                            action.setPhaseName(phase.getPhaseName());
+                            action.setTaskId(task.getTaskId());
+                            action.setTaskTitle(task.getTitle());
+                            action.setDetails("Overdue since " + task.getEndDate());
+                            action.setUpdatedAt(task.getUpdatedAt());
+                            actions.add(action);
+                        }
+                    }
+                }
+            }
+        }
+        return actions;
+    }
+
+    private EngagementStatisticsDTO getCoachEngagementStatistics(Long userId) {
+        List<Projet> projects = projetRepository.findByCoachesId(userId);
+
+        EngagementStatisticsDTO stats = new EngagementStatisticsDTO();
+        int commentsCount = 0;
+        int phasesValidated = 0;
+
+        for (Projet project : projects) {
+            List<Phase> phases = project.getPhases();
+            if (phases == null) continue;
+            for (Phase phase : phases) {
+                if (phase.getStatus().toString().equals("COMPLETED")) {
+                    phasesValidated++;
+                }
+                List<Task> tasks = phase.getTasks();
+                if (tasks == null) continue;
+                for (Task task : tasks) {
+                    if (task.getComments() != null) {
+                        commentsCount += task.getComments().size();
+                    }
+                }
+            }
+        }
+        stats.setCommentsCount(commentsCount);
+        stats.setPhasesValidated(phasesValidated);
+        stats.setMeetingsScheduled(0); // Placeholder for rendez-vous module
+
+        return stats;
+    }
+
+    private void validateCoach(Long userId) {
+        User coach = userRepository.findById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found with ID: " + userId));
+        if (coach.getRole() != Role.COACH) {
+            throw new IllegalArgumentException("User with ID " + userId + " is not a Coach");
+        }
+        User currentUser = getCurrentUser();
+        if (currentUser == null || (!currentUser.getId().equals(userId) && currentUser.getRole() != Role.ADMIN)) {
+            throw new IllegalArgumentException("Unauthorized access to coach statistics");
+        }
+    }
 }

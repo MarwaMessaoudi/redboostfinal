@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders, HttpErrorResponse, HttpResponse } from '@angul
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, tap, map, switchMap } from 'rxjs/operators';
 import { Projet, Objectives, Statut } from '../../../models/Projet';
+import { DashboardStatistics } from '../../../models/statistics';
 
 interface Coach {
     id: number;
@@ -338,5 +339,8 @@ export class ProjetService {
             tap((response) => console.log(`Coaches for entrepreneur ${userId}:`, response)),
             catchError((error) => this.handleError(error))
         );
+    }
+    getCoachDashboardStatistics(userId: number): Observable<DashboardStatistics> {
+        return this.http.get<DashboardStatistics>(`${this.apiUrl}/coach/${userId}/statistics`);
     }
 }

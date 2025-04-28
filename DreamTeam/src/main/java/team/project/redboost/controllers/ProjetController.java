@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import team.project.redboost.dto.StatisticsDTOs.*;
 import team.project.redboost.entities.Coach;
 import team.project.redboost.entities.Projet;
 import team.project.redboost.entities.Role;
@@ -38,31 +39,48 @@ public class ProjetController {
                 .registerModule(new JavaTimeModule())
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
-
     @PostMapping(value = "/AddProjet", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createProjet(
             @RequestPart("projet") String projetJson,
             @RequestPart(value = "logourl", required = false) MultipartFile file
     ) {
+        System.out.println("Received createProjet request with projetJson: " + projetJson);
         try {
             User user = projetService.getCurrentUser();
+            if (user == null) {
+                System.out.println("No authenticated user found");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No authenticated user found");
+            }
             Long entrepreneurId = user.getId();
+            System.out.println("Authenticated user ID: " + entrepreneurId);
 
             Projet projet = objectMapper.readValue(projetJson, Projet.class);
+            System.out.println("Deserialized projet: " + projet.getName());
+
             String imageUrl = null;
             if (file != null && !file.isEmpty()) {
+                System.out.println("Uploading image to Cloudinary");
                 imageUrl = cloudinaryService.uploadImage(file);
+                System.out.println("Image uploaded: " + imageUrl);
             }
 
             Projet savedProjet = projetService.createProjet(projet, imageUrl, entrepreneurId);
+            System.out.println("Project created with ID: " + savedProjet.getId());
             return ResponseEntity.ok(savedProjet);
         } catch (IOException e) {
+            System.err.println("Error during project creation: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erreur lors de l’enregistrement: " + e.getMessage());
         } catch (IllegalArgumentException e) {
+            System.err.println("Validation error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (IllegalStateException e) {
+            System.err.println("Project limit error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED).body(e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Unexpected error: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Unexpected error: " + e.getMessage());
         }
     }
 
@@ -139,7 +157,7 @@ public class ProjetController {
             List<Coach> coaches = projetService.getCoachesForEntrepreneur(userId);
             return ResponseEntity.ok(coaches);
         } catch (RuntimeException e) {
-            return ResponseEntity.status(404).body(null); // 404 si aucun coach n’est trouvé
+            return ResponseEntity.status(404).body(null);
         }
     }
 
@@ -300,6 +318,36 @@ public class ProjetController {
             return ResponseEntity.ok(projects);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/coach/{userId}")
+    public ResponseEntity<?> getProjectsByCoach(@PathVariable Long userId) {
+        try {
+            List<Projet> projects = projetService.getProjectsByCoach(userId);
+            return ResponseEntity.ok(projects);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + userId);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching coach projects: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/coach/{userId}/statistics")
+    public ResponseEntity<?> getCoachDashboardStatistics(@PathVariable Long userId) {
+        try {
+            DashboardStatisticsDTO stats = projetService.getCoachDashboardStatistics(userId);
+            return ResponseEntity.ok(stats);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found with ID: " + userId);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error fetching dashboard statistics: " + e.getMessage());
         }
     }
 }

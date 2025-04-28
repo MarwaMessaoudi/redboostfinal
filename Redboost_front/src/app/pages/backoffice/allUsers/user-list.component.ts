@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { SignupModalComponent } from './RegistrationComponent';
@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms'; // Import FormsModule
 @Component({
     selector: 'app-user-list',
     standalone: true,
-    imports: [CommonModule, HttpClientModule, RouterModule, FormsModule],
+    imports: [CommonModule, RouterModule, FormsModule],
     templateUrl: './user-list.component.html',
     styleUrls: ['./user-list.scss']
 })

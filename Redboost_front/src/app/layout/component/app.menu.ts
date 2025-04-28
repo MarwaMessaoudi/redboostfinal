@@ -256,7 +256,7 @@ export class AppMenu implements OnInit {
             {
                 label: 'Accueil',
                 items: [
-                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/dashboard'] } // Icône de graphique pour le tableau de bord
+                    { label: 'Tableau de bord', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/Dash'] } // Icône de graphique pour le tableau de bord
                 ]
             },
             {

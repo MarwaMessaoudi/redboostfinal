@@ -1,141 +1,110 @@
 <div class="chat-container">
-  <!-- Chat Header -->
-  <div class="chat-header">
-    <button class="back-button" (click)="goBack.emit()" title="Retour">←</button>
-    <h3>{{ currentChat.name }}</h3>
-    <button *ngIf="currentChat.isGroup" class="add-member-button" (click)="addMember()" title="Ajouter un membre">
-      👤+
-    </button>
-  </div>
+    <!-- Chat Header -->
+    <div class="chat-header">
+        <button class="back-button" (click)="goBack.emit()" title="Retour">←</button>
+        <h3>{{ currentChat.name }}</h3>
+        <button *ngIf="currentChat.isGroup" class="add-member-button" (click)="addMember()" title="Ajouter un membre">👤+</button>
+    </div>
 
-  <!-- Chat Messages -->
-  <div class="chat-messages">
-    <!-- Load Older Messages Button -->
-    <div class="load-older" *ngIf="hasMoreMessages">
-      <button (click)="loadOlderMessages()" [disabled]="isLoadingOlder">
-        {{ isLoadingOlder ? 'Chargement...' : 'Charger les messages plus anciens' }}
-      </button>
-    </div>
-    <!-- Messages -->
-    <div *ngFor="let message of messages; let i = index; trackBy: trackByMessageId"
-         class="message"
-         [class.sent]="message.sent"
-         [class.received]="!message.sent"
-         [class.deleted]="message.text === 'Message retiré'"
-         [class.editing]="isEditing && editingMessageIndex === i">
-      <!-- Profile Picture for Received Messages -->
-      <img *ngIf="!message.sent" class="profile-picture received" [src]="message.senderAvatar" alt="Sender Avatar" />
-      
-      <!-- Message Options for Sent Messages -->
-      <div class="message-options" *ngIf="message.sent && message.text !== 'Message retiré'">
-        <button class="options-button" (click)="toggleMessageOptions(i); $event.stopPropagation()">⋮</button>
-        <div class="options-dropdown" *ngIf="message.showOptions">
-          <button (click)="editMessage(i)">Modifier</button>
-          <button (click)="deleteMessage(i)">Supprimer</button>
+    <!-- Chat Messages -->
+    <div class="chat-messages">
+        <!-- Load Older Messages Button -->
+        <div class="load-older" *ngIf="hasMoreMessages">
+            <button (click)="loadOlderMessages()" [disabled]="isLoadingOlder">
+                {{ isLoadingOlder ? 'Chargement...' : 'Charger les messages plus anciens' }}
+            </button>
         </div>
-      </div>
-      
-      <!-- Message Options for Received Messages -->
-      <div class="message-options" *ngIf="!message.sent && message.text !== 'Message retiré'">
-        <button class="options-button" (click)="toggleMessageOptions(i); $event.stopPropagation()">⋮</button>
-        <div class="options-dropdown" *ngIf="message.showOptions">
-          <button (click)="toggleReactionPicker(i); $event.stopPropagation()">Réagir</button>
-        </div>
-      </div>
-      
-      <!-- Message Content -->
-      <div class="message-content">
-        <p>{{ message.text }}</p>
-        <span class="message-time">{{ message.time }}</span>
-      </div>
-      
-      <!-- Reactions Display -->
-      <div class="reactions" *ngIf="message.reactions && message.reactions.length > 0">
-        <span *ngFor="let reaction of message.reactions"
-              class="reaction-emoji"
-              (click)="addReaction(i, reaction.emoji)"
-              title="{{ reaction.username }}">
-          {{ reaction.emoji }}
-        </span>
-      </div>
-      
-      <!-- Reaction Picker -->
-      <div class="reaction-picker" *ngIf="message.showReactionPicker">
-        <span *ngFor="let emoji of availableEmojis"
-              class="emoji-option"
-              (click)="addReaction(i, emoji)">
-          {{ emoji }}
-        </span>
-      </div>
-      
-      <!-- Profile Picture for Sent Messages -->
-      <img *ngIf="message.sent" class="profile-picture sent" [src]="message.senderAvatar" alt="Sender Avatar" />
-    </div>
-  </div>
-  
-  <!-- Message Input Area -->
-  <div class="input-wrapper">
-    <div class="message-input">
-      <button class="attachment-button" title="Ajouter un fichier">+</button>
-      <input 
-        type="text"
-        [(ngModel)]="newMessage"
-        placeholder="Écrivez un message..."
-        (keyup.enter)="isEditing ? updateMessage() : sendMessage()"
-        [disabled]="isLoading">
-      <button
-        class="send-button"
-        (click)="sendMessage()"
-        title="Envoyer"
-        *ngIf="!isEditing"
-        [disabled]="isLoading || !newMessage?.trim()">
-        ➤
-      </button>
-      <button
-        class="update-button"
-        (click)="updateMessage()"
-        title="Mettre à jour"
-        *ngIf="isEditing"
-        [disabled]="isLoading">
-        ✓
-      </button>
-      <button
-        class="cancel-button"
-        (click)="cancelEditing()"
-        title="Annuler"
-        *ngIf="isEditing"
-        [disabled]="isLoading">
-        ✗
-      </button>
-    </div>
-  </div>
+        <!-- Messages -->
+        <div
+            *ngFor="let message of messages; let i = index; trackBy: trackByMessageId"
+            class="message"
+            [class.sent]="message.sent"
+            [class.received]="!message.sent"
+            [class.deleted]="message.text === 'Message retiré'"
+            [class.editing]="isEditing && editingMessageIndex === i"
+        >
+            <!-- Profile Picture for Received Messages -->
+            <img *ngIf="!message.sent" class="profile-picture received" [src]="message.senderAvatar" alt="Sender Avatar" />
 
-  <!-- Modal for User Selection -->
-  <div class="user-modal" *ngIf="showAddMemberModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Ajouter un membre au groupe</h3>
-        <button class="close-btn" (click)="closeAddMemberModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="user-list">
-          <div class="user-item" *ngFor="let user of availableUsers" (click)="selectUser(user)">
-            <div class="user-content">
-              <div class="avatar">
-                <img [src]="user.profile_pictureurl || 'assets/avatars/user.jpg'" [alt]="user.firstName">
-              </div>
-              <div class="user-details">
-                <h4>{{ user.firstName }} {{ user.lastName }}</h4>
-                <p>{{ user.role }}</p>
-              </div>
+            <!-- Message Options for Sent Messages -->
+            <div class="message-options" *ngIf="message.sent && message.text !== 'Message retiré'">
+                <button class="options-button" (click)="toggleMessageOptions(i); $event.stopPropagation()">⋮</button>
+                <div class="options-dropdown" *ngIf="message.showOptions">
+                    <button (click)="editMessage(i)">Modifier</button>
+                    <button (click)="deleteMessage(i)">Supprimer</button>
+                </div>
             </div>
-          </div>
-          <p *ngIf="availableUsers.length === 0">Aucun utilisateur disponible.</p>
+
+            <!-- Message Options for Received Messages -->
+            <div class="message-options" *ngIf="!message.sent && message.text !== 'Message retiré'">
+                <button class="options-button" (click)="toggleMessageOptions(i); $event.stopPropagation()">⋮</button>
+                <div class="options-dropdown" *ngIf="message.showOptions">
+                    <button (click)="toggleReactionPicker(i); $event.stopPropagation()">Réagir</button>
+                </div>
+            </div>
+
+            <!-- Message Content -->
+            <div class="message-content">
+                <p>{{ message.text }}</p>
+                <span class="message-time">{{ message.time }}</span>
+            </div>
+
+            <!-- Reactions Display -->
+            <div class="reactions" *ngIf="message.reactions && message.reactions.length > 0">
+                <span *ngFor="let reaction of message.reactions" class="reaction-emoji" (click)="addReaction(i, reaction.emoji)" title="{{ reaction.username }}">
+                    {{ reaction.emoji }}
+                </span>
+            </div>
+
+            <!-- Reaction Picker -->
+            <div class="reaction-picker" *ngIf="message.showReactionPicker">
+                <span *ngFor="let emoji of availableEmojis" class="emoji-option" (click)="addReaction(i, emoji)">
+                    {{ emoji }}
+                </span>
+            </div>
+
+            <!-- Profile Picture for Sent Messages -->
+            <img *ngIf="message.sent" class="profile-picture sent" [src]="message.senderAvatar" alt="Sender Avatar" />
         </div>
-      </div>
-      <div class="modal-footer">
-        <button class="add-btn" (click)="confirmAddMember()" [disabled]="!selectedUser">Ajouter</button>
-      </div>
     </div>
-  </div>
+
+    <!-- Message Input Area -->
+    <div class="input-wrapper">
+        <div class="message-input">
+            <button class="attachment-button" title="Ajouter un fichier">+</button>
+            <input type="text" [(ngModel)]="newMessage" placeholder="Écrivez un message..." (keyup.enter)="isEditing ? updateMessage() : sendMessage()" [disabled]="isLoading" />
+            <button class="send-button" (click)="sendMessage()" title="Envoyer" *ngIf="!isEditing" [disabled]="isLoading || !newMessage.trim()">➤</button>
+            <button class="update-button" (click)="updateMessage()" title="Mettre à jour" *ngIf="isEditing" [disabled]="isLoading">✓</button>
+            <button class="cancel-button" (click)="cancelEditing()" title="Annuler" *ngIf="isEditing" [disabled]="isLoading">✗</button>
+        </div>
+    </div>
+
+    <!-- Modal for User Selection -->
+    <div class="user-modal" *ngIf="showAddMemberModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter un membre au groupe</h3>
+                <button class="close-btn" (click)="closeAddMemberModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="user-list">
+                    <div class="user-item" *ngFor="let user of availableUsers" (click)="selectUser(user)">
+                        <div class="user-content">
+                            <div class="avatar">
+                                <img [src]="user.profile_pictureurl || 'assets/avatars/user.jpg'" [alt]="user.firstName" />
+                            </div>
+                            <div class="user-details">
+                                <h4>{{ user.firstName }} {{ user.lastName }}</h4>
+                                <p>{{ user.role }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p *ngIf="availableUsers.length === 0">Aucun utilisateur disponible.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="add-btn" (click)="confirmAddMember()" [disabled]="!selectedUser">Ajouter</button>
+            </div>
+        </div>
+    </div>
 </div>

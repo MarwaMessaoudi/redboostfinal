@@ -21,7 +21,6 @@ import { MarketLandingComponent } from './app/pages/frontoffice/landing/componen
 import { CoachRequestComponent } from './app/pages/backoffice/become_coach/coachrequest';
 import { AllCoachRequestsComponent } from './app/pages/backoffice/become_coach/all-coach-requests.component';
 import { AllReclamationsComponent } from './app/pages/frontoffice/gestion_reclamation/all-reclamations/all-reclamations.component';
-import { CoachDashboardComponent } from './app/pages/dashboard/coachdashboard/coach-dashboard.component';
 import { InvestorDashboardComponent } from './app/pages/dashboard/inverstdashboard/investor-dashboard';
 import { RoleGuard } from './role.guard';
 import { DashboardRedirectComponent } from './app/pages/dashboard/dashboard-redirect/dashboard-redirect.component';
@@ -46,6 +45,7 @@ import { ProgramDetailComponent } from './app/pages/backoffice/gestion_programme
 import { ShowProduitsComponent } from './app/pages/frontoffice/gestion_startup/Produit/show-produits/show-produits.component';
 import { ShowServicePComponent } from './app/pages/frontoffice/gestion_startup/ServiceP/show-service-p/show-service-p.component';
 import { EvaluationFormComponent } from './app/pages/frontoffice/evaluation-form/evaluation-form.component';
+import { DashboardComponent } from './app/pages/dashboard/dashboard/dashboard.component';
 
 export const pagesRoutes: Routes = [
     { path: 'addprojet', component: AddProjetComponent },
@@ -69,7 +69,7 @@ export const pagesRoutes: Routes = [
     { path: 'staff-types/:id', component: StaffTypeDetailComponent },
     { path: 'staff-filter', component: StaffFilterComponent },
     { path: 'evaluation', component: EvaluationFormComponent },
-
+    { path: 'Dash', component: DashboardComponent },
     { path: 'all-resourses', component: ResourcesLandingComponent },
 
     {
@@ -104,12 +104,6 @@ export const appRoutes: Routes = [
                 path: 'dashboard',
                 canActivate: [RoleGuard],
                 component: DashboardRedirectComponent
-            },
-            {
-                path: 'coach-dashboard',
-                canActivate: [RoleGuard],
-                data: { expectedRole: 'COACH' },
-                component: CoachDashboardComponent
             },
 
             {

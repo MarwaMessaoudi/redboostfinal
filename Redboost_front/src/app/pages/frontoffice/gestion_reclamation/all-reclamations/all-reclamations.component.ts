@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ReclamationService, Reclamation, ReponseReclamation, Role } from '../../service/reclamation.service';
 import { StatutReclamation } from '../../../../models/statut-reclamation.model';
 import { CategorieReclamation } from '../../../../models/categorie-reclamation.model';
@@ -17,7 +17,7 @@ type CategorieLibelles = {
     templateUrl: './all-reclamations.component.html',
     styleUrls: ['./all-reclamations.component.scss'],
     standalone: true,
-    imports: [CommonModule, FormsModule, HttpClientModule, ToastModule], //Import DatePipe removed since it was not rendering correctly before
+    imports: [CommonModule, FormsModule, ToastModule], //Import DatePipe removed since it was not rendering correctly before
     providers: [ReclamationService, MessageService] //Add to providers for use with Primeng
 })
 export class AllReclamationsComponent implements OnInit {

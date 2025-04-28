@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ReclamationService, Reclamation, ReponseReclamation } from '../../service/reclamation.service';
 import { StatutReclamation } from '../../../../models/statut-reclamation.model';
 import { jwtDecode } from 'jwt-decode'; // Import the jwt_decode library
@@ -11,7 +11,7 @@ import { jwtDecode } from 'jwt-decode'; // Import the jwt_decode library
     templateUrl: './messagerie-reclamation.component.html',
     styleUrls: ['./messagerie-reclamation.component.scss'],
     standalone: true,
-    imports: [CommonModule, FormsModule, HttpClientModule],
+    imports: [CommonModule, FormsModule],
     providers: [ReclamationService]
 })
 export class MessagerieReclamationComponent implements OnInit {

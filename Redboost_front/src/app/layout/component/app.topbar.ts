@@ -690,22 +690,63 @@ interface NotificationItem {
                 background: white !important;
 
                 &.project-menu {
-                    min-width: 350px !important;
-                    background: linear-gradient(135deg, rgba(173, 216, 230, 0.8), rgba(255, 182, 193, 0.8)) !important;
-                    backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                    min-width: 300px !important;
+                    background: white !important;
+                    border: 1px solid $border-color !important;
+                    box-shadow: $shadow-md !important;
 
-                    .p-menuitem-link {
-                        padding: 16px 20px !important;
+                    .p-menuitem {
+                        padding: 0.25rem 0.5rem;
 
-                        .p-menuitem-icon {
-                            color: $red !important;
-                            font-size: 24px !important;
-                            animation: pulse 2s infinite ease-in-out;
+                        .p-menuitem-link {
+                            padding: 0.75rem 1rem !important;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.75rem;
+                            border-radius: $radius-sm;
+                            margin: 0 0.5rem;
+                            transition: all $transition-time $easing;
+
+                            .p-menuitem-icon {
+                                color: $teal-1 !important;
+                                font-size: 1.25rem !important;
+                                transition: color $transition-time $easing;
+                            }
+
+                            .p-menuitem-text {
+                                font-size: 0.9rem;
+                                font-weight: 500;
+                                color: $text-color;
+                                max-width: 240px;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            }
+
+                            &:hover {
+                                background: rgba($teal-1, 0.1) !important;
+                                transform: translateX(2px);
+
+                                .p-menuitem-icon {
+                                    color: $red !important;
+                                }
+
+                                .p-menuitem-text {
+                                    color: $red;
+                                }
+                            }
                         }
 
-                        .p-menuitem-text {
-                            max-width: 280px;
+                        &.p-disabled {
+                            .p-menuitem-link {
+                                cursor: not-allowed;
+                                opacity: 0.6;
+
+                                &:hover {
+                                    background: none !important;
+                                    transform: none;
+                                }
+                            }
                         }
                     }
                 }
@@ -757,6 +798,41 @@ interface NotificationItem {
                 .p-menuitem {
                     margin: 0;
                     animation: slideIn 0.3s $easing;
+
+                    &.edit-profile-item {
+                        .p-menuitem-link {
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+
+                            .p-menuitem-icon {
+                                font-size: 0.95rem !important;
+                                color: $teal-1 !important;
+                                transition: color $transition-time $easing;
+                            }
+
+                            .p-menuitem-text {
+                                flex: 1;
+                            }
+
+                            .edit-icon {
+                                font-size: 0.95rem;
+                                color: $teal-1;
+                                transition: color $transition-time $easing;
+                            }
+
+                            &:hover {
+                                .p-menuitem-icon,
+                                .edit-icon {
+                                    color: $red !important;
+                                }
+
+                                .p-menuitem-text {
+                                    color: $red;
+                                }
+                            }
+                        }
+                    }
 
                     .p-menuitem-link {
                         padding: 0.5rem 1rem !important;
@@ -1047,6 +1123,10 @@ interface NotificationItem {
                             padding: 1rem;
                         }
                     }
+
+                    ::ng-deep .p-menu.project-menu {
+                        min-width: 250px !important;
+                    }
                 }
             }
 
@@ -1083,6 +1163,17 @@ interface NotificationItem {
                             button {
                                 width: 100%;
                             }
+                        }
+                    }
+                }
+
+                ::ng-deep .p-menu.project-menu {
+                    min-width: 200px !important;
+
+                    .p-menuitem-link {
+                        .p-menuitem-text {
+                            font-size: 0.85rem;
+                            max-width: 160px;
                         }
                     }
                 }
@@ -1219,7 +1310,15 @@ export class AppTopbar implements OnInit, OnDestroy {
             },
             {
                 label: 'Edit Profile',
-                icon: 'pi pi-pen',
+                icon: 'pi pi-user-edit',
+                template: (item: MenuItem, options: any) => `
+                    <a ${options.onClick} class="${options.class}" style="${options.style}">
+                        <span class="${options.iconClass}"></span>
+                        <span class="${options.labelClass}">${item.label}</span>
+                        <i class="pi pi-pencil edit-icon"></i>
+                    </a>
+                `,
+                styleClass: 'edit-profile-item',
                 command: () => this.showSettings()
             },
             {

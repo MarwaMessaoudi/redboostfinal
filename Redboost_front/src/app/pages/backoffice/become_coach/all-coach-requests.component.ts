@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 
 interface CoachRequest {
@@ -19,7 +19,7 @@ interface CoachRequest {
 @Component({
     selector: 'app-all-coach-requests',
     standalone: true,
-    imports: [CommonModule, HttpClientModule, RouterModule],
+    imports: [CommonModule, RouterModule],
     template: `
         <div class="container">
             <h2 class="title">All Coach Requests</h2>
@@ -149,18 +149,10 @@ export class AllCoachRequestsComponent implements OnInit {
         this.fetchRequests();
     }
 
-    private getAuthHeaders(): HttpHeaders {
-        const token = localStorage.getItem('accessToken');
-        return new HttpHeaders({
-            Authorization: token ? `Bearer ${token}` : '',
-            'Content-Type': 'application/json'
-        });
-    }
-
     fetchRequests() {
         this.loading = true;
         this.error = null;
-        this.http.get<CoachRequest[]>('http://localhost:8085/api/coach/requests', { headers: this.getAuthHeaders() }).subscribe({
+        this.http.get<CoachRequest[]>('http://localhost:8085/api/coach/requests').subscribe({
             next: (data) => {
                 this.requests = data;
                 this.loading = false;
@@ -174,7 +166,7 @@ export class AllCoachRequestsComponent implements OnInit {
     }
 
     approveRequest(requestId: number) {
-        this.http.put(`http://localhost:8085/api/coach/approve/${requestId}`, {}, { headers: this.getAuthHeaders(), responseType: 'text' }).subscribe({
+        this.http.put(`http://localhost:8085/api/coach/approve/${requestId}`, {}, { responseType: 'text' }).subscribe({
             next: (response) => {
                 alert(response); // "Coach request approved successfully"
                 this.fetchRequests(); // Refresh the list
@@ -187,7 +179,7 @@ export class AllCoachRequestsComponent implements OnInit {
     }
 
     rejectRequest(requestId: number) {
-        this.http.put(`http://localhost:8085/api/coach/reject/${requestId}`, {}, { headers: this.getAuthHeaders(), responseType: 'text' }).subscribe({
+        this.http.put(`http://localhost:8085/api/coach/reject/${requestId}`, {}, { responseType: 'text' }).subscribe({
             next: (response) => {
                 alert(response); // "Coach request rejected successfully"
                 this.fetchRequests(); // Refresh the list

@@ -1,24 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ReclamationService } from '../../service/reclamation.service';
 import { jwtDecode } from 'jwt-decode';
 
 @Component({
     selector: 'app-gestion-reclamation',
     standalone: true,
-    imports: [
-        CommonModule,
-        ReactiveFormsModule,
-        HttpClientModule
-    ],
+    imports: [CommonModule, ReactiveFormsModule],
     providers: [DatePipe, ReclamationService],
     templateUrl: './gestion-reclamation.component.html',
     styleUrls: ['./gestion-reclamation.component.scss']
 })
 export class GestionReclamationComponent implements OnInit {
-    myDate: Date = new Date(); 
+    myDate: Date = new Date();
     reclamationForm: FormGroup;
     selectedFiles: File[] = [];
     fileError: string | null = null;
@@ -75,17 +71,17 @@ export class GestionReclamationComponent implements OnInit {
 
                 this.reclamationForm.controls['nom'].setValue(nomUtilisateur);
                 this.reclamationForm.controls['nom'].markAsDirty();
-
             } catch (error) {
                 console.error('Error decoding token:', error);
-                this.errorMessage = 'Impossible de charger les informations de l\'utilisateur.';
+                this.errorMessage = "Impossible de charger les informations de l'utilisateur.";
             }
         } else {
             console.error('Token non trouvé dans localStorage');
         }
     }
 
-    formatDate(date: Date): string {  // Keep this formatting function
+    formatDate(date: Date): string {
+        // Keep this formatting function
         return this.datePipe.transform(date, 'yyyy-MM-ddTHH:mm:ss.SSSZ') || '';
     }
 
@@ -125,16 +121,16 @@ export class GestionReclamationComponent implements OnInit {
         if (this.reclamationForm.invalid) {
             return;
         }
-    
+
         if (!this.accessToken) {
             this.errorMessage = 'Vous devez être connecté pour soumettre une réclamation.';
             return;
         }
-    
+
         this.isSubmitting = true;
         this.errorMessage = null;
         this.successMessage = null;
-    
+
         const reclamationData = {
             sujet: this.reclamationForm.get('sujet')?.value,
             description: this.reclamationForm.get('description')?.value,
@@ -143,31 +139,33 @@ export class GestionReclamationComponent implements OnInit {
             email: this.reclamationForm.get('email')?.value
             // No need to send date, the server will set it
         };
-    
+
         console.log('Sending reclamation data:', reclamationData);
-    
-        this.http.post<any>('http://localhost:8085/api/reclamations/add', reclamationData, {
-            headers: new HttpHeaders({
-                'Authorization': `Bearer ${this.accessToken}`,
-                'Content-Type': 'application/json'
+
+        this.http
+            .post<any>('http://localhost:8085/api/reclamations/add', reclamationData, {
+                headers: new HttpHeaders({
+                    Authorization: `Bearer ${this.accessToken}`,
+                    'Content-Type': 'application/json'
+                })
             })
-        }).subscribe({
-            next: (response) => {
-                this.isSubmitting = false;
-                this.successMessage = 'Votre réclamation a été soumise avec succès!';
-                this.resetForm();
-            },
-            error: (error) => {
-                this.isSubmitting = false;
-                this.errorMessage = 'Une erreur est survenue lors de la soumission de votre réclamation. Veuillez réessayer.';
-                console.error('Erreur lors de la création de la réclamation:', error);
-                console.error('Status:', error.status);
-                console.error('Message:', error.message);
-                if (error.error) {
-                    console.error('Error details:', error.error);
+            .subscribe({
+                next: (response) => {
+                    this.isSubmitting = false;
+                    this.successMessage = 'Votre réclamation a été soumise avec succès!';
+                    this.resetForm();
+                },
+                error: (error) => {
+                    this.isSubmitting = false;
+                    this.errorMessage = 'Une erreur est survenue lors de la soumission de votre réclamation. Veuillez réessayer.';
+                    console.error('Erreur lors de la création de la réclamation:', error);
+                    console.error('Status:', error.status);
+                    console.error('Message:', error.message);
+                    if (error.error) {
+                        console.error('Error details:', error.error);
+                    }
                 }
-            }
-        });
+            });
     }
     resetForm(): void {
         this.reclamationForm.reset();

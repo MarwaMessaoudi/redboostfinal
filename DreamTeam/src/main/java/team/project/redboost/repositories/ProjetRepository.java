@@ -63,4 +63,6 @@ public interface ProjetRepository extends JpaRepository<Projet, Long> {
             "WHERE e.id = :userId")
     List<Coach> findCoachesByEntrepreneurId(@Param("userId") Long userId);
 
+    @Query("SELECT p FROM Projet p JOIN p.coaches c WHERE c.id = :userId")
+    List<Projet> findByCoachesId(@Param("userId") Long userId);
 }

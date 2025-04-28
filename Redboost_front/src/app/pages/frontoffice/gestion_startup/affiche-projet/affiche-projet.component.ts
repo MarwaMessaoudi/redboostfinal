@@ -16,7 +16,7 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatTabsModule } from '@angular/material/tabs';
 import { Projet } from '../../../../models/Projet';
-import { catchError, debounceTime, map, shareReplay, tap } from 'rxjs/operators';
+import { catchError, debounceTime, map, shareReplay, tap, switchMap } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 import { CoachListComponent } from '../rendezvous/CoachlistComponent';
 
@@ -46,7 +46,21 @@ interface PendingInvitation {
 @Component({
     selector: 'app-affiche-projet',
     standalone: true,
-    imports: [CommonModule, MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatFormFieldModule, MatSelectModule, MatInputModule, FormsModule, RouterModule, MatTooltipModule, MatTabsModule, CoachListComponent],
+    imports: [
+        CommonModule,
+        MatCardModule,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatFormFieldModule,
+        MatSelectModule,
+        MatInputModule,
+        FormsModule,
+        RouterModule,
+        MatTooltipModule,
+        MatTabsModule,
+        CoachListComponent // Note: This must be standalone or imported via NgModule
+    ],
     templateUrl: './affiche-projet.component.html',
     styleUrls: ['./affiche-projet.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush
@@ -62,6 +76,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     uniqueSectors: string[] = [];
     uniqueLocations: string[] = [];
     currentUserId: number | null = null;
+    currentUserRole: string | null = null;
     pendingInvitations: PendingInvitation[] = [];
     projetContacts: { [key: number]: ProjectContacts } = {};
     projectContactAvatars: { [projectId: number]: { [userId: number]: SafeUrl } } = {};
@@ -86,8 +101,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
 
     ngOnInit() {
         this.setupSearchDebounce();
-        this.loadCurrentUserId();
-        this.loadPendingInvitations();
+        this.loadCurrentUser();
     }
 
     ngOnDestroy() {
@@ -102,26 +116,78 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
         });
     }
 
-    loadCurrentUserId() {
-        this.projetService.fetchCurrentUserId().subscribe({
-            next: (userId) => {
-                this.currentUserId = userId;
-                this.loadProjects();
-            },
-            error: (error) => {
-                console.error('Error loading user ID:', error.message);
+    loadCurrentUser() {
+        this.projetService
+            .fetchCurrentUserId()
+            .pipe(
+                switchMap((userId) => {
+                    this.currentUserId = userId;
+                    return this.userService.getUserById(userId);
+                })
+            )
+            .subscribe({
+                next: (user) => {
+                    this.currentUserRole = user?.role?.toLowerCase() || null;
+                    if (this.currentUserRole === 'coach') {
+                        this.loadCoachProjects();
+                    } else {
+                        this.loadEntrepreneurProjects();
+                        this.loadPendingInvitations();
+                    }
+                    this.cdr.markForCheck();
+                },
+                error: (error) => {
+                    console.error('Error loading user:', error.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erreur!',
+                        text: "Impossible de charger les informations de l'utilisateur. Veuillez vous reconnecter."
+                    });
+                    this.router.navigate(['/login']);
+                }
+            });
+    }
+
+    loadEntrepreneurProjects() {
+        this.projets$ = this.projetService.getUserProjects().pipe(
+            map((projets: Projet[]) => {
+                return projets.map((projet, index) => {
+                    if (!projet.id) projet.id = index + 1;
+                    return projet;
+                });
+            }),
+            catchError((error) => {
                 Swal.fire({
                     icon: 'error',
                     title: 'Erreur!',
-                    text: "Impossible de charger l'ID utilisateur. Veuillez vous reconnecter."
+                    text: 'Échec du chargement des projets.'
                 });
-                this.router.navigate(['/login']);
+                return of([]);
+            }),
+            shareReplay(1)
+        );
+
+        this.projets$.subscribe({
+            next: (projets) => {
+                this.uniqueSectors = [...new Set(projets.map((p) => p.sector).filter(Boolean))];
+                this.uniqueLocations = [...new Set(projets.map((p) => p.location).filter(Boolean))];
+                this.applyFilters();
+                this.loadProjectContacts(projets);
+                this.cdr.markForCheck();
+            },
+            error: (error) => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erreur!',
+                    text: 'Échec du chargement des projets.'
+                });
             }
         });
     }
 
-    loadProjects() {
-        this.projets$ = this.projetService.getUserProjects().pipe(
+    loadCoachProjects() {
+        if (!this.currentUserId) return;
+        this.projets$ = this.projetService.getCoachProjects(this.currentUserId).pipe(
             map((projets: Projet[]) => {
                 return projets.map((projet, index) => {
                     if (!projet.id) projet.id = index + 1;
@@ -174,27 +240,16 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                         coaches: contacts.coaches || [],
                         investors: contacts.investors || []
                     };
-                    console.log(`Project ${projectId} Initial Contacts:`, {
-                        founder: projectContacts.founder ? { id: projectContacts.founder.id, profilePictureUrl: projectContacts.founder.profilePictureUrl } : null,
-                        entrepreneurs: projectContacts.entrepreneurs.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl, profile_pictureurl: (u as any).profile_pictureurl, avatar: (u as any).avatar })),
-                        coaches: projectContacts.coaches.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl, profile_pictureurl: (u as any).profile_pictureurl, avatar: (u as any).avatar })),
-                        investors: projectContacts.investors.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl, profile_pictureurl: (u as any).profile_pictureurl, avatar: (u as any).avatar }))
-                    });
-
                     const userIds: number[] = [];
                     if (projectContacts.founder?.id) userIds.push(projectContacts.founder.id);
                     projectContacts.entrepreneurs.forEach((user) => user.id && userIds.push(user.id));
                     projectContacts.coaches.forEach((user) => user.id && userIds.push(user.id));
                     projectContacts.investors.forEach((user) => user.id && userIds.push(user.id));
-                    console.log(`Project ${projectId} User IDs to fetch:`, userIds);
 
                     if (userIds.length > 0) {
                         forkJoin(
                             userIds.map((id) =>
                                 this.userService.getUserById(id).pipe(
-                                    tap((profile) =>
-                                        console.log(`Fetched profile for user ${id}:`, { id: profile?.id, profilePictureUrl: profile?.profilePictureUrl, profile_pictureurl: (profile as any)?.profile_pictureurl, avatar: (profile as any)?.avatar })
-                                    ),
                                     catchError((err) => {
                                         console.error(`Failed to load profile for user ${id}:`, err);
                                         return of(null);
@@ -212,10 +267,6 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                                     profileMap.set(userIds[index], normalizedProfile);
                                 }
                             });
-                            console.log(
-                                `Project ${projectId} Profile Map:`,
-                                Array.from(profileMap.entries()).map(([id, p]) => ({ id, profilePictureUrl: p.profilePictureUrl }))
-                            );
 
                             if (projectContacts.founder?.id) {
                                 const profile = profileMap.get(projectContacts.founder.id);
@@ -259,16 +310,9 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                             });
 
                             this.projetContacts[projectId] = projectContacts;
-                            console.log(`Project ${projectId} Updated Contacts:`, {
-                                founder: projectContacts.founder ? { id: projectContacts.founder.id, profilePictureUrl: projectContacts.founder.profilePictureUrl } : null,
-                                entrepreneurs: projectContacts.entrepreneurs.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl })),
-                                coaches: projectContacts.coaches.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl })),
-                                investors: projectContacts.investors.map((u) => ({ id: u.id, profilePictureUrl: u.profilePictureUrl }))
-                            });
                         });
                     } else {
                         this.projetContacts[projectId] = projectContacts;
-                        console.log(`Project ${projectId} Contacts (No Users):`, this.projetContacts[projectId]);
                     }
                 }),
                 catchError((error) => {
@@ -291,6 +335,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     }
 
     loadPendingInvitations() {
+        if (this.currentUserRole !== 'entrepreneur') return;
         this.projetService.getPendingInvitations().subscribe({
             next: (invitations) => {
                 this.pendingInvitations = invitations;
@@ -318,6 +363,22 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
             return;
         }
         this.router.navigate(['/phases'], { queryParams: { projectId } });
+    }
+
+    navigateToCreateProject() {
+        this.router.navigate(['/addprojet']);
+    }
+
+    navigateToDocuments(projectId: number | undefined) {
+        if (!projectId || projectId === 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erreur!',
+                text: 'ID du projet non défini.'
+            });
+            return;
+        }
+        this.router.navigate([`/projects/${projectId}/documents`]);
     }
 
     applyFilters() {
@@ -425,7 +486,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     }
 
     deleteProjet(projectId: number | undefined) {
-        if (!projectId) return;
+        if (!projectId || this.currentUserRole !== 'entrepreneur') return;
         Swal.fire({
             title: 'Êtes-vous sûr?',
             text: 'Vous ne pourrez pas revenir en arrière!',
@@ -442,7 +503,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                             title: 'Supprimé!',
                             text: 'Le projet a été supprimé.'
                         });
-                        this.loadProjects();
+                        this.loadEntrepreneurProjects();
                     },
                     error: (error) => {
                         Swal.fire({
@@ -457,7 +518,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     }
 
     acceptInvitation(projetId: number | undefined) {
-        if (!projetId || projetId === 0 || !this.currentUserId) {
+        if (!projetId || projetId === 0 || !this.currentUserId || this.currentUserRole !== 'entrepreneur') {
             Swal.fire({
                 icon: 'error',
                 title: 'Erreur!',
@@ -473,7 +534,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                     text: 'Invitation acceptée avec succès!'
                 });
                 this.loadPendingInvitations();
-                this.loadProjects();
+                this.loadEntrepreneurProjects();
             },
             error: (error) => {
                 Swal.fire({
@@ -486,7 +547,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     }
 
     declineInvitation(projetId: number | undefined) {
-        if (!projetId || projetId === 0 || !this.currentUserId) {
+        if (!projetId || projetId === 0 || !this.currentUserId || this.currentUserRole !== 'entrepreneur') {
             Swal.fire({
                 icon: 'error',
                 title: 'Erreur!',
@@ -514,11 +575,11 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
     }
 
     inviteUser(projetId: number | undefined) {
-        if (!projetId) {
+        if (!projetId || this.currentUserRole !== 'entrepreneur') {
             Swal.fire({
                 icon: 'error',
                 title: 'Erreur!',
-                text: 'ID du projet non défini.'
+                text: 'ID du projet non défini ou action non autorisée.'
             });
             return;
         }
@@ -564,7 +625,7 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
                                     title: 'Succès!',
                                     text: 'Invitation envoyée avec succès!'
                                 });
-                                this.loadProjects();
+                                this.loadEntrepreneurProjects();
                                 this.loadPendingInvitations();
                             },
                             error: (error) => {
@@ -626,21 +687,5 @@ export class AfficheProjetComponent implements OnInit, OnDestroy {
 
     trackByUserGroup(index: number, userGroup: { users: User[]; roles: string[] }): string {
         return userGroup.users[0]?.id?.toString() || index.toString();
-    }
-
-    navigateToCreateProject() {
-        this.router.navigate(['/addprojet']);
-    }
-
-    navigateToDocuments(projectId: number | undefined) {
-        if (!projectId || projectId === 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Erreur!',
-                text: 'ID du projet non défini.'
-            });
-            return;
-        }
-        this.router.navigate([`/projects/${projectId}/documents`]);
     }
 }

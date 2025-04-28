@@ -1,91 +1,95 @@
 import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
+import { RippleModule } from 'primeng/ripple';
 
 @Component({
   selector: 'app-market-landing',
   standalone: true,
-  imports: [CommonModule, ButtonModule],
+  imports: [CommonModule, ButtonModule, RippleModule],
   template: `
-    <section #marketSection id="marketlanding" class="py-16 md:py-24 px-4 bg-gray-100/20">
+    <section #marketSection id="marketlanding" class="py-20 md:py-28 px-6 bg-gradient-to-br from-[#F5F9FF] to-[#E6F0FA]">
       <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-16 section-content">
-          <h2 class="text-3xl md:text-4xl font-bold mb-4 text-gray-800">
-            Choose your <span class="text-red-600">plan</span>
+        <!-- Header Section -->
+        <div class="text-center mb-20 section-content">
+          <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">
+            Choisissez Votre <span class="text-[#FF3333]">Plan</span>
           </h2>
-          <p class="text-lg text-gray-500 max-w-2xl mx-auto">
-            Select the perfect plan for your needs. All plans include a 14-day trial period.
+          <p class="text-lg text-gray-600 max-w-3xl mx-auto mt-4 leading-relaxed">
+            Trouvez le plan idéal pour vos besoins. Profitez d’une période d’essai gratuite de 14 jours avec chaque forfait.
           </p>
         </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 section-content">
-          <div 
+
+        <!-- Plans Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-10 section-content">
+          <div
             *ngFor="let plan of plans; let i = index"
-            class="relative group hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden"
-            [ngClass]="{
-              'bg-[#0A4955] border-0 shadow-lg': plan.highlighted,
-              'bg-white border border-gray-200 shadow-md': !plan.highlighted
-            }"
+            class="relative bg-white rounded-3xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg group"
+            [ngClass]="{'ring-2 ring-[#FF3333] shadow-xl scale-105': plan.highlighted}"
           >
-            <div class="p-8" [ngClass]="{'text-white': plan.highlighted, 'text-gray-800': !plan.highlighted}">
-              <div class="mb-6">
+            <!-- Highlighted Badge -->
+            <div *ngIf="plan.highlighted" class="absolute top-4 right-4 bg-[#FF3333] text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-md">
+              Recommandé
+            </div>
+
+            <div class="p-8">
+              <!-- Plan Icon -->
+              <div class="mb-6 flex justify-center">
                 <ng-container [ngSwitch]="plan.title">
-                  <span *ngSwitchCase="'Basic'" class="pi pi-bolt" [style]="{ fontSize: '36px', color: plan.highlighted ? 'white' : '#0A4955' }"></span>
-                  <span *ngSwitchCase="'Professional'" class="pi pi-shield" [style]="{ fontSize: '36px', color: plan.highlighted ? 'white' : '#0A4955' }"></span>
-                  <span *ngSwitchCase="'Enterprise'" class="pi pi-users" [style]="{ fontSize: '36px', color: plan.highlighted ? 'white' : '#0A4955' }"></span>
+                  <span *ngSwitchCase="'Basic'" class="pi pi-bolt text-[#1A3C5E] text-4xl"></span>
+                  <span *ngSwitchCase="'Professional'" class="pi pi-shield text-[#1A3C5E] text-4xl"></span>
+                  <span *ngSwitchCase="'Enterprise'" class="pi pi-users text-[#1A3C5E] text-4xl"></span>
                 </ng-container>
               </div>
-              <h3 class="text-xl font-bold mb-3">{{ plan.title }}</h3>
-              <p class="text-sm mb-6" [ngClass]="{'text-white/90': plan.highlighted, 'text-gray-500': !plan.highlighted}">{{ plan.description }}</p>
-              
-              <div class="mb-6">
-                <div class="text-3xl font-bold">{{ plan.price }}</div>
-                <div *ngIf="plan.price !== 'Custom'" class="text-sm mt-1" [ngClass]="{'text-white/70': plan.highlighted, 'text-gray-500': !plan.highlighted}">
-                  per user / month
-                </div>
+
+              <!-- Plan Details -->
+              <h3 class="text-xl font-bold text-gray-900 mb-3 text-center">{{ plan.title }}</h3>
+              <p class="text-sm text-gray-500 mb-6 leading-relaxed text-center">{{ plan.description }}</p>
+
+              <!-- Pricing -->
+              <div class="mb-8 text-center">
+                <div class="text-4xl font-extrabold text-gray-900">{{ plan.price }}</div>
+                <div *ngIf="plan.price !== 'Custom'" class="text-sm text-gray-500 mt-2">par utilisateur / mois</div>
               </div>
-              
-              <p-button 
-                [style]="{ 'width': '100%', 'border-radius': '5px !important', 'padding': '12px 0' ,'height': '10px' }"
-                class="custom-button"
-                [ngClass]="{
-                  'bg-white text-[#0A4955] hover:bg-gray-100': plan.highlighted,
-                  'bg-[#DB1E37] hover:bg-[#DB1E37]/80 text-white': !plan.highlighted
-                }"
-                [label]="plan.ctaText"
-              ></p-button>
+
+              <!-- CTA Button -->
+              <div class="flex justify-center">
+                <p-button
+                  class="modern-button custom-button"
+                  [label]="plan.ctaText"
+                  pRipple
+                ></p-button>
+              </div>
             </div>
-            
-            <div class="border-t" [ngClass]="{'border-white/20': plan.highlighted, 'border-gray-200': !plan.highlighted}" class="p-8">
-              <p class="font-medium text-sm mb-4" [ngClass]="{'text-white': plan.highlighted, 'text-gray-800': !plan.highlighted}">
-                INCLUDED FEATURES:
-              </p>
+
+            <!-- Features -->
+            <div class="border-t border-gray-100 p-8 bg-gray-50">
+              <p class="font-semibold text-sm text-gray-900 mb-4 text-center">FONCTIONNALITÉS INCLUSES :</p>
               <ul class="space-y-3">
                 <li *ngFor="let feature of plan.features" class="flex items-start text-sm">
-                  <span class="pi pi-check" [style]="{ fontSize: '16px', color: plan.highlighted ? 'white' : '#0A4955' }" class="mr-2 mt-0.5 flex-shrink-0"></span>
-                  <span [ngClass]="{'text-white/90': plan.highlighted, 'text-gray-500': !plan.highlighted}">{{ feature }}</span>
+                  <span class="pi pi-check text-[#1A3C5E] text-base mr-3 mt-1"></span>
+                  <span class="text-gray-600">{{ feature }}</span>
                 </li>
               </ul>
             </div>
           </div>
         </div>
 
-        <div class="mt-20 text-center section-content">
-          <div class="bg-white p-10 rounded-2xl shadow-lg max-w-3xl mx-auto">
-            <span class="pi pi-clock" [style]="{ fontSize: '48px', color: '#0A4955' }" class="mx-auto mb-6 block"></span>
-            <h3 class="text-2xl font-bold text-gray-800 mb-4">
-              Need a custom solution?
-            </h3>
-            <p class="text-gray-500 mb-8">
-              Our team can build a tailored package for your specific requirements.
-              Let's discuss how we can help your organization succeed.
+        <!-- Consultation Section -->
+        <div class="mt-24 text-center section-content">
+          <div class="bg-white p-12 rounded-3xl shadow-md max-w-3xl mx-auto">
+            <span class="pi pi-clock text-[#1A3C5E] text-5xl mb-6 block mx-auto"></span>
+            <h3 class="text-2xl font-bold text-gray-900 mb-4">Besoin d’une solution personnalisée ?</h3>
+            <p class="text-gray-600 mb-8 leading-relaxed">
+              Notre équipe est là pour concevoir un plan sur mesure adapté à vos besoins uniques. Contactez-nous pour discuter de votre projet.
             </p>
-            <p-button 
-              size="large"
-              [style]="{ 'border-radius': '5px !important', 'padding': '12px 0' }"
-              class="custom-button bg-[#0A4955] hover:bg-[#0A4955]/80 text-white px-8"
-              label="Schedule a consultation"
-            ></p-button>
+            <div class="flex justify-center">
+              <p-button
+                class="modern-consultation-button custom-button"
+                label="Réserver une Consultation"
+                pRipple
+              ></p-button>
+            </div>
           </div>
         </div>
       </div>
@@ -94,6 +98,7 @@ import { ButtonModule } from 'primeng/button';
   styles: [`
     :host {
       display: block;
+      font-family: 'Inter', 'Poppins', sans-serif;
     }
 
     .pi {
@@ -103,8 +108,8 @@ import { ButtonModule } from 'primeng/button';
 
     .section-content {
       opacity: 0;
-      transform: translateY(50px);
-      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease-out, transform 0.8s ease-out;
     }
 
     .section-content.visible {
@@ -112,9 +117,70 @@ import { ButtonModule } from 'primeng/button';
       transform: translateY(0);
     }
 
-    .custom-button {
-      border-radius: 5px !important;
-      height: 48px 
+    /* Modern Button Styling */
+    .modern-button {
+      width: 60%;
+      height: 48px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px !important;
+      transition: all 0.3s ease !important;
+      position: relative;
+      overflow: hidden;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0 !important;
+    }
+
+    .modern-consultation-button {
+      width: 40%;
+      height: 52px;
+      font-size: 18px;
+      font-weight: 600;
+      border-radius: 8px !important;
+      transition: all 0.3s ease !important;
+      position: relative;
+      overflow: hidden;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0 !important;
+    }
+
+    /* Unified Button Style */
+    :host ::ng-deep .custom-button.p-button {
+      background: linear-gradient(to right, #DB1E37, #1a2e35) !important;
+      background-image: linear-gradient(to right, #DB1E37, #1a2e35) !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 8px !important;
+      font-weight: 600;
+      transition: background 0.3s ease, background-image 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease !important;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+      opacity: 1 !important;
+    }
+
+    :host ::ng-deep .custom-button.p-button:enabled:hover {
+      background: linear-gradient(to right, #1a2e35, #DB1E37) !important;
+      background-image: linear-gradient(to right, #1a2e35, #DB1E37) !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Override PrimeNG Button Label Centering */
+    :host ::ng-deep .p-button .p-button-label {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 100% !important;
+      line-height: 1 !important;
+    }
+
+    /* Ripple Effect Customization */
+    :host ::ng-deep .p-ripple .p-ink {
+      background: rgba(255, 255, 255, 0.3) !important;
     }
   `]
 })
@@ -123,49 +189,49 @@ export class MarketLandingComponent implements AfterViewInit {
 
   plans = [
     {
-      title: 'Basic',
+      title: 'De base',
       price: '$29',
-      description: 'Essential features for small teams and startups',
+      description: 'Fonctionnalités essentielles pour les petites équipes et les startups',
       features: [
-        'Up to 5 team members',
-        'Basic analytics',
-        '1GB storage',
-        'Email support',
-        'API access'
+        'Jusqu\'à 5 membres d\'équipe',
+        'Analytique de base',
+        '1 Go de stockage',
+        'Support par e-mail',
+        'Accès API'
       ],
-      ctaText: 'Register',
+      ctaText: 'S\'inscrire',
       highlighted: false,
     },
     {
-      title: 'Professional',
+      title: 'Professionnel',
       price: '$79',
-      description: 'Everything you need for growing businesses',
+      description: 'Tout ce dont vous avez besoin pour les entreprises en croissance',
       features: [
-        'Up to 20 team members',
-        'Advanced analytics',
-        '10GB storage',
-        'Priority support',
-        'API access',
-        'Single sign-on',
-        'Custom integrations'
+        'Jusqu\'à 20 membres d\'équipe',
+        'Analytique avancée',
+        '10 Go de stockage',
+        'Support prioritaire',
+        'Accès API',
+        'Authentification unique (SSO)',
+        'Intégrations personnalisées'
       ],
-      ctaText: 'Register',
+      ctaText: 'S\'inscrire',
       highlighted: true,
     },
     {
-      title: 'Enterprise',
-      price: 'Custom',
-      description: 'Advanced features for large organizations',
+      title: 'Entreprise',
+      price: 'Personnalisé',
+      description: 'Fonctionnalités avancées pour les grandes organisations',
       features: [
-        'Unlimited team members',
-        'Enterprise analytics',
-        'Unlimited storage',
-        '24/7 dedicated support',
-        'Advanced API access',
+        'Membres d\'équipe illimités',
+        'Analytique pour entreprise',
+        'Stockage illimité',
+        'Support dédié 24/7',
+        'Accès API avancé',
         'SAML & SSO',
-        'Dedicated account manager'
+        'Gestionnaire de compte dédié'
       ],
-      ctaText: 'Contact sales',
+      ctaText: 'Contacter les ventes',
       highlighted: false,
     }
   ];

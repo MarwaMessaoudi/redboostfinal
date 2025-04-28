@@ -1,50 +1,47 @@
 package team.project.redboost.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "pending_coach_requests")
 @Data
+@Entity
+@Table(name = "coach_requests")
 public class CoachRequest {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Version // Optimistic locking
-    private Integer version;
-
-    // Common fields from User
-    @Size(min = 2, max = 100)
+    @NotBlank
     private String firstName;
 
-    @Size(min = 2, max = 100)
+    @NotBlank
     private String lastName;
 
-    @Column(nullable = false, unique = true)
+    @Email
+    @NotBlank
     private String email;
 
     private String phoneNumber;
 
-
-
-    private String linkedin;
-
-    @Enumerated(EnumType.STRING)
-    private Role role = Role.USER; // Default to USER until approved
-
-    // Specific fields from Coach
     @Size(min = 2, max = 100)
     private String specialization;
 
     private Integer yearsOfExperience;
 
-    // Status and timestamp
+    @Size(max = 255)
+    private String skills;
+
+    @Size(max = 255)
+    private String expertise;
+
     @Enumerated(EnumType.STRING)
-    private RequestStatus status = RequestStatus.PENDING;
+    private RequestStatus status;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 }
-

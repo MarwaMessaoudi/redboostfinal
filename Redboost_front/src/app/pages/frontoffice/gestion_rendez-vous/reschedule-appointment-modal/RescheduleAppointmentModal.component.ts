@@ -275,7 +275,7 @@ export class RescheduleAppointmentModalComponent implements OnInit {
                 heure: this.appointment.heure,
 
                 description: this.appointment.description,
-                status: this.appointment.status || 'PENDING'
+                status: 'PENDING'
             });
         }
     }

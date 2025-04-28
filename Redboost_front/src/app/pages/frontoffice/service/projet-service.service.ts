@@ -120,13 +120,20 @@ export class ProjetService {
         }
     }
 
+    getAllProjects(): Observable<Projet[]> {
+        return this.http.get<Projet[]>(`${this.apiUrl}/GetAll`, { headers: this.getHeaders() }).pipe(
+            tap((projects) => console.log('Fetched all projects:', projects)),
+            catchError(this.handleError)
+        );
+    }
+
     getUserProjects(): Observable<Projet[]> {
         return this.currentUserId$.pipe(
             tap((userId) => {
                 if (!userId) throw new Error('User ID not set');
             }),
             switchMap((userId) =>
-                this.http.get<any[]>(`${this.apiUrl}/Getcardfounder/${userId}`, { headers: this.getHeaders() }).pipe(
+                this.http.get<any[]>(`${this.apiUrl}/Getcardfounder/${userId}`).pipe(
                     map((projectCards) =>
                         projectCards.map(
                             (card) =>
@@ -238,6 +245,49 @@ export class ProjetService {
         return this.http.get<Projet>(url, { headers: this.getHeaders() }).pipe(catchError(this.handleError));
     }
 
+    getCoachProjects(coachId: number): Observable<Projet[]> {
+        const url = `${this.apiUrl}/coach/${coachId}`;
+        return this.http.get<any[]>(url, { headers: this.getHeaders() }).pipe(
+            map((projects) =>
+                projects.map(
+                    (project) =>
+                        ({
+                            id: project.id || 0,
+                            name: project.name || '',
+                            logoUrl: project.logoUrl || null,
+                            sector: project.sector || '',
+                            location: project.location || '',
+                            creationDate: project.creationDate || '',
+                            websiteUrl: project.websiteUrl || null,
+                            globalScore: project.globalScore || 0,
+                            type: project.type || '',
+                            description: project.description || '',
+                            objectives: project.objectives || Objectives.COURT_TERME,
+                            status: project.status || Statut.EN_DEVELOPPEMENT,
+                            revenue: project.revenue || 0,
+                            numberOfEmployees: project.numberOfEmployees || 0,
+                            nbFemaleEmployees: project.nbFemaleEmployees || 0,
+                            lastUpdated: project.lastUpdated || '',
+                            associatedSectors: project.associatedSectors || '',
+                            technologiesUsed: project.technologiesUsed || '',
+                            fundingGoal: project.fundingGoal || 0,
+                            lastEvaluationDate: project.lastEvaluationDate || '',
+                            produits: project.produits || [],
+                            services: project.services || [],
+                            folders: project.folders || [],
+                            phases: project.phases || [],
+                            founder: project.founder || null,
+                            entrepreneurs: project.entrepreneurs || [],
+                            coaches: project.coaches || [],
+                            investors: project.investors || [],
+                            pendingCollaborator: project.pendingCollaborator || null
+                        }) as Projet
+                )
+            ),
+            catchError(this.handleError)
+        );
+    }
+
     updateProjet(id: number, projet: Projet, logoFile: File | null): Observable<Projet> {
         const url = `${this.apiUrl}/UpdateProjet/${id}`;
         const formData = new FormData();
@@ -334,13 +384,19 @@ export class ProjetService {
     getCoachesForEntrepreneur(userId: number): Observable<Coach[]> {
         const url = `http://localhost:8085/api/projets/entrepreneur/${userId}/coaches`;
         const headers = this.getHeaders();
-        console.log('Request Headers:', headers); // Log headers for debugging
+        console.log('Request Headers:', headers);
         return this.http.get<Coach[]>(url, { headers }).pipe(
             tap((response) => console.log(`Coaches for entrepreneur ${userId}:`, response)),
             catchError((error) => this.handleError(error))
         );
     }
+
     getCoachDashboardStatistics(userId: number): Observable<DashboardStatistics> {
         return this.http.get<DashboardStatistics>(`${this.apiUrl}/coach/${userId}/statistics`);
+    }
+
+    addCoachToProjet(projetId: number, userId: number): Observable<Projet> {
+        const url = `${this.apiUrl}/${projetId}/coach/${userId}`;
+        return this.http.post<Projet>(url, {}, { headers: this.getHeaders() }).pipe(catchError(this.handleError));
     }
 }

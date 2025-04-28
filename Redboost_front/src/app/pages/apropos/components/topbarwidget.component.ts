@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core'; // Add OnInit
 import { StyleClassModule } from 'primeng/styleclass';
 import { Router, RouterModule } from '@angular/router';
 import { RippleModule } from 'primeng/ripple';
 import { ButtonModule } from 'primeng/button';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../service/auth.service';
-import { UserService } from '../../service/UserService';
+import { AuthService } from '../../frontoffice/service/auth.service';
+import { UserService } from '../../frontoffice/service/UserService';
 
 @Component({
     selector: 'topbar-widget',
@@ -17,10 +17,10 @@ import { UserService } from '../../service/UserService';
             <div class="hidden sm:flex items-center justify-between px-8 py-3 bg-gray-100">
                 <div class="flex items-center gap-6">
                     <span class="text-gray-700 text-base hover:text-[#DB1E37] transition-colors duration-300"> <i class="pi pi-phone mr-2"></i>+216 71 793 125 </span>
-                    <span class="text-gray-700 text-base hover:text-[#DB1E37] transition-colors duration-300"> <i class="pi pi-envelope mr-2"></i>helloredstart.tn </span>
+                    <span class="text-gray-700 text-base hover:text-[#DB1E37] transition-colors duration-300"> <i class="pi pi-envelope mr-2"></i>hello&#64;redstart.tn </span>
                 </div>
                 <div class="flex items-center gap-6">
-                    <span class="text-gray-700 text-base">Find us on:</span>
+                    <span class="text-gray-700 text-base">Contactez nous:</span>
                     <a href="#" class="text-[#0A4955] hover:text-[#DB1E37] transition-colors duration-300">
                         <i class="pi pi-facebook text-2xl hover:scale-110 transition-transform duration-300"></i>
                     </a>
@@ -41,10 +41,10 @@ import { UserService } from '../../service/UserService';
                 </a>
 
                 <!-- Hamburger Menu for Mobile -->
-                <div class="flex items-center gap-2 sm:hidden">
+                <div class="flex items-center gap-4 sm:hidden">
                     <ng-container *ngIf="!isLoggedIn; else loggedInMobile">
-                        <button pButton pRipple label="Se connecter" routerLink="/auth/login" [rounded]="true" [text]="true" class="custom-button-login text-sm py-1 px-2"></button>
-                        <button pButton pRipple label="S'inscrire" routerLink="/auth/register" [rounded]="true" [text]="false" class="custom-button-register text-sm py-1 px-2"></button>
+                        <button pButton pRipple label="Se connecter" routerLink="/auth/login" [rounded]="true" [text]="true" class="custom-button-login transition-colors duration-300 transform hover:scale-105"></button>
+                        <button pButton pRipple label="S'inscrire" routerLink="/auth/register" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
                     </ng-container>
                     <ng-template #loggedInMobile>
                         <a routerLink="/profile" class="profile-picture-container">
@@ -72,8 +72,8 @@ import { UserService } from '../../service/UserService';
                 <!-- Login/Register or Profile Picture (Hidden on Mobile) -->
                 <div class="hidden sm:flex gap-4">
                     <ng-container *ngIf="!isLoggedIn; else loggedInDesktop">
-                        <button pButton pRipple label="Se Connecter" routerLink="/signin" [rounded]="true" [text]="true" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
-                        <button pButton pRipple label="S'Inscrire" routerLink="/signup" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
+                        <button pButton pRipple label="Login" routerLink="/signin" [rounded]="true" [text]="true" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
+                        <button pButton pRipple label="Register" routerLink="/signup" [rounded]="true" [text]="false" class="custom-button-register transition-colors duration-300 transform hover:scale-105"></button>
                     </ng-container>
                     <ng-template #loggedInDesktop>
                         <a routerLink="/profile" class="profile-picture-container">
@@ -202,51 +202,35 @@ import { UserService } from '../../service/UserService';
                 height: 100%;
                 object-fit: cover;
             }
-
-            /* Mobile-specific styles */
-            @media (max-width: 640px) {
-                .custom-button-login.p-button,
-                .custom-button-register {
-                    padding: 6px 12px !important;
-                    font-size: 12px !important;
-                    border-radius: 8px !important;
-                    min-width: 80px; /* Prevent buttons from becoming too narrow */
-                }
-
-                .flex.items-center.gap-2 {
-                    flex-wrap: nowrap;
-                    justify-content: flex-end;
-                    max-width: 100%;
-                    overflow-x: auto; /* Allow horizontal scrolling if needed */
-                }
-            }
         `
     ]
 })
 export class TopbarWidget implements OnInit {
     menuItems = [
-        { label: 'À propos', route: '/about' },
-        { label: 'Nos Services', route: '/services', fragment: 'servicesSection' },
-        { label: 'Resources', route: '/resources' },
+        { label: 'A propos', route: '/about' },
+        { label: 'Nos Services', route: '/landing', fragment: 'servicesSection' },
+        { label: 'Resources', route: '/landing', fragment: 'Resources' },
         { label: 'Marketplace', route: '/landing', fragment: 'marketlanding' },
         { label: 'Contact', route: '/contactlanding' }
     ];
 
     isMenuOpen = false;
     isLoggedIn = false;
-    user: any = null;
+    user: any = null; // To store user data including profile picture
 
     constructor(
         public router: Router,
         private authService: AuthService,
-        private userService: UserService
+        private userService: UserService // Inject UserService
     ) {}
 
     ngOnInit() {
+        // Check if the user is logged in using AuthService
         this.authService.getCurrentUser().subscribe((user) => {
             this.isLoggedIn = !!user;
         });
 
+        // Subscribe to UserService to get user profile data including profile picture
         this.userService.user$.subscribe((user) => {
             this.user = user;
         });
@@ -266,7 +250,7 @@ export class TopbarWidget implements OnInit {
                 this.router.navigate([route]);
             }
         }
-        this.isMenuOpen = false;
+        this.isMenuOpen = false; // Close menu after navigation
     }
 
     toggleMenu() {

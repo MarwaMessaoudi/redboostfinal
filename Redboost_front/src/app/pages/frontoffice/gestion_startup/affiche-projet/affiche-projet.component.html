@@ -6,7 +6,7 @@
         <div class="header-content">
             <div class="header-title-container">
                 <h1 class="title">Vos Projets</h1>
-                <button mat-icon-button class="add-project-button" (click)="navigateToCreateProject()" aria-label="Ajouter un nouveau projet" matTooltip="Ajouter un projet">
+                <button *ngIf="currentUserRole === 'entrepreneur'" mat-icon-button class="add-project-button" (click)="navigateToCreateProject()" aria-label="Ajouter un nouveau projet" matTooltip="Ajouter un projet">
                     <mat-icon>add</mat-icon>
                 </button>
             </div>
@@ -58,10 +58,10 @@
                             <div class="card-content" [ngClass]="getCardColorClass(i)">
                                 <div class="card-background"></div>
                                 <div class="card-buttons">
-                                    <button mat-icon-button class="delete-button" (click)="deleteProjet(projet.id)" aria-label="Supprimer le projet" *ngIf="projet.id !== undefined && projet.id !== 0">
+                                    <button *ngIf="currentUserRole === 'entrepreneur' && projet.id !== undefined && projet.id !== 0" mat-icon-button class="delete-button" (click)="deleteProjet(projet.id)" aria-label="Supprimer le projet">
                                         <mat-icon>delete</mat-icon>
                                     </button>
-                                    <button mat-icon-button class="add-user-button" (click)="inviteUser(projet.id)" aria-label="Ajouter un utilisateur" *ngIf="projet.id !== undefined && projet.id !== 0">
+                                    <button *ngIf="currentUserRole === 'entrepreneur' && projet.id !== undefined && projet.id !== 0" mat-icon-button class="add-user-button" (click)="inviteUser(projet.id)" aria-label="Ajouter un utilisateur">
                                         <mat-icon>person_add</mat-icon>
                                     </button>
                                     <button mat-icon-button class="documents-button" (click)="navigateToDocuments(projet.id)" aria-label="Voir les documents" matTooltip="Voir les documents" *ngIf="projet.id !== undefined && projet.id !== 0">
@@ -116,7 +116,7 @@
                                 <mat-icon class="no-results-icon">folder_open</mat-icon>
                                 <h3 class="no-results-title">Aucun Projet Trouvé</h3>
                                 <p class="no-results-message">Il semble que vous n'ayez aucun projet pour le moment. Créez-en un pour commencer !</p>
-                                <button mat-flat-button class="create-button" (click)="navigateToCreateProject()">Créer un Projet</button>
+                                <button *ngIf="currentUserRole === 'entrepreneur'" mat-flat-button class="create-button" (click)="navigateToCreateProject()">Créer un Projet</button>
                             </div>
                         </div>
                     </ng-template>
@@ -131,7 +131,7 @@
         </mat-tab>
 
         <!-- Invitations Tab -->
-        <mat-tab label="Invitations">
+        <mat-tab label="Invitations" *ngIf="currentUserRole === 'entrepreneur'">
             <section class="pending-invitations-section" *ngIf="pendingInvitations.length > 0; else noInvitations">
                 <h2 class="section-title">Invitations en Attente</h2>
                 <div class="invitations-grid">
@@ -239,7 +239,9 @@
                 </ng-template>
             </section>
         </mat-tab>
-        <mat-tab label="Rendez Vous">
+
+        <!-- Rendez Vous Tab -->
+        <mat-tab label="Rendez Vous" *ngIf="currentUserRole === 'entrepreneur'">
             <app-coach-list [projects]="(filteredProjets$ | async) ?? []"></app-coach-list>
         </mat-tab>
     </mat-tab-group>

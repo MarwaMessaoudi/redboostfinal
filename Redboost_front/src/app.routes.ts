@@ -24,7 +24,7 @@ import { AllReclamationsComponent } from './app/pages/frontoffice/gestion_reclam
 import { InvestorDashboardComponent } from './app/pages/dashboard/inverstdashboard/investor-dashboard';
 import { RoleGuard } from './role.guard';
 import { DashboardRedirectComponent } from './app/pages/dashboard/dashboard-redirect/dashboard-redirect.component';
-import { Dashboard } from './app/pages/dashboard/entrepredashboard/dashboard';
+import { UnderConstructionComponent } from './app/pages/under-construction.component';
 import { AppointmentListComponent } from './app/pages/frontoffice/gestion_rendez-vous/appointment-list/appointment-list.component';
 import { ForgotPasswordComponent } from './app/pages/frontoffice/gestion_user/forgotpassword/forgotpassword.component';
 import { ResetPasswordComponent } from './app/pages/frontoffice/gestion_user/reset-password/reset-password.component';
@@ -46,8 +46,16 @@ import { ShowProduitsComponent } from './app/pages/frontoffice/gestion_startup/P
 import { ShowServicePComponent } from './app/pages/frontoffice/gestion_startup/ServiceP/show-service-p/show-service-p.component';
 import { EvaluationFormComponent } from './app/pages/frontoffice/evaluation-form/evaluation-form.component';
 import { DashboardComponent } from './app/pages/dashboard/dashboard/dashboard.component';
+import { AboutComponent } from './app/pages/apropos/about';
+import { ServicesComponent } from './app/pages/servicePage/services.component';
+import { FeedbackPageComponent } from './app/pages/frontoffice/FeedbackPageComponent/feedback-popup.component';
+import { AssignCoachComponent } from './app/pages/backoffice/assign-coach/assign-coach.component';
 
 export const pagesRoutes: Routes = [
+    { path: 'about', component: AboutComponent }, // Public route
+    { path: 'Assign-coach', component: AssignCoachComponent },
+    { path: 'feedback', component: FeedbackPageComponent }, // Public route
+    { path: 'services', component: ServicesComponent },
     { path: 'addprojet', component: AddProjetComponent },
     { path: 'GetProjet', component: AfficheProjetComponent },
     { path: 'details-projet/:id', component: DetailsProjetComponent },
@@ -110,13 +118,13 @@ export const appRoutes: Routes = [
                 path: 'entrepreneur-dashboard',
                 canActivate: [RoleGuard],
                 data: { expectedRole: 'ENTREPRENEUR' },
-                component: Dashboard
+                component: UnderConstructionComponent
             },
             {
                 path: 'investor-dashboard',
                 canActivate: [RoleGuard],
                 data: { expectedRole: 'INVESTOR' },
-                component: InvestorDashboardComponent
+                component: UnderConstructionComponent
             },
             { path: 'profile', component: UserProfileComponent },
             { path: 'messagerie-reclamation', component: MessagerieReclamationComponent },

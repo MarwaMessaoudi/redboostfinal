@@ -66,18 +66,18 @@ export class AppMenu implements OnInit {
         });
     }
 
-    private getProfileMenuItem(): MenuItem {
-        return {
-            label: 'Profil',
-            items: [
-                {
-                    label: 'Profil',
-                    icon: 'pi pi-fw pi-user-edit', // Icône améliorée pour l'édition du profil
-                    routerLink: ['/profile']
-                }
-            ]
-        };
-    }
+    // private getProfileMenuItem(): MenuItem {
+    //     return {
+    //         label: 'Profil',
+    //         items: [
+    //             {
+    //                 label: 'Profil',
+    //                 icon: 'pi pi-fw pi-user-edit', // Icône améliorée pour l'édition du profil
+    //                 routerLink: ['/profile']
+    //             }
+    //         ]
+    //     };
+    // }
 
     private setMenuBasedOnRole(role: string): void {
         let roleMenu: MenuItem[] = [];
@@ -106,7 +106,7 @@ export class AppMenu implements OnInit {
                     detail: 'Rôle utilisateur inconnu détecté'
                 });
         }
-        this.model = [...roleMenu, this.getProfileMenuItem()];
+        this.model = [...roleMenu];
     }
 
     private getSuperAdminMenu(): MenuItem[] {
@@ -145,6 +145,12 @@ export class AppMenu implements OnInit {
                 label: 'Gestion de programmes',
                 items: [
                     { label: 'Gestion de programmes', icon: 'pi pi-fw pi-folder', routerLink: ['/ProgramMonitoring'] } // Icône de dossier pour les programmes
+                ]
+            },
+            {
+                label: 'Assigner coach',
+                items: [
+                    { label: 'Assignation', icon: 'pi pi-fw pi-chart-bar', routerLink: ['/Assign-coach'] } // Icône de graphique pour le tableau de bord
                 ]
             }
         ];
@@ -223,12 +229,6 @@ export class AppMenu implements OnInit {
                     { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Icône de commentaires pour la communication
                 ]
             },
-            // {
-            //     label: 'Documents',
-            //     items: [
-            //         { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // Icône de fichier pour les documents
-            //     ]
-            // },
             {
                 label: 'Rendez-vous',
                 items: [
@@ -247,6 +247,10 @@ export class AppMenu implements OnInit {
                 items: [
                     { label: 'Mes demandes', icon: 'pi pi-fw pi-briefcase', routerLink: ['/startup/v1'] } // Icône de mallette pour les demandes de startup
                 ]
+            },
+            {
+                label: 'Feedback',
+                items: [{ label: 'Donner Feedback', icon: 'pi pi-fw pi-comment', routerLink: ['/feedback'] }]
             }
         ];
     }
@@ -271,12 +275,6 @@ export class AppMenu implements OnInit {
                     { label: 'Projets', icon: 'pi pi-fw pi-briefcase', routerLink: ['/GetProjet'] } // Icône de mallette pour les projets
                 ]
             },
-            // {
-            //     label: 'Documents',
-            //     items: [
-            //         { label: 'Documents', icon: 'pi pi-fw pi-file', routerLink: ['/documents'] } // Icône de fichier pour les documents
-            //     ]
-            // },
             {
                 label: 'Mes réclamations',
                 items: [
@@ -288,6 +286,10 @@ export class AppMenu implements OnInit {
                 items: [
                     { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Icône de commentaires pour la communication
                 ]
+            },
+            {
+                label: 'Feedback',
+                items: [{ label: 'Donner Feedback', icon: 'pi pi-fw pi-comment', routerLink: ['/feedback'] }]
             }
         ];
     }

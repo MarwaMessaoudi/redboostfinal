@@ -40,29 +40,22 @@ public class User implements UserDetails {
 
     private String phoneNumber;
 
-    public String getLinkedin() {
-        return linkedin;
-    }
+    @Column(name = "facebook_url")
+    private String facebookUrl;
 
-    public void setLinkedin(String linkedin) {
-        this.linkedin = linkedin;
-    }
+    @Column(name = "instagram_url")
+    private String instagramUrl;
 
-    private String linkedin;
+    @Column(name = "linkedin_url")
+    private String linkedinUrl;
+
+    @Column(name = "bio", length = 500)
+    private String bio;
 
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    public String getRefreshToken() {
-        return refreshToken;
-    }
-
-    public void setRefreshToken(String refreshToken) {
-        this.refreshToken = refreshToken;
-    }
-
     private String refreshToken; // Field to store the refresh token
-
 
     //to avoid adding this attribute to the database so i can validate it
     @Transient
@@ -70,36 +63,18 @@ public class User implements UserDetails {
 
     private String confirm_code;
 
-    public String getResetToken() {
-        return resetToken;
-    }
-
-    public void setResetToken(String resetToken) {
-        this.resetToken = resetToken;
-    }
-
     @Column(name = "reset_token")
     private String resetToken;
-
-    public LocalDateTime getResetTokenExpiry() {
-        return resetTokenExpiry;
-    }
-
-    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
-        this.resetTokenExpiry = resetTokenExpiry;
-    }
 
     @Column(name = "reset_token_expiry")
     private LocalDateTime resetTokenExpiry;
 
-    public boolean isActive() {
-        return isActive;
-    }
-
     private boolean isActive = false;
+
     // OAuth2 fields
     private String provider; // "google" or "linkedin"
     private String providerId; // OAuth2 ID
+
     // Projects where this User is an Entrepreneur
     @ManyToMany(mappedBy = "entrepreneurs")
     @JsonBackReference // Mark as the back reference
@@ -115,6 +90,7 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Reclamation> reclamations; // Relationship to Reclamation
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(() -> "ROLE_" + role.name());
@@ -122,21 +98,27 @@ public class User implements UserDetails {
 
     @Override
     public String getUsername() { return email; }
+
     @Override
     public boolean isAccountNonExpired() { return true; }
+
     @Override
     public boolean isAccountNonLocked() { return true; }
+
     @Override
     public boolean isCredentialsNonExpired() { return true; }
+
     @Override
     public boolean isEnabled() { return true; }
-    public boolean getisActive() {
+
+    public boolean isActive() {
         return isActive;
     }
 
     public void setActive(boolean isActive) {
         this.isActive = isActive;
     }
+
     public String getConfirm_code() {
         return confirm_code;
     }
@@ -144,8 +126,6 @@ public class User implements UserDetails {
     public void setConfirm_code(String confirm_code) {
         this.confirm_code = confirm_code;
     }
-
-
 
     public String getConfirm_password() {
         return confirm_password;
@@ -159,7 +139,7 @@ public class User implements UserDetails {
         return String.format("%06d", new Random().nextInt(999999));
     }
 
-    // Getter and Setter
+    // Getter and Setter for profilePictureUrl
     public String getProfilePictureUrl() {
         return profilePictureUrl;
     }
@@ -168,9 +148,43 @@ public class User implements UserDetails {
         this.profilePictureUrl = profilePictureUrl;
     }
 
+    // Getter and Setter for linkedinUrl
+    public String getLinkedin() {
+        return linkedinUrl;
+    }
+
+    public void setLinkedin(String linkedin) {
+        this.linkedinUrl = linkedin;
+    }
+
+    // Getter and Setter for refreshToken
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
+    // Getter and Setter for resetToken
+    public String getResetToken() {
+        return resetToken;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+
+    // Getter and Setter for resetTokenExpiry
+    public LocalDateTime getResetTokenExpiry() {
+        return resetTokenExpiry;
+    }
+
+    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
+        this.resetTokenExpiry = resetTokenExpiry;
+    }
+
     public Object getRoleName() {
         return role;
     }
-
-
 }

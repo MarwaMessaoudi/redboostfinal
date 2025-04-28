@@ -3,21 +3,25 @@ package team.project.redboost.controllers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import team.project.redboost.dto.NotificationDTO;
 import team.project.redboost.dto.StatisticsDTOs.*;
 import team.project.redboost.entities.Coach;
 import team.project.redboost.entities.Projet;
 import team.project.redboost.entities.Role;
 import team.project.redboost.entities.User;
+import team.project.redboost.repositories.UserRepository;
 import team.project.redboost.services.ProjetService;
 import team.project.redboost.services.CloudinaryService;
 
 import jakarta.transaction.Transactional;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -28,11 +32,16 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/projets")
 public class ProjetController {
 
+    private final SimpMessagingTemplate messagingTemplate; // Added for notifications
+    private final UserRepository userRepository; // Added for fetching user details
     private final ProjetService projetService;
     private final CloudinaryService cloudinaryService;
     private final ObjectMapper objectMapper;
 
-    public ProjetController(ProjetService projetService, CloudinaryService cloudinaryService) {
+    public ProjetController(ProjetService projetService, CloudinaryService cloudinaryService,SimpMessagingTemplate messagingTemplate,
+                            UserRepository userRepository) {
+        this.messagingTemplate = messagingTemplate;
+        this.userRepository = userRepository;
         this.projetService = projetService;
         this.cloudinaryService = cloudinaryService;
         this.objectMapper = new ObjectMapper()
@@ -194,6 +203,29 @@ public class ProjetController {
     ) {
         try {
             Projet updatedProjet = projetService.inviteCollaborator(projetId, userId);
+
+            // Fetch the invitor (project founder) and invited user
+            User invitor = updatedProjet.getFounder();
+            User invitedUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new NoSuchElementException("User not found"));
+
+            // Create notification for the invited user
+            NotificationDTO notification = NotificationDTO.builder()
+                    .type("INVITATION")
+                    .projectId(projetId)
+                    .projectName(updatedProjet.getName())
+                    .senderId(invitor.getId())
+                    .senderName(invitor.getFirstName())
+                    .invitorEmail(invitor.getEmail())
+                    .timestamp(LocalDateTime.now().toString())
+                    .build();
+
+            // Send notification to the invited user
+            messagingTemplate.convertAndSend(
+                    "/topic/notifications/" + userId,
+                    notification
+            );
+
             return ResponseEntity.ok(updatedProjet);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Project or user not found");

@@ -1,196 +1,150 @@
 <div class="profile-container">
-  <div class="profile-card">
-    <!-- Profile Header with Animated Background -->
-    <div class="profile-header">
-      <div class="header-bg"></div>
-      <div class="profile-content">
-        <!-- Profile Image with Floating Animation -->
-        <div class="profile-img-container" (mouseenter)="hoverProfileImg(true)" (mouseleave)="hoverProfileImg(false)">
-          <img [src]="user?.profile_pictureurl || 'assets/default-profile.png'" 
-               class="profile-img" 
-               alt="Profile photo">
-          <div class="img-overlay">
-            <button class="edit-icon" (click)="triggerFileInput()">
-              <i class="fas fa-camera"></i>
-            </button>
-          </div>
-          <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/*" style="display: none;" />
-        </div>
-        
-        <!-- Profile Info -->
-        <div class="profile-info">
-          <h1 class="profile-name">
-            <span *ngIf="!editingName" class="name-text">
-              {{ user?.firstName }} {{ user?.lastName }}
-              <i class="fas fa-pencil-alt edit-name-icon" (click)="toggleNameEdit()"></i>
-            </span>
-            <span *ngIf="editingName" class="name-edit">
-              <input type="text" [(ngModel)]="user.firstName" class="name-input">
-              <input type="text" [(ngModel)]="user.lastName" class="name-input">
-              <i class="fas fa-check save-name-icon" (click)="toggleNameEdit()"></i>
-            </span>
-            <span class="profile-badge">{{ user?.role === 'COACH' ? 'Coach' : 'Entrepreneur' }}</span>
-          </h1>
-          <p class="profile-title">{{ user?.role === 'COACH' ? user?.specialization : user?.StartupName }}</p>
-          
-          <!-- Social Links -->
-          <div class="social-links">
-            <a *ngFor="let link of socialLinks" [href]="link.href" class="social-link">
-              <i [class]="link.icon"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Profile Details -->
-    <div class="profile-details">
-      <!-- Stats -->
-      <div class="profile-stats">
-        <div class="stat-item" *ngFor="let stat of stats">
-          <div class="stat-number">{{ stat.currentValue }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
-        </div>
-      </div>
-      
-      <!-- Personal Information Section -->
-      <div class="detail-section">
-        <div class="section-header">
-          <h3 class="section-title"><i class="fas fa-user"></i> Personal Information</h3>
-          <button class="edit-section-btn" (click)="openEditModal('personal')">
-            <i class="fas fa-pencil-alt"></i> Edit
-          </button>
-        </div>
-        <div class="info-grid">
-          <div class="info-item">
-            <label>Email</label>
-            <p>{{ user?.email || 'Not specified' }}</p>
-          </div>
-          <div class="info-item">
-            <label>Phone</label>
-            <p>{{ user?.phoneNumber || 'Not specified' }}</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Professional Information Section -->
-      <div class="detail-section">
-        <div class="section-header">
-          <h3 class="section-title">
-            <i *ngIf="user?.role === 'COACH'" class="fas fa-graduation-cap"></i>
-            <i *ngIf="user?.role === 'ENTREPRENEUR'" class="fas fa-briefcase"></i>
-            {{ user?.role === 'COACH' ? 'Coaching' : 'Business' }} Information
-          </h3>
-          <button class="edit-section-btn" (click)="openEditModal('professional')">
-            <i class="fas fa-pencil-alt"></i> Edit
-          </button>
-        </div>
-        <div class="info-grid">
-          <div *ngIf="user?.role === 'COACH'" class="info-item">
-            <label>Specialization</label>
-            <p>{{ user?.specialization || 'Not specified' }}</p>
-          </div>
-          <div *ngIf="user?.role === 'COACH'" class="info-item">
-            <label>Experience</label>
-            <p>{{ user?.yearsOfExperience || '0' }} years</p>
-          </div>
-          <div *ngIf="user?.role === 'ENTREPRENEUR'" class="info-item">
-            <label>Startup Name</label>
-            <p>{{ user?.startupName || 'Not specified' }}</p>
-          </div>
-          <div *ngIf="user?.role === 'ENTREPRENEUR'" class="info-item">
-            <label>Industry</label>
-            <p>{{ user?.industry || 'Not specified' }}</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Skills -->
-      <div class="detail-section">
-        <h3 class="section-title"><i class="fas fa-star"></i> Skills & Expertise</h3>
-        <div class="skills-container">
-          <div class="skill-item" *ngFor="let skill of skills">
-            <div class="skill-info">
-              <span class="skill-name">{{ skill.name }}</span>
-              <span class="skill-percent">{{ skill.level }}%</span>
-            </div>
-            <div class="skill-bar">
-              <div class="skill-progress" [style.width.%]="skill.level"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Bio Section -->
-      <div class="detail-section bio-section">
-        <h3 class="section-title"><i class="fas fa-quote-left"></i> About Me</h3>
-        <div class="bio-content">
-          <p>{{ user?.bio || 'No bio available' }}</p>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Action Buttons -->
-    <div class="action-buttons">
-      <button class="action-btn primary">
-        <i class="fas fa-paper-plane"></i> Send Message
-      </button>
-      <button class="action-btn secondary">
-        <i class="fas fa-calendar-alt"></i> Schedule Meeting
-      </button>
-    </div>
-  </div>
-</div>
+    <div class="profile-card">
+        <!-- Profile Header with Animated Background -->
+        <div class="profile-header">
+            <div class="header-bg"></div>
+            <div class="profile-content">
+                <!-- Profile Image (Static) -->
+                <div class="profile-img-container">
+                    <img [src]="user?.profile_pictureurl || 'assets/default-profile.png'" class="profile-img" alt="Profile photo" />
+                    <div class="upload-overlay">
+                        <button class="upload-button" (click)="fileInput.click()">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/*" style="display: none" />
+                    </div>
+                </div>
 
-<!-- Edit Modal -->
-<p-dialog [(visible)]="displayEditModal" [modal]="true" [style]="{width: '50vw'}" 
-          [baseZIndex]="10000" [draggable]="false" [resizable]="false" [transitionOptions]="'150ms cubic-bezier(0.34, 1.56, 0.64, 1)'">
-  <ng-template pTemplate="header">
-    <div class="dialog-header-content">
-      <i class="pi" [ngClass]="editMode === 'personal' ? 'pi-user-edit' : 'pi-briefcase'"></i>
-      <h3>{{ editMode === 'personal' ? 'Edit Personal Information' : 'Edit Professional Information' }}</h3>
+                <!-- Profile Info (Bio Under Name) -->
+                <div class="profile-info">
+                    <h1 class="profile-name">
+                        <span class="name-text"> {{ user?.firstName }} {{ user?.lastName }} </span>
+                        <span class="profile-badge">{{ user?.role | titlecase }}</span>
+                    </h1>
+                    <p class="profile-bio">{{ user?.bio || 'No bio available' }}</p>
+
+                    <!-- Social Links (Icons Only, Unchanged) -->
+                    <div class="social-links">
+                        <a *ngIf="user?.facebookUrl" [href]="user.facebookUrl" target="_blank" class="social-link">
+                            <i class="fab fa-facebook"></i>
+                        </a>
+                        <a *ngIf="user?.instagramUrl" [href]="user.instagramUrl" target="_blank" class="social-link">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a *ngIf="user?.linkedinUrl" [href]="user.linkedinUrl" target="_blank" class="social-link">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Details -->
+        <div class="profile-details">
+            <!-- Stats -->
+            <div class="profile-stats">
+                <div class="stat-item" *ngFor="let stat of stats">
+                    <div class="stat-number">{{ stat.currentValue }}</div>
+                    <div class="stat-label">{{ stat.label }}</div>
+                </div>
+            </div>
+
+            <!-- Personal Information Section (Static) -->
+            <div class="detail-section">
+                <div class="section-header">
+                    <h3 class="section-title"><i class="fas fa-user"></i> Personal Information</h3>
+                </div>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Email</label>
+                        <p>{{ user?.email || 'Not specified' }}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Phone</label>
+                        <p>{{ user?.phoneNumber || 'Not specified' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Professional Information Section -->
+            <div class="detail-section">
+                <div class="section-header">
+                    <h3 class="section-title">
+                        <i
+                            [ngClass]="{
+                                'fas fa-graduation-cap': user?.role === 'COACH',
+                                'fas fa-briefcase': user?.role === 'ENTREPRENEUR',
+                                'fas fa-money-bill-wave': user?.role === 'INVESTOR',
+                                'fas fa-user-shield': user?.role === 'ADMIN' || user?.role === 'SUPERADMIN' || user?.role === 'EMPLOYEE'
+                            }"
+                        ></i>
+                        {{ getRoleSectionTitle(user?.role) }}
+                    </h3>
+                </div>
+                <div class="info-grid">
+                    <!-- Coach-specific fields -->
+                    <ng-container *ngIf="user?.role === 'COACH'">
+                        <div class="info-item">
+                            <label>Specialization</label>
+                            <p>{{ user?.specialization || 'Not specified' }}</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Experience</label>
+                            <p>{{ user?.yearsOfExperience || '0' }} years</p>
+                        </div>
+                    </ng-container>
+                    <!-- Entrepreneur-specific fields -->
+                    <ng-container *ngIf="user?.role === 'ENTREPRENEUR'">
+                        <div class="info-item">
+                            <label>Startup Name</label>
+                            <p>{{ user?.startupName || 'Not specified' }}</p>
+                        </div>
+                        <div class="info-item">
+                            <label>Industry</label>
+                            <p>{{ user?.industry || 'Not specified' }}</p>
+                        </div>
+                    </ng-container>
+                    <!-- Investor-specific fields (placeholder) -->
+                    <ng-container *ngIf="user?.role === 'INVESTOR'">
+                        <div class="info-item">
+                            <label>Investment Focus</label>
+                            <p>{{ user?.investmentFocus || 'Not specified' }}</p>
+                        </div>
+                    </ng-container>
+                    <!-- Admin/Other roles fallback -->
+                    <ng-container *ngIf="user?.role !== 'COACH' && user?.role !== 'ENTREPRENEUR' && user?.role !== 'INVESTOR'">
+                        <div class="info-item">
+                            <label>Role Details</label>
+                            <p>No additional details available for this role.</p>
+                        </div>
+                    </ng-container>
+                </div>
+            </div>
+
+            <!-- Skills and Expertise Section (Tag-based Layout, Coach Only) -->
+            <div class="detail-section" *ngIf="user?.role === 'COACH'">
+                <div class="section-header">
+                    <h3 class="section-title"><i class="fas fa-tools"></i> Skills and Expertise</h3>
+                </div>
+                <div class="tags-container">
+                    <div class="tag-group">
+                        <label class="tag-label">Skills</label>
+                        <div class="tag-list">
+                            <span *ngFor="let skill of user?.skills || []" class="tag skill-tag">
+                                {{ skill || 'Not specified' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="tag-group">
+                        <label class="tag-label">Expertise</label>
+                        <div class="tag-list">
+                            <span *ngFor="let expertise of user?.expertise || []" class="tag expertise-tag">
+                                {{ expertise || 'Not specified' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </ng-template>
-  
-  <div class="edit-modal-content">
-    <div *ngIf="editMode === 'personal'" class="edit-form">
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" [(ngModel)]="tempUserData.email" class="form-input" pInputText>
-      </div>
-      <div class="form-group">
-        <label>Phone Number</label>
-        <input type="tel" [(ngModel)]="tempUserData.phoneNumber" class="form-input" pInputText>
-      </div>
-    </div>
-    
-    <div *ngIf="editMode === 'professional' && user?.role === 'COACH'" class="edit-form">
-      <div class="form-group">
-        <label>Specialization</label>
-        <input type="text" [(ngModel)]="tempUserData.specialization" class="form-input" pInputText>
-      </div>
-      <div class="form-group">
-        <label>Years of Experience</label>
-        <input type="number" [(ngModel)]="tempUserData.yearsOfExperience" class="form-input" pInputText>
-      </div>
-    </div>
-    
-    <div *ngIf="editMode === 'professional' && user?.role === 'ENTREPRENEUR'" class="edit-form">
-      <div class="form-group">
-        <label>Startup Name</label>
-        <input type="text" [(ngModel)]="tempUserData.startupName" class="form-input" pInputText>
-      </div>
-      <div class="form-group">
-        <label>Industry</label>
-        <input type="text" [(ngModel)]="tempUserData.industry" class="form-input" pInputText>
-      </div>
-    </div>
-  </div>
-  
-  <ng-template pTemplate="footer">
-    <button pButton type="button" label="Cancel" icon="pi pi-times" 
-            (click)="displayEditModal=false" class="p-button-text"></button>
-            <button pButton type="button" label="Save" icon="pi pi-check" 
-            (click)="saveProfile()" styleClass="p-button-success"></button>
-  </ng-template>
-</p-dialog>
+</div>

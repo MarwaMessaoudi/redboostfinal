@@ -682,7 +682,10 @@ public class AuthController {
                         "errorCode", "AUTH017"
                 ));
             }
-
+// Update password and activate user
+            userService.updatePassword(user, newPassword);
+            user.setActive(true);
+            userService.updateUser(user);
             // Update password
             userService.updatePassword(user, newPassword);
 
@@ -700,5 +703,7 @@ public class AuthController {
             ));
         }
     }
+
+
 
 }

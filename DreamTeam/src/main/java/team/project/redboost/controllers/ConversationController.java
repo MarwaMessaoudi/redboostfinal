@@ -7,7 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import team.project.redboost.dto.ConversationDTO;
-
+import team.project.redboost.dto.ConversationDTO.UserDetails;
+import team.project.redboost.dto.ConversationDTO.NonMemberUser;
 import team.project.redboost.entities.Conversation;
 import team.project.redboost.entities.User;
 import team.project.redboost.repositories.ConversationRepository;
@@ -24,7 +25,7 @@ public class ConversationController {
 
     private final ConversationService conversationService;
     private final UserService userService;
-    private final ConversationRepository conversationRepository;//
+    private final ConversationRepository conversationRepository;
 
     @PostMapping("/private")
     public ResponseEntity<ConversationDTO> createPrivateConversation(
@@ -39,7 +40,7 @@ public class ConversationController {
                 request.getRecipientId()
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDTO(conversation));
+        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDTO(conversation, false));
     }
 
     @PostMapping("/group")
@@ -56,28 +57,22 @@ public class ConversationController {
                 request.getMemberIds()
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDTO(conversation));
+        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDTO(conversation, false));
     }
 
     @GetMapping
     public ResponseEntity<List<ConversationDTO>> getUserConversations(
             Authentication authentication) {
         try {
-            // Get current user email from authentication
             String userEmail = authentication.getName();
-
-            // Find user by email
             User currentUser = userService.findByEmail(userEmail);
             if (currentUser == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
 
-            // Get conversations from repository (ordered by most recent message)
             List<Conversation> conversations = conversationRepository.findAllUserConversations(currentUser);
-
-            // Convert to DTOs and return
             List<ConversationDTO> conversationDTOs = conversations.stream()
-                    .map(this::convertToDTO)
+                    .map(conv -> convertToDTO(conv, false))
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(conversationDTOs);
@@ -90,17 +85,150 @@ public class ConversationController {
     public ResponseEntity<ConversationDTO> getConversation(
             @PathVariable Long id,
             Authentication authentication) {
-        // Cette méthode devrait également être implémentée dans votre service
-
-        // Long currentUserId = Long.parseLong(authentication.getName());
-        // Conversation conversation = conversationService.getConversation(id, currentUserId);
-        // return ResponseEntity.ok(convertToDTO(conversation));
-
         return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
-    // Méthode utilitaire pour convertir Conversation en ConversationDTO
-    private ConversationDTO convertToDTO(Conversation conversation) {
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteConversation(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User currentUser = userService.findByEmail(userEmail);
+
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            conversationService.deleteConversation(id, currentUser.getId());
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Erreur: " + e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/members")
+    public ResponseEntity<ConversationDTO> addMemberToConversation(
+            @PathVariable Long id,
+            @RequestBody ConversationDTO.AddMemberRequest request,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User currentUser = userService.findByEmail(userEmail);
+
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            Conversation updatedConversation = conversationService.addMemberToConversation(
+                    id,
+                    currentUser.getId(),
+                    request.getMemberId()
+            );
+
+            return ResponseEntity.ok(convertToDTO(updatedConversation, true));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/{id}/members")
+    public ResponseEntity<List<UserDetails>> getGroupMembers(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User currentUser = userService.findByEmail(userEmail);
+
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            List<User> members = conversationService.getGroupMembers(id, currentUser.getId());
+            List<UserDetails> memberDetails = members.stream()
+                    .map(user -> {
+                        UserDetails details = new UserDetails();
+                        details.setId(user.getId());
+                        details.setFirstName(user.getFirstName());
+                        details.setLastName(user.getLastName());
+                        details.setRole(user.getRole() != null ? user.getRole().toString() : "Utilisateur()");
+                        String profilePictureUrl = user.getProfilePictureUrl();
+                        details.setProfilePictureUrl(profilePictureUrl);
+                        System.out.println("User ID: " + user.getId() + ", Profile Picture URL: " + profilePictureUrl);
+                        return details;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(memberDetails);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/{id}/non-members")
+    public ResponseEntity<List<NonMemberUser>> getNonMembers(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User currentUser = userService.findByEmail(userEmail);
+
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            List<User> nonMembers = conversationService.getNonMembers(id, currentUser.getId());
+            List<NonMemberUser> nonMemberDetails = nonMembers.stream()
+                    .map(user -> {
+                        NonMemberUser details = new NonMemberUser();
+                        details.setId(user.getId());
+                        details.setFirstName(user.getFirstName());
+                        details.setLastName(user.getLastName());
+                        details.setRole(user.getRole() != null ? user.getRole().toString() : "Utilisateur");
+                        return details;
+                    })
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(nonMemberDetails);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @DeleteMapping("/{id}/leave")
+    public ResponseEntity<?> leaveGroupConversation(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            User currentUser = userService.findByEmail(userEmail);
+
+            if (currentUser == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            conversationService.leaveGroupConversation(id, currentUser.getId());
+            return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Conversation or user not found");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+        }
+    }
+
+    private ConversationDTO convertToDTO(Conversation conversation, boolean includeMembers) {
         ConversationDTO dto = new ConversationDTO();
         dto.setId(conversation.getId());
         dto.setTitre(conversation.getTitre());
@@ -111,64 +239,22 @@ public class ConversationController {
         }
 
         dto.setParticipantIds(conversation.getParticipants().stream()
-                .map(user -> user.getId())
+                .map(User::getId)
                 .collect(Collectors.toSet()));
+
+        if (includeMembers && conversation.isEstGroupe()) {
+            dto.setMembers(conversation.getParticipants().stream()
+                    .map(user -> {
+                        UserDetails details = new UserDetails();
+                        details.setId(user.getId());
+                        details.setFirstName(user.getFirstName());
+                        details.setLastName(user.getLastName());
+                        details.setRole(user.getRole() != null ? user.getRole().toString() : "Utilisateur");
+                        return details;
+                    })
+                    .collect(Collectors.toList()));
+        }
 
         return dto;
     }
-
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteConversation(
-            @PathVariable Long id,
-            Authentication authentication) {
-        try {
-            String userEmail = authentication.getName(); // Récupère l'email directement
-            User currentUser = userService.findByEmail(userEmail); // Cherche l'utilisateur par email
-
-            if (currentUser == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-            }
-
-            conversationService.deleteConversation(id, currentUser.getId()); // Passe l'ID utilisateur
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Erreur: " + e.getMessage());
-        }
-    }
-
-
-
-    @PatchMapping("/{id}/members")
-    public ResponseEntity<ConversationDTO> addMemberToConversation(
-            @PathVariable Long id,
-            @RequestBody ConversationDTO.AddMemberRequest request,
-            Authentication authentication) {
-        try {
-            // Get current user email from authentication
-            String userEmail = authentication.getName();
-            User currentUser = userService.findByEmail(userEmail);
-
-            if (currentUser == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-            }
-
-            // Add member to the conversation via the service
-            Conversation updatedConversation = conversationService.addMemberToConversation(
-                    id,
-                    currentUser.getId(),
-                    request.getMemberId()
-            );
-
-            // Convert to DTO and return
-            return ResponseEntity.ok(convertToDTO(updatedConversation));
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
-    }
-
-
-
 }

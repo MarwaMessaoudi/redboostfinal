@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.*;
 import team.project.redboost.dto.MessageDTO;
 import team.project.redboost.dto.ReactionMessageDTO;
 import team.project.redboost.entities.Message;
+import team.project.redboost.entities.User;
 import team.project.redboost.services.MessageService;
+import team.project.redboost.services.UserService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 
@@ -20,6 +22,7 @@ import java.util.stream.Collectors;
 public class MessageController {
 
     private final MessageService messageService;
+    private final UserService userService;
 
     @PostMapping("/private")
     public ResponseEntity<MessageDTO> sendPrivateMessage(
@@ -29,7 +32,7 @@ public class MessageController {
                 request.getRecipientId(),
                 request.getContent()
         );
-        return ResponseEntity.ok(convertToDTO(message));
+        return ResponseEntity.ok(messageService.convertToDTO(message, request.getRecipientId()));
     }
 
     @PostMapping("/group")
@@ -40,7 +43,7 @@ public class MessageController {
                 request.getConversationId(),
                 request.getContent()
         );
-        return ResponseEntity.ok(convertToDTO(message));
+        return ResponseEntity.ok(messageService.convertToDTO(message, request.getSenderId()));
     }
 
     @GetMapping("/private")
@@ -49,16 +52,17 @@ public class MessageController {
             @RequestParam Long user2Id) {
         List<Message> messages = messageService.getPrivateConversation(user1Id, user2Id);
         return ResponseEntity.ok(messages.stream()
-                .map(this::convertToDTO)
+                .map(message -> messageService.convertToDTO(message, user1Id))
                 .collect(Collectors.toList()));
     }
 
     @GetMapping("/group/{conversationId}")
     public ResponseEntity<List<MessageDTO>> getGroupConversation(
-            @PathVariable Long conversationId) {
+            @PathVariable Long conversationId,
+            @RequestParam Long userId) {
         List<Message> messages = messageService.getGroupConversation(conversationId);
         return ResponseEntity.ok(messages.stream()
-                .map(this::convertToDTO)
+                .map(message -> messageService.convertToDTO(message, userId))
                 .collect(Collectors.toList()));
     }
 
@@ -75,7 +79,7 @@ public class MessageController {
             @PathVariable Long userId) {
         List<Message> messages = messageService.getUnreadMessages(userId);
         return ResponseEntity.ok(messages.stream()
-                .map(this::convertToDTO)
+                .map(message -> messageService.convertToDTO(message, userId))
                 .collect(Collectors.toList()));
     }
 
@@ -88,7 +92,7 @@ public class MessageController {
                 request.getUserId(),
                 request.getNewContent()
         );
-        return ResponseEntity.ok(convertToDTO(updatedMessage));
+        return ResponseEntity.ok(messageService.convertToDTO(updatedMessage, request.getUserId()));
     }
 
     @DeleteMapping("/{messageId}")
@@ -96,28 +100,29 @@ public class MessageController {
             @PathVariable Long messageId,
             @RequestParam Long userId) {
         Message updatedMessage = messageService.deleteMessage(messageId, userId);
-        return ResponseEntity.ok(convertToDTO(updatedMessage));
+        return ResponseEntity.ok(messageService.convertToDTO(updatedMessage, userId));
     }
 
     @GetMapping("/{messageId}")
     public ResponseEntity<MessageDTO> getMessageById(
-            @PathVariable Long messageId) {
+            @PathVariable Long messageId,
+            @RequestParam Long userId) {
         Message message = messageService.getMessageById(messageId)
-                .orElseThrow(() -> new RuntimeException("Message non trouvÃ©"));
-        return ResponseEntity.ok(convertToDTO(message));
+                .orElseThrow(() -> new RuntimeException("Message non trouvé"));
+        return ResponseEntity.ok(messageService.convertToDTO(message, userId));
     }
 
     @GetMapping("/conversation/{conversationId}")
     public ResponseEntity<List<MessageDTO>> getConversationMessages(
             @PathVariable Long conversationId,
+            @RequestParam Long userId,
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size) {
-        List<Message> messages;
         Pageable pageable = PageRequest.of(page, size, Sort.by("dateEnvoi").descending());
-        messages = messageService.getAllMessagesByConversationId(conversationId, pageable);
+        List<Message> messages = messageService.getAllMessagesByConversationId(conversationId, pageable);
         System.out.println("Fetched " + messages.size() + " messages for conversation " + conversationId + ": " + messages);
         return ResponseEntity.ok(messages.stream()
-                .map(this::convertToDTO)
+                .map(message -> messageService.convertToDTO(message, userId))
                 .collect(Collectors.toList()));
     }
 
@@ -153,38 +158,37 @@ public class MessageController {
         return ResponseEntity.ok(updatedMessage);
     }
 
+    private MessageDTO convertToDTO(Message message, Long viewerId) {
+        User sender = userService.findById(message.getSenderId());
 
 
-
-    private MessageDTO convertToDTO(Message message) {
         MessageDTO.MessageDTOBuilder builder = MessageDTO.builder()
                 .id(message.getId())
                 .content(message.getContent())
                 .timestamp(message.getDateEnvoi())
-                .isRead(message.isEstLu())
-                .senderId(message.getSender().getId())
-                .senderName(message.getSender().getUsername())
-                .senderAvatar(message.getSender().getProfilePictureUrl())
+                .isRead(false) // Will be set by MessageService.convertToDTO
+                .senderId(message.getSenderId())
+                .senderName(sender.getUsername())
+                .senderAvatar(sender.getProfilePictureUrl())
                 .conversationId(message.getConversation().getId())
                 .dateEnvoi(message.getDateEnvoi())
                 .reactionMessages(message.getReactionMessages().stream()
-                        .map(r -> ReactionMessageDTO.builder()
-                                .id(r.getId())
-                                .userId(r.getUser().getId())
-                                .username(r.getUser().getUsername())
-                                .emoji(r.getEmoji())
-                                .build())
+                        .map(r -> {
+                            User reactionUser = userService.findById(r.getUserId());
+                            return ReactionMessageDTO.builder()
+                                    .id(r.getId())
+                                    .userId(r.getUserId())
+                                    .username(reactionUser.getUsername())
+                                    .emoji(r.getEmoji())
+                                    .build();
+                        })
                         .collect(Collectors.toList()));
-
-        if (message.getRecipient() != null) {
-            builder.recipientId(message.getRecipient().getId());
-        }
 
         if (message.getConversation().isEstGroupe()) {
             builder.groupId(message.getConversation().getId());
         }
 
-        return builder.build();
+        return messageService.convertToDTO(message, viewerId); // Delegate to MessageService
     }
 
     @lombok.Data

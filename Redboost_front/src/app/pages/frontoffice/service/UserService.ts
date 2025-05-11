@@ -21,6 +21,19 @@ export class UserService {
         }
     }
 
+    // Fetch all coach requests
+    getAllCoachRequests(): Observable<any[]> {
+        const headers = new HttpHeaders({
+            Authorization: `Bearer ${localStorage.getItem('token')}` // Include if auth required
+        });
+        return this.http.get<any[]>(`http://localhost:8085/api/coach/requests`, { headers }).pipe(
+            catchError((error) => {
+                console.error('Error fetching coach requests:', error);
+                return of([]);
+            })
+        );
+    }
+
     // Get user data
     getUser(): any {
         return this.userSubject.value;
@@ -45,12 +58,40 @@ export class UserService {
         );
     }
 
-    // Submit become a coach request
-    submitCoachRequest(request: any): Observable<any> {
-        return this.http.post(`http://localhost:8085/api/coach/request`, request);
+    submitCoachRequest(formData: FormData): Observable<any> {
+        return this.http.post(`http://localhost:8085/api/coach/submit`, formData);
+    }
+
+    submitBinomeCoachRequest(formData: FormData): Observable<any> {
+        return this.http.post(`http://localhost:8085/api/coach/binome`, formData);
     }
 
     getUsers(): Observable<any[]> {
         return this.http.get<any[]>(`http://localhost:8085/users/ByRoles`);
     }
+
+
+approveCoachRequest(requestId: number): Observable<any> {
+    const headers = new HttpHeaders({
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+    });
+    return this.http.post(`http://localhost:8085/api/coach/approve/${requestId}`, {}, { headers }).pipe(
+        catchError((error) => {
+            console.error(`Error approving coach request ${requestId}:`, error);
+            throw error;
+        })
+    );
+}
+
+rejectCoachRequest(requestId: number): Observable<any> {
+    const headers = new HttpHeaders({
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+    });
+    return this.http.post(`http://localhost:8085}/api/coach/reject/${requestId}`, {}, { headers }).pipe(
+        catchError((error) => {
+            console.error(`Error rejecting coach request ${requestId}:`, error);
+            throw error;
+        })
+    );
+}
 }

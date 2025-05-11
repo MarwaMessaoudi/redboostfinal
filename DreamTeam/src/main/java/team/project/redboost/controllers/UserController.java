@@ -97,9 +97,7 @@ public class UserController {
             Coach coach = coachRepository.findById(user.getId())
                     .orElseThrow(() -> new RuntimeException("Coach details not found"));
 
-            if (updateRequest.containsKey("specialization")) {
-                coach.setSpecialization((String) updateRequest.get("specialization"));
-            }
+
             if (updateRequest.containsKey("yearsOfExperience")) {
                 coach.setYearsOfExperience((Integer) updateRequest.get("yearsOfExperience"));
             }
@@ -161,7 +159,6 @@ public class UserController {
             if (user.getRole() == Role.COACH) {
                 Coach coach = coachRepository.findById(user.getId()).orElse(null);
                 if (coach != null) {
-                    response.put("specialization", coach.getSpecialization());
                     response.put("yearsOfExperience", coach.getYearsOfExperience());
                     response.put("skills", coach.getSkills());
                     response.put("expertise", coach.getExpertise());
@@ -201,19 +198,20 @@ public class UserController {
     public ResponseEntity<?> addUser(@RequestBody Map<String, String> registrationRequest) {
         try {
             String email = registrationRequest.get("email");
-            String password = registrationRequest.get("password");
             String firstName = registrationRequest.get("firstName");
             String lastName = registrationRequest.get("lastName");
             String phoneNumber = registrationRequest.get("phoneNumber");
             String roleStr = registrationRequest.get("role");
 
-            if (email == null || password == null || firstName == null || lastName == null || phoneNumber == null || roleStr == null) {
+            // Validate required fields (password is not required)
+            if (email == null || firstName == null || lastName == null || phoneNumber == null || roleStr == null) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                         "message", "All fields are required!",
                         "errorCode", "AUTH010"
                 ));
             }
 
+            // Validate email format
             if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                         "message", "Invalid email format!",
@@ -221,6 +219,7 @@ public class UserController {
                 ));
             }
 
+            // Check if user already exists
             if (userService.findByEmail(email) != null) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                         "message", "User already exists!",
@@ -228,6 +227,7 @@ public class UserController {
                 ));
             }
 
+            // Validate role
             Role role;
             try {
                 role = Role.valueOf(roleStr);
@@ -238,6 +238,7 @@ public class UserController {
                 ));
             }
 
+            // Create user based on role
             User user;
             if (role == Role.COACH) {
                 user = new Coach();
@@ -249,17 +250,22 @@ public class UserController {
                 user = new User();
             }
 
+            // Set user properties (no password)
             user.setEmail(email);
-            user.setPassword(password);
             user.setFirstName(firstName);
             user.setLastName(lastName);
             user.setPhoneNumber(phoneNumber);
             user.setRole(role);
-            user.setActive(true);
+            user.setActive(false); // User inactive until password is set
             user.setConfirm_code(null);
 
+            // Generate password reset token
+            String resetToken = userService.generatePasswordResetToken(user);
+
+            // Save user
             User savedUser = userService.addUser(user);
 
+            // Save role-specific details
             if (role == Role.COACH) {
                 Coach coach = new Coach();
                 coach.setId(savedUser.getId());
@@ -269,7 +275,8 @@ public class UserController {
                 coach.setPhoneNumber(savedUser.getPhoneNumber());
                 coach.setRole(savedUser.getRole());
                 coach.setConfirm_code(savedUser.getConfirm_code());
-                coach.setPassword(savedUser.getPassword());
+                coach.setResetToken(savedUser.getResetToken());
+                coach.setResetTokenExpiry(savedUser.getResetTokenExpiry());
                 coach.setSkills(registrationRequest.get("skills"));
                 coach.setExpertise(registrationRequest.get("expertise"));
                 coachRepository.save(coach);
@@ -282,7 +289,8 @@ public class UserController {
                 entrepreneur.setPhoneNumber(savedUser.getPhoneNumber());
                 entrepreneur.setRole(savedUser.getRole());
                 entrepreneur.setConfirm_code(savedUser.getConfirm_code());
-                entrepreneur.setPassword(savedUser.getPassword());
+                entrepreneur.setResetToken(savedUser.getResetToken());
+                entrepreneur.setResetTokenExpiry(savedUser.getResetTokenExpiry());
                 entrepreneurRepository.save(entrepreneur);
             } else if (role == Role.INVESTOR) {
                 Investor investor = new Investor();
@@ -293,28 +301,30 @@ public class UserController {
                 investor.setPhoneNumber(savedUser.getPhoneNumber());
                 investor.setRole(savedUser.getRole());
                 investor.setConfirm_code(savedUser.getConfirm_code());
-                investor.setPassword(savedUser.getPassword());
+                investor.setResetToken(savedUser.getResetToken());
+                investor.setResetTokenExpiry(savedUser.getResetTokenExpiry());
                 investorRepository.save(investor);
             }
 
-            String loginLink = "http://localhost:4200/login";
-            String subject = "Welcome to Redboost! You have been added to our platform";
+            // Send email with password creation link
+            String passwordCreationLink = "http://localhost:4200/reset-password?token=" + resetToken;
+            String subject = "Welcome to Redboost! Set Your Password";
             String body = String.format(
                     "Hello %s %s,\n\n" +
                             "Welcome to Redboost! You have been added to our platform as a %s.\n\n" +
-                            "We are thrilled to have you with us. You can now log in to your account using the following link:\n" +
+                            "Please set your password by clicking the link below:\n" +
                             "%s\n\n" +
-                            "If you have any questions, feel free to reach out.\n\n" +
+                            "This link will expire in 24 hours. If you have any questions, feel free to reach out.\n\n" +
                             "Thank you for joining us!\n\n" +
                             "Best regards,\n" +
                             "The Redboost Team",
-                    firstName, lastName, role, loginLink
+                    firstName, lastName, role, passwordCreationLink
             );
 
             emailService.sendEmail(email, subject, body);
 
             return ResponseEntity.ok(Map.of(
-                    "message", "User added successfully! A welcome email has been sent."
+                    "message", "User added successfully! A password creation email has been sent."
             ));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
@@ -483,9 +493,7 @@ public class UserController {
                                 coach.setPhoneNumber(user.getPhoneNumber());
                             }
 
-                            if (updateRequest.containsKey("specialization")) {
-                                coach.setSpecialization((String) updateRequest.get("specialization"));
-                            }
+
                             if (updateRequest.containsKey("yearsOfExperience")) {
                                 coach.setYearsOfExperience((Integer) updateRequest.get("yearsOfExperience"));
                             }
@@ -615,7 +623,6 @@ public class UserController {
                 if (user.getRole() == Role.COACH) {
                     Coach coach = coachRepository.findById(user.getId()).orElse(null);
                     if (coach != null) {
-                        userData.put("specialization", coach.getSpecialization());
                         userData.put("yearsOfExperience", coach.getYearsOfExperience());
                         userData.put("skills", coach.getSkills());
                         userData.put("expertise", coach.getExpertise());
@@ -672,7 +679,6 @@ public class UserController {
             if (user.getRole() == Role.COACH) {
                 Coach coach = coachRepository.findById(user.getId()).orElse(null);
                 if (coach != null) {
-                    response.put("specialization", coach.getSpecialization());
                     response.put("yearsOfExperience", coach.getYearsOfExperience());
                     response.put("skills", coach.getSkills());
                     response.put("expertise", coach.getExpertise());
@@ -695,4 +701,8 @@ public class UserController {
             ));
         }
     }
+
+
+
+
 }

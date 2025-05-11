@@ -15,12 +15,9 @@ public class ReactionMessage {
     @JoinColumn(name = "message_id", nullable = false)
     private Message message;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId; // Store user ID instead of User reference
 
     @Column(nullable = false)
     private String emoji;
-
-    // Getters, setters via Lombok
 }

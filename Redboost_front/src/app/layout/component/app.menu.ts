@@ -325,7 +325,13 @@ export class AppMenu implements OnInit {
                 items: [
                     { label: 'Réclamation', icon: 'pi pi-fw pi-file-excel', routerLink: ['/messagerie-reclamation'] } // Icône de fichier Excel pour les réclamations
                 ]
-            }
+            },
+            {
+                label: 'Gestion de la communication',
+                items: [
+                    { label: 'Communication', icon: 'pi pi-fw pi-comments', routerLink: ['/gestion_comm'] } // Icône de commentaires pour la communication
+                ]
+            },
         ];
     }
 }

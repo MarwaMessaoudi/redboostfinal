@@ -18,7 +18,7 @@ interface Notification {
 })
 export class NotificationService implements OnDestroy {
   private unreadMessageCountSubject = new BehaviorSubject<number>(0);
-  unreadMessageCount$ = this.unreadMessageCountSubject.asObservable();
+  unreadMessageCount$: Observable<number> = this.unreadMessageCountSubject.asObservable();
   private stompClient: Client | null = null;
   private subscriptions: Subscription[] = [];
   private userId: number | null = null;
@@ -70,9 +70,7 @@ export class NotificationService implements OnDestroy {
         this.stompClient!.subscribe(`/topic/notifications/${this.userId}`, (message: IMessage) => {
           const notification: Notification = JSON.parse(message.body);
           console.log('Received notification:', notification);
-          const currentCount = this.unreadMessageCountSubject.value;
-          this.unreadMessageCountSubject.next(currentCount + 1);
-          console.log('Updated unread message count:', currentCount + 1);
+          this.fetchUnreadMessageCount(); // Fetch latest count instead of incrementing
         });
       },
       onStompError: (frame: IFrame) => {

@@ -17,8 +17,8 @@ import java.util.Random;
 
 @Data
 @Entity
-@Inheritance(strategy = InheritanceType.JOINED)
 @Table(name = "user")
+@Inheritance(strategy = InheritanceType.JOINED)
 @JsonIgnoreProperties("projets")
 public class User implements UserDetails {
     @Id

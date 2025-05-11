@@ -1,6 +1,8 @@
 package team.project.redboost.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -17,22 +19,46 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode(callSuper = true)
 public class Coach extends User {
 
-    @Size(min = 2, max = 100)
-    @Column(name = "specialization")
-    private String specialization = "Unknown";
-
     @Column(name = "years_of_experience")
-    private Integer yearsOfExperience = 0;
+    private Integer yearsOfExperience;
 
     @Size(max = 255)
-    @Column(name = "skills") // Explicitly mark as a String column
+    @Column(name = "skills")
     private String skills;
 
     @Size(max = 255)
-    @Column(name = "expertise") // Explicitly mark as a String column
+    @Column(name = "expertise")
     private String expertise;
 
-    // Transient method to handle skills as a list (not persisted)
+    @Column(name = "is_binome")
+    private boolean isBinome;
+
+    @Column(name = "binome_invitation_token")
+    private String binomeInvitationToken;
+
+    @Column(name = "related_binome_coach_id")
+    private Long relatedBinomeCoachId;
+
+    @Email
+    @Column(name = "binome_email")
+    private String binomeEmail;
+
+    @Column(name = "is_certified")
+    private Boolean isCertified;
+
+    @Column(name = "total_proposed_fee")
+    private Double totalProposedFee;
+
+    @Column(name = "cv_url")
+    private String cvUrl;
+
+    @Column(name = "training_program_url")
+    private String trainingProgramUrl;
+
+    @OneToMany(mappedBy = "coach", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference // Manage the forward reference
+    private List<CertificationDocument> certificationDocuments;
+
     @Transient
     public List<String> getSkillsList() {
         if (skills == null || skills.trim().isEmpty()) return new ArrayList<>();
@@ -50,7 +76,6 @@ public class Coach extends User {
         }
     }
 
-    // Transient method to handle expertise as a list (not persisted)
     @Transient
     public List<String> getExpertiseList() {
         if (expertise == null || expertise.trim().isEmpty()) return new ArrayList<>();

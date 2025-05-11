@@ -882,3 +882,85 @@ $dark-grey: #757575;
     }
   }
 }
+// Header buttons styling
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 10px;
+}
+.view-members-button, 
+.add-member-button, 
+.leave-group-button {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: $white;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  // Show tooltip on hover - now positioned BELOW the icon
+  &::after {
+    content: attr(title);
+    position: absolute;
+    bottom: -40px; // Changed from top: -40px to bottom: -40px
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+  }
+  
+  &:hover::after {
+    opacity: 1;
+    visibility: visible;
+    bottom: -35px; // Changed from top: -35px to bottom: -35px
+  }
+}
+.view-members-button {
+  font-size: 18px;
+  
+  &:hover {
+    color: $white;
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+.add-member-button {
+  font-size: 16px;
+  
+  &:hover {
+    color: $white;
+    background: rgba(255, 255, 255, 0.25);
+  }
+}
+.leave-group-button {
+  font-size: 16px;
+  
+  &:hover {
+    color: $light-pink;
+    background: rgba(255, 255, 255, 0.25);
+  }
+}

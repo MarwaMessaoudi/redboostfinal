@@ -85,8 +85,8 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
   chats: ChatItem[] = [];
   groups: ChatItem[] = [];
   searchTerm: string = '';
-  userSearchTerm: string = ''; // Added for modal search
-  filteredAvailableUsers: RoleSpecificUser[] = []; // Added for modal search
+  userSearchTerm: string = '';
+  filteredAvailableUsers: RoleSpecificUser[] = [];
   selectedChat: ChatItem | null = null;
   showChatDetail: boolean = false;
   isMobileView: boolean = false;
@@ -123,6 +123,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
                 };
                 this.loadConversations();
                 this.setupWebSocket();
+                this.notificationService.initialize(userData.id);
               }
             }).catch(err => {
               console.error('Error fetching user profile:', err);
@@ -133,6 +134,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
               };
               this.loadConversations();
               this.setupWebSocket();
+              this.notificationService.initialize(userData.id);
             });
           } else {
             console.error('No user logged in');
@@ -196,20 +198,25 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
       const chat = chatList[chatIndex];
       chat.lastMessage = message.content.length > 50 ? message.content.substring(0, 47) + '...' : message.content;
       chat.time = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      if (
-        !message.isRead &&
-        message.senderId !== this.currentUserId &&
-        (message.recipientId === this.currentUserId || message.groupId)
-      ) {
-        chat.unreadCount = (chat.unreadCount || 0) + 1;
-      }
-      chatList.splice(chatIndex, 1);
-      chatList.unshift(chat);
-      if (this.activeTab === 'groups') {
-        this.groups = [...chatList];
-      } else {
-        this.chats = [...chatList];
-      }
+      // Fetch the latest unread count to ensure accuracy
+      this.http.get<number>(
+        `http://localhost:8085/api/messages/unread/count/${conversationId}?userId=${this.currentUserId}`
+      ).subscribe({
+        next: (unreadCount) => {
+          chat.unreadCount = unreadCount;
+          chatList.splice(chatIndex, 1);
+          chatList.unshift(chat);
+          if (this.activeTab === 'groups') {
+            this.groups = [...chatList];
+          } else {
+            this.chats = [...chatList];
+          }
+          this.notificationService.updateUnreadMessageCount();
+        },
+        error: (err) => {
+          console.error('Error fetching unread count:', err);
+        }
+      });
     }
   }
 
@@ -271,10 +278,11 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Fetch all conversations
     this.subscriptions.push(
       this.http.get<ConversationDTO[]>('http://localhost:8085/api/conversations').subscribe({
-        next: conversations => {
-          Promise.all(
+        next: async (conversations) => {
+          const chatItems = await Promise.all(
             conversations.map(async conv => {
               const chatItem = await this.mapToChatItem(conv);
               const unreadCount = await this.http.get<number>(
@@ -283,22 +291,55 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
               chatItem.unreadCount = unreadCount;
               return chatItem;
             })
-          ).then(chatItems => {
-            this.chats = chatItems.filter(chat => !chat.isGroup);
-            this.groups = chatItems.filter(chat => chat.isGroup);
-            if (this.stompClient && this.stompClient.connected) {
-              chatItems.forEach(chat => {
-                this.stompClient!.subscribe(`/topic/conversation/${chat.conversationId}`, (message: IMessage) => {
-                  const messageDTO: MessageDTO = JSON.parse(message.body);
-                  this.updateChatItem(chat.conversationId, messageDTO);
-                });
+          );
+
+          // Fetch conversations with unread messages
+          this.http.get<ConversationDTO[]>(`http://localhost:8085/api/conversations/unread?userId=${this.currentUserId}`).subscribe({
+            next: async (unreadConversations) => {
+              const unreadChatItems = await Promise.all(
+                unreadConversations.map(async conv => {
+                  const chatItem = await this.mapToChatItem(conv);
+                  const unreadCount = await this.http.get<number>(
+                    `http://localhost:8085/api/messages/unread/count/${conv.id}?userId=${this.currentUserId}`
+                  ).toPromise();
+                  chatItem.unreadCount = unreadCount;
+                  return chatItem;
+                })
+              );
+
+              // Combine and prioritize unread conversations
+              this.chats = chatItems.filter(chat => !chat.isGroup);
+              this.groups = chatItems.filter(chat => chat.isGroup);
+
+              // Move unread conversations to the top
+              unreadChatItems.forEach(unreadChat => {
+                const isGroup = unreadChat.isGroup;
+                const targetList = isGroup ? this.groups : this.chats;
+                const index = targetList.findIndex(c => c.conversationId === unreadChat.conversationId);
+                if (index !== -1) {
+                  targetList.splice(index, 1);
+                }
+                targetList.unshift(unreadChat);
               });
+
+              // Update WebSocket subscriptions
+              if (this.stompClient && this.stompClient.connected) {
+                chatItems.concat(unreadChatItems).forEach(chat => {
+                  this.stompClient!.subscribe(`/topic/conversation/${chat.conversationId}`, (message: IMessage) => {
+                    const messageDTO: MessageDTO = JSON.parse(message.body);
+                    this.updateChatItem(chat.conversationId, messageDTO);
+                  });
+                });
+              }
+            },
+            error: (err) => {
+              console.error('Error fetching unread conversations:', err);
+              this.chats = chatItems.filter(chat => !chat.isGroup);
+              this.groups = chatItems.filter(chat => chat.isGroup);
             }
-          }).catch(err => {
-            console.error('Error mapping conversations:', err);
           });
         },
-        error: err => console.error('Error loading conversations:', err)
+        error: (err) => console.error('Error loading conversations:', err)
       })
     );
   }
@@ -477,14 +518,14 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
       console.error('Cannot retrieve users: No user ID available');
       return;
     }
-    this.userSearchTerm = ''; // Reset search term
+    this.userSearchTerm = '';
     this.subscriptions.push(
       this.http.get<RoleSpecificUser[]>('http://localhost:8085/users/role-specific').subscribe({
         next: (users) => {
           this.availableUsers = users
             .filter(user => user.id !== this.currentUserId)
             .map(user => ({ ...user, showOptions: false, selected: false }));
-          this.filteredAvailableUsers = [...this.availableUsers]; // Initialize filtered list
+          this.filteredAvailableUsers = [...this.availableUsers];
           this.showUserModal = true;
         },
         error: (err) => {
@@ -579,7 +620,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
       return;
     }
     this.initialGroupUser = user;
-    this.userSearchTerm = ''; // Reset search term
+    this.userSearchTerm = '';
     this.subscriptions.push(
       this.http.get<RoleSpecificUser[]>('http://localhost:8085/users/role-specific').subscribe({
         next: (users) => {
@@ -590,7 +631,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
               selected: u.id === user.id,
               showOptions: false
             }));
-          this.filteredAvailableUsers = [...this.availableUsers]; // Initialize filtered list
+          this.filteredAvailableUsers = [...this.availableUsers];
           this.selectedUsers = [user];
           this.groupName = `Groupe avec ${user.firstName} ${user.lastName}`;
           this.showUserModal = false;
@@ -616,7 +657,6 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
     } else {
       this.selectedUsers = this.selectedUsers.filter(u => u.id !== user.id);
     }
-    // Update filteredAvailableUsers to reflect selection
     this.filteredAvailableUsers = this.filteredAvailableUsers.map(u =>
       u.id === user.id ? { ...u, selected: user.selected } : u
     );
@@ -697,6 +737,7 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
             this.selectedChat = null;
             this.showChatDetail = false;
           }
+          this.notificationService.updateUnreadMessageCount();
         },
         error: (err) => {
           console.error('Error deleting conversation:', err);
@@ -727,13 +768,22 @@ export class GestionCommunicationComponent implements OnInit, OnDestroy {
     const chatList = this.activeTab === 'groups' ? this.groups : this.chats;
     const chat = chatList.find(c => c.conversationId === conversationId);
     if (chat) {
-      chat.unreadCount = 0;
-      if (this.activeTab === 'groups') {
-        this.groups = [...this.groups];
-      } else {
-        this.chats = [...this.chats];
-      }
-      this.notificationService.updateUnreadMessageCount();
+      this.http.get<number>(
+        `http://localhost:8085/api/messages/unread/count/${conversationId}?userId=${this.currentUserId}`
+      ).subscribe({
+        next: (unreadCount) => {
+          chat.unreadCount = unreadCount;
+          if (this.activeTab === 'groups') {
+            this.groups = [...this.groups];
+          } else {
+            this.chats = [...this.chats];
+          }
+          this.notificationService.updateUnreadMessageCount();
+        },
+        error: (err) => {
+          console.error('Error fetching unread count:', err);
+        }
+      });
     }
   }
 

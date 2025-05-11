@@ -22,25 +22,18 @@ public class Message {
     @Column(nullable = false)
     private LocalDateTime dateEnvoi = LocalDateTime.now();
 
-    @Column(nullable = false)
-    private boolean estLu = false;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_id", nullable = false)
-    private User sender; // ExpÃ©diteur
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipient_id", nullable = true)
-    private User recipient; // Destinataire direct
+    @Column(name = "sender_id", nullable = false)
+    private Long senderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "conversation_id")
-    private Conversation conversation; // Optionnel pour les groupes
+    private Conversation conversation;
 
-    // Pour soft delete
     @Column(nullable = false)
     private boolean deleted = false;
 
     @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReactionMessage> reactionMessages = new ArrayList<>();
+
+
 }

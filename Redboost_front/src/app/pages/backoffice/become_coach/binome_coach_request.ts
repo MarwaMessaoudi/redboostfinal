@@ -4,16 +4,16 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { UserService } from '../../frontoffice/service/UserService';
 import { MessageService } from 'primeng/api';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import Swal from 'sweetalert2';
 
 @Component({
-    selector: 'app-coach-request',
+    selector: 'app-binome-coach-request',
     standalone: true,
     imports: [FormsModule, CommonModule, RouterModule],
     template: `
         <div class="form-container">
-            <h2 class="text-3xl font-bold text-[#034A55] mb-6">Apply to Become a Coach</h2>
+            <h2 class="text-3xl font-bold text-[#034A55] mb-6">Apply as Binome Coach</h2>
             <form (ngSubmit)="submitRequest()" class="space-y-6" enctype="multipart/form-data">
                 <div class="input-group">
                     <label for="firstName">First Name <span class="text-red-500">*</span></label>
@@ -52,14 +52,6 @@ import Swal from 'sweetalert2';
                     <input id="totalProposedFee" type="number" [(ngModel)]="coachData.totalProposedFee" name="totalProposedFee" class="input-field" min="0" step="0.01" />
                 </div>
                 <div class="input-group">
-                    <label for="isBinome">Apply as Binome?</label>
-                    <input id="isBinome" type="checkbox" [(ngModel)]="isBinome" name="isBinome" (ngModelChange)="onBinomeChange()" />
-                </div>
-                <div class="input-group" *ngIf="isBinome">
-                    <label for="binomeEmail">Binome Email <span class="text-red-500">*</span></label>
-                    <input id="binomeEmail" type="email" [(ngModel)]="coachData.binomeEmail" name="binomeEmail" class="input-field" [required]="isBinome" />
-                </div>
-                <div class="input-group">
                     <label for="cvFile">CV</label>
                     <input id="cvFile" type="file" (change)="onFileChange($event, 'cvFile')" name="cvFile" class="input-field" accept=".pdf" />
                 </div>
@@ -75,7 +67,7 @@ import Swal from 'sweetalert2';
                     <label for="certificationType">Certification Type</label>
                     <input id="certificationType" type="text" [(ngModel)]="coachData.certificationType" name="certificationType" class="input-field" placeholder="e.g., Personal Trainer Certification" />
                 </div>
-                <button type="submit" [disabled]="!isFormValid()" class="submit-button">Submit Application</button>
+                <button type="submit" [disabled]="!isFormValid()" class="submit-button">Submit Binome Application</button>
             </form>
         </div>
     `,
@@ -138,7 +130,7 @@ import Swal from 'sweetalert2';
         `
     ]
 })
-export class CoachRequestComponent implements OnInit {
+export class BinomeCoachRequestComponent implements OnInit {
     coachData: {
         firstName: string;
         lastName: string;
@@ -148,7 +140,6 @@ export class CoachRequestComponent implements OnInit {
         skills: string;
         expertise: string;
         certificationType: string;
-        binomeEmail: string;
         isCertified: boolean;
         totalProposedFee: number;
     } = {
@@ -160,11 +151,10 @@ export class CoachRequestComponent implements OnInit {
         skills: '',
         expertise: '',
         certificationType: '',
-        binomeEmail: '',
         isCertified: false,
         totalProposedFee: 0
     };
-    isBinome: boolean = false;
+    token: string = '';
     files: {
         cvFile?: File;
         trainingProgramFile?: File;
@@ -174,10 +164,12 @@ export class CoachRequestComponent implements OnInit {
     constructor(
         private userService: UserService,
         private messageService: MessageService,
-        private router: Router
+        private router: Router,
+        private route: ActivatedRoute
     ) {}
 
     ngOnInit() {
+        this.token = this.route.snapshot.queryParamMap.get('token') || '';
         const currentUser = this.userService.getUser();
         if (currentUser) {
             this.coachData.firstName = currentUser.firstName || '';
@@ -189,33 +181,26 @@ export class CoachRequestComponent implements OnInit {
 
     isFormValid(): boolean {
         const { firstName, lastName, email, yearsOfExperience } = this.coachData;
-        return !!firstName && !!lastName && !!email && yearsOfExperience >= 0 && (!this.isBinome || !!this.coachData.binomeEmail);
+        return !!firstName && !!lastName && !!email && yearsOfExperience >= 0 && !!this.token;
     }
 
-    onBinomeChange() {
-        if (!this.isBinome) {
-            this.coachData.binomeEmail = '';
-        }
-    }
-
-    onFileChange(event: Event, field: string) {
+    onFileChange(event: Event, field: keyof typeof this.files) {
         const input = event.target as HTMLInputElement;
-        if (input.files) {
+        if (input.files && input.files.length > 0) {
             if (field === 'certificationFiles') {
                 this.files.certificationFiles = Array.from(input.files);
-            } else {
-                if (field === 'cvFile' || field === 'trainingProgramFile') {
-                    this.files[field as 'cvFile' | 'trainingProgramFile'] = input.files[0];
-                }
+            } else if (field === 'cvFile' || field === 'trainingProgramFile') {
+                this.files[field] = input.files[0];
             }
         }
     }
 
     submitRequest() {
         const formData = new FormData();
+        formData.append('token', this.token);
         const formDataJson = [
             { key: 'coachData', value: JSON.stringify(this.coachData) },
-            { key: 'isBinome', value: this.isBinome.toString() }
+            { key: 'isBinome', value: 'true' }
         ];
         formData.append('formData', JSON.stringify(formDataJson));
 
@@ -226,17 +211,17 @@ export class CoachRequestComponent implements OnInit {
             formData.append('trainingProgramFile', this.files.trainingProgramFile);
         }
         if (this.files.certificationFiles) {
-            this.files.certificationFiles.forEach((file, index) => {
+            this.files.certificationFiles.forEach((file) => {
                 formData.append(`certificationFiles`, file);
             });
         }
 
-        this.userService.submitCoachRequest(formData).subscribe({
+        this.userService.submitBinomeCoachRequest(formData).subscribe({
             next: (response) => {
                 Swal.fire({
                     icon: 'success',
                     title: 'Success',
-                    text: 'Your application to become a coach has been submitted successfully. Awaiting approval.',
+                    text: 'Your binome coach application has been submitted successfully. Awaiting approval.',
                     confirmButtonColor: '#034A55'
                 }).then(() => {
                     this.router.navigate(['/landing']);
@@ -246,7 +231,7 @@ export class CoachRequestComponent implements OnInit {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: error.error?.message || 'Failed to submit application'
+                    detail: error.error?.message || 'Failed to submit binome application'
                 });
             }
         });

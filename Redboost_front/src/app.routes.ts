@@ -33,7 +33,7 @@ import { GestionCommunicationComponent } from './app/pages/frontoffice/gestion_m
 import { MeetingDetailsPopupComponent } from './app/pages/frontoffice/gestion_rendez-vous/meeting-detail-popup/meeting-detail-popup.component';
 import { MeetingListComponent } from './app/pages/frontoffice/gestion_rendez-vous/meetinglist/meeting-list.component';
 import { UserListComponent } from './app/pages/backoffice/allUsers/user-list.component';
-
+import { BinomeCoachRequestComponent } from './app/pages/backoffice/become_coach/binome_coach_request';
 import { StaffTypeListComponent } from './app/pages/backoffice/database_management/staff-type-list/staff-type-list.component';
 import { StaffTypeDetailComponent } from './app/pages/backoffice/database_management/staff-type-detail/staff-type-detail.component';
 import { StaffFilterComponent } from './app/pages/backoffice/database_management/staff-filter/staff-filter.component';
@@ -50,6 +50,8 @@ import { AboutComponent } from './app/pages/apropos/about';
 import { ServicesComponent } from './app/pages/servicePage/services.component';
 import { FeedbackPageComponent } from './app/pages/frontoffice/FeedbackPageComponent/feedback-popup.component';
 import { AssignCoachComponent } from './app/pages/backoffice/assign-coach/assign-coach.component';
+
+
 
 export const pagesRoutes: Routes = [
     { path: 'about', component: AboutComponent }, // Public route
@@ -102,7 +104,7 @@ export const appRoutes: Routes = [
     { path: 'reset-password', component: ResetPasswordComponent },
     { path: 'confirm-email', component: ConfirmEmailComponent },
     { path: 'resources', component: ResourcesComponent },
-
+    { path: 'binome-coach-request', component: BinomeCoachRequestComponent },
     {
         path: '',
         component: AppLayout,

@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, SimpleChanges, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Client, IFrame, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { AuthService } from '../../service/auth.service';
@@ -85,7 +85,6 @@ interface UpdateMessageRequest {
     newContent: string;
 }
 
-// Add the new interfaces for adding members
 interface AddMemberRequest {
     memberId: number;
 }
@@ -131,9 +130,10 @@ export class ChatComponent implements OnInit, OnDestroy {
     private currentPage: number = 0;
     private pageSize: number = 10;
     public hasMoreMessages: boolean = true;
-    // Add properties for add-member functionality
     showAddMemberModal: boolean = false;
+    showViewMembersModal: boolean = false;
     availableUsers: RoleSpecificUser[] = [];
+    groupMembers: RoleSpecificUser[] = [];
     selectedUser: RoleSpecificUser | null = null;
 
     constructor(
@@ -193,43 +193,58 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.disconnectWebSocket();
     }
 
-    // Add methods for add-member functionality
     addMember(): void {
         if (!this.currentUserId || !this.currentChat.conversationId) {
             console.error("Impossible d'ajouter un membre: ID utilisateur ou ID de conversation manquant");
             return;
         }
-
+    
         this.isLoading = true;
-
-        // Fetch all available users
-        this.http.get<RoleSpecificUser[]>('http://localhost:8085/users/role-specific').subscribe({
-            next: (users) => {
-                // Filter out the current user
-                this.availableUsers = users.filter((user) => user.id !== this.currentUserId).map((user) => ({ ...user }));
-
-                // Fetch current members to filter them out
-                this.http.get<number[]>(`http://localhost:8085/api/conversations/${this.currentChat.conversationId}/members`).subscribe({
-                    next: (memberIds) => {
-                        // Filter out users who are already members
-                        this.availableUsers = this.availableUsers.filter((user) => !memberIds.includes(user.id));
-                        this.showAddMemberModal = true;
-                        this.isLoading = false;
-                        this.cdr.detectChanges();
-                    },
-                    error: (error) => {
-                        console.warn('Failed to retrieve existing members, showing all users:', error);
-                        // Show the modal with all users (except current user)
-                        this.showAddMemberModal = true;
-                        this.isLoading = false;
-                        this.cdr.detectChanges();
-                    }
-                });
+        this.http.get<RoleSpecificUser[]>(`http://localhost:8085/api/conversations/${this.currentChat.conversationId}/non-members`).subscribe({
+            next: (nonMembers) => {
+                this.availableUsers = nonMembers.filter(user => 
+                    user.role && ['ENTREPRENEUR', 'COACH', 'INVESTOR'].some(role => 
+                        role.toLowerCase() === user.role.toLowerCase()
+                    )
+                );
+                this.showAddMemberModal = true;
+                this.isLoading = false;
+                this.cdr.detectChanges();
             },
             error: (error) => {
-                console.error('Erreur lors de la récupération des utilisateurs:', error);
-                alert('Échec de la récupération des utilisateurs.');
+                console.error('Erreur lors de la récupération des non-membres:', error);
+                alert('Échec de la récupération des utilisateurs disponibles.');
                 this.isLoading = false;
+                this.cdr.detectChanges();
+            }
+        });
+    }
+
+    viewMembers(): void {
+        if (!this.currentUserId || !this.currentChat.conversationId) {
+            console.error("Impossible de voir les membres: ID utilisateur ou ID de conversation manquant");
+            return;
+        }
+
+        this.isLoading = true;
+        this.http.get<RoleSpecificUser[]>(`http://localhost:8085/api/conversations/${this.currentChat.conversationId}/members`).subscribe({
+            next: (members) => {
+                this.groupMembers = members;
+                this.showViewMembersModal = true;
+                this.isLoading = false;
+                this.cdr.detectChanges();
+            },
+            error: (error) => {
+                console.error('Erreur lors de la récupération des membres:', error);
+                let errorMessage = 'Échec de la récupération des membres.';
+                if (error.status === 404) {
+                    errorMessage = 'Conversation non trouvée.';
+                } else if (error.status === 400) {
+                    errorMessage = 'Requête invalide.';
+                }
+                alert(errorMessage);
+                this.isLoading = false;
+                this.cdr.detectChanges();
             }
         });
     }
@@ -243,6 +258,12 @@ export class ChatComponent implements OnInit, OnDestroy {
         this.showAddMemberModal = false;
         this.availableUsers = [];
         this.selectedUser = null;
+        this.cdr.detectChanges();
+    }
+
+    closeViewMembersModal(): void {
+        this.showViewMembersModal = false;
+        this.groupMembers = [];
         this.cdr.detectChanges();
     }
 
@@ -274,11 +295,50 @@ export class ChatComponent implements OnInit, OnDestroy {
                 }
                 alert(errorMessage);
                 this.isLoading = false;
+                this.cdr.detectChanges();
             }
         });
     }
 
-    // Rest of your existing methods remain unchanged
+    leaveGroup(): void {
+        if (!this.currentUserId || !this.currentChat.conversationId) {
+            console.error('Impossible de quitter le groupe: ID utilisateur ou ID de conversation manquant');
+            return;
+        }
+
+        if (!confirm('Êtes-vous sûr de vouloir quitter ce groupe ?')) {
+            return;
+        }
+
+        this.isLoading = true;
+        const headers = new HttpHeaders({
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        });
+
+        this.http.delete(`http://localhost:8085/api/conversations/${this.currentChat.conversationId}/leave`, { headers }).subscribe({
+            next: () => {
+                alert('Vous avez quitté le groupe avec succès.');
+                this.isLoading = false;
+                this.goBack.emit();
+                this.cdr.detectChanges();
+            },
+            error: (error) => {
+                console.error('Erreur lors de la tentative de quitter le groupe:', error);
+                let errorMessage = 'Échec de la tentative de quitter le groupe.';
+                if (error.status === 404) {
+                    errorMessage = 'Conversation ou utilisateur non trouvé.';
+                } else if (error.status === 400) {
+                    errorMessage = error.error || 'Vous ne pouvez pas quitter ce groupe (par exemple, vous êtes le créateur).';
+                } else if (error.status === 401) {
+                    errorMessage = 'Non autorisé. Veuillez vous reconnecter.';
+                }
+                alert(errorMessage);
+                this.isLoading = false;
+                this.cdr.detectChanges();
+            }
+        });
+    }
+
     private setupWebSocket(): void {
         if (!this.currentUserId || !this.currentChat.conversationId) {
             console.error('Impossible de configurer WebSocket: ID utilisateur ou ID de conversation manquant');
@@ -303,24 +363,11 @@ export class ChatComponent implements OnInit, OnDestroy {
                             if (isNewMessage) {
                                 this.messages.push(mappedMessage);
                                 this.scrollToBottom();
-                                if (!messageDTO.isRead && messageDTO.senderId !== this.currentUserId && (messageDTO.recipientId === this.currentUserId || messageDTO.groupId) && messageDTO.id) {
-                                    this.http
-                                        .put('http://localhost:8085/api/messages/mark-as-read', [messageDTO.id], {
-                                            params: { userId: this.currentUserId!.toString() }
-                                        })
-                                        .subscribe({
-                                            next: () => {
-                                                const index = this.messages.findIndex((m) => m.id === messageDTO.id);
-                                                if (index !== -1) {
-                                                    this.messages[index].read = true;
-                                                    this.cdr.detectChanges();
-                                                }
-                                                this.messagesMarkedAsRead.emit(this.currentChat.conversationId);
-                                            },
-                                            error: (err) => {
-                                                console.error('Error marking message as read:', err);
-                                            }
-                                        });
+                                if (!messageDTO.isRead && 
+                                    messageDTO.senderId !== this.currentUserId && 
+                                    messageDTO.id && 
+                                    (messageDTO.recipientId === this.currentUserId || this.currentChat.isGroup)) {
+                                    this.markMessagesAsRead([messageDTO.id]);
                                 }
                             } else {
                                 const index = this.messages.findIndex((m) => m.id === mappedMessage.id);
@@ -355,7 +402,7 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     private isGroupChat(): boolean {
-        return this.currentChat.isGroup || this.currentChat.name?.toLowerCase().includes('groupe') || (!this.currentChat.id && !!this.currentChat.conversationId) || this.currentChat.avatar?.toLowerCase().includes('group') || false;
+        return this.currentChat.isGroup || false;
     }
 
     private loadMessages(): void {
@@ -369,13 +416,26 @@ export class ChatComponent implements OnInit, OnDestroy {
     }
 
     private fetchMessages(page: number, prepend: boolean): void {
+        if (!this.currentUserId) {
+            console.error('Cannot fetch messages: No user ID available');
+            this.isLoading = false;
+            this.isLoadingOlder = false;
+            return;
+        }
+
         this.http
             .get<MessageDTO[]>(`http://localhost:8085/api/messages/conversation/${this.currentChat.conversationId}`, {
-                params: { page: page.toString(), size: this.pageSize.toString() }
+                params: {
+                    page: page.toString(),
+                    size: this.pageSize.toString(),
+                    userId: this.currentUserId.toString()
+                }
             })
             .subscribe({
                 next: (messages) => {
+                    console.log('Fetched messages:', messages);
                     Promise.all(messages.map((dto) => this.fetchAndMapMessage(dto))).then((mappedMessages) => {
+                        console.log('Mapped messages:', mappedMessages);
                         let newMessages = mappedMessages.filter((msg) => msg !== null) as Message[];
                         if (prepend) {
                             newMessages = newMessages.reverse();
@@ -383,24 +443,14 @@ export class ChatComponent implements OnInit, OnDestroy {
                         } else {
                             this.messages = newMessages.reverse();
                         }
+                        console.log('Updated messages array:', this.messages);
                         this.hasMoreMessages = newMessages.length === this.pageSize;
                         this.scrollToBottom();
-                        const unreadMessageIds = messages.filter((m) => !m.isRead && m.recipientId === this.currentUserId).map((m) => m.id!);
+                        const unreadMessageIds = messages
+                            .filter((m) => !m.isRead && m.senderId !== this.currentUserId && m.id)
+                            .map((m) => m.id!);
                         if (unreadMessageIds.length > 0) {
-                            this.http
-                                .put('http://localhost:8085/api/messages/mark-as-read', unreadMessageIds, {
-                                    params: { userId: this.currentUserId!.toString() }
-                                })
-                                .subscribe({
-                                    next: () => {
-                                        this.messages = this.messages.map((msg) => ({
-                                            ...msg,
-                                            read: unreadMessageIds.includes(msg.id!) ? true : msg.read
-                                        }));
-                                        this.messagesMarkedAsRead.emit(this.currentChat.conversationId);
-                                        this.cdr.detectChanges();
-                                    }
-                                });
+                            this.markMessagesAsRead(unreadMessageIds);
                         }
                         this.isLoading = false;
                         this.isLoadingOlder = false;
@@ -408,9 +458,41 @@ export class ChatComponent implements OnInit, OnDestroy {
                     });
                 },
                 error: (err) => {
-                    console.error(`Erreur lors du chargement des messages pour la conversation ${this.currentChat.conversationId}:`, err);
+                    console.error(`Error fetching messages for conversation ${this.currentChat.conversationId}:`, err);
                     this.isLoading = false;
                     this.isLoadingOlder = false;
+                    this.cdr.detectChanges();
+                }
+            });
+    }
+
+    private markMessagesAsRead(messageIds: number[]): void {
+        if (!this.currentUserId || messageIds.length === 0) {
+            console.warn('Cannot mark messages as read: Missing userId or messageIds');
+            return;
+        }
+
+        console.log(`Marking messages as read: messageIds=${messageIds}, userId=${this.currentUserId}`);
+        this.http
+            .put('http://localhost:8085/api/messages/mark-as-read', messageIds, {
+                params: { userId: this.currentUserId.toString() },
+                headers: new HttpHeaders({
+                    'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+                })
+            })
+            .subscribe({
+                next: () => {
+                    console.log('Messages marked as read successfully:', messageIds);
+                    this.messages = this.messages.map((msg) => ({
+                        ...msg,
+                        read: messageIds.includes(msg.id!) ? true : msg.read
+                    }));
+                    this.messagesMarkedAsRead.emit(this.currentChat.conversationId);
+                    this.cdr.detectChanges();
+                },
+                error: (err) => {
+                    console.error('Error marking messages as read:', err);
+                    alert('Failed to mark messages as read. Please try again.');
                 }
             });
     }

@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Entity
@@ -18,9 +19,11 @@ public class CoachRequest {
     private Long id;
 
     @NotBlank
+    @Size(min = 2, max = 100)
     private String firstName;
 
     @NotBlank
+    @Size(min = 2, max = 100)
     private String lastName;
 
     @Email
@@ -28,9 +31,6 @@ public class CoachRequest {
     private String email;
 
     private String phoneNumber;
-
-    @Size(min = 2, max = 100)
-    private String specialization;
 
     private Integer yearsOfExperience;
 
@@ -44,4 +44,32 @@ public class CoachRequest {
     private RequestStatus status;
 
     private LocalDateTime createdAt;
+
+    @Column(name = "is_binome")
+    private boolean isBinome;
+
+    @Column(name = "binome_invitation_token")
+    private String binomeInvitationToken;
+
+    @Column(name = "related_binome_request_id")
+    private Long relatedBinomeRequestId;
+
+    @Email
+    @Column(name = "binome_email")
+    private String binomeEmail;
+
+    @Column(name = "is_certified")
+    private Boolean isCertified;
+
+    @Column(name = "total_proposed_fee")
+    private Double totalProposedFee;
+
+    @Column(name = "cv_url")
+    private String cvUrl;
+
+    @Column(name = "training_program_url")
+    private String trainingProgramUrl;
+
+    @OneToMany(mappedBy = "coachRequest", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CertificationDocument> certificationDocuments;
 }

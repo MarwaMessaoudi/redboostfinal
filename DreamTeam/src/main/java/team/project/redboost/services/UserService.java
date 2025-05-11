@@ -15,27 +15,33 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class UserService { // No need to implement an interface
+public class UserService {
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder; // Use the PasswordEncoder interface
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
     public User addUser(User user) {
-
         if (user.getPassword() != null && !user.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         } else {
-            // If the user is authenticated via Firebase, do not encode the password
-            user.setPassword(null); // or generate a random secure password if needed
+            user.setPassword(null);
         }
         return userRepository.save(user);
     }
 
     public User findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public User findById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + id));
     }
 
     public User findByProviderId(String providerId) {
@@ -46,15 +52,13 @@ public class UserService { // No need to implement an interface
         return userRepository.save(user);
     }
 
-
     public String generatePasswordResetToken(User user) {
         String token = UUID.randomUUID().toString();
         user.setResetToken(token);
-        user.setResetTokenExpiry(LocalDateTime.now().plusHours(24)); // Token valid for 24 hours
+        user.setResetTokenExpiry(LocalDateTime.now().plusHours(24));
         userRepository.save(user);
         return token;
     }
-
 
     public class InvalidTokenException extends RuntimeException {
         public InvalidTokenException(String message) {
@@ -86,18 +90,11 @@ public class UserService { // No need to implement an interface
     }
 
 
-
-    @Autowired
-    private CloudinaryService cloudinaryService;
-
     public void updateProfilePicture(String email, String imageUrl) {
-        // Find the user by email
         User user = userRepository.findByEmail(email);
         if (user == null) {
             throw new RuntimeException("User not found");
         }
-
-        // Update the profile picture URL
         user.setProfilePictureUrl(imageUrl);
         userRepository.save(user);
     }
@@ -105,6 +102,7 @@ public class UserService { // No need to implement an interface
     public List<User> getAllCoaches() {
         return userRepository.findByRole(Role.COACH);
     }
+
     public List<User> getUsersByRoles(List<Role> roles) {
         return userRepository.findByRoleIn(roles);
     }
